@@ -3,9 +3,9 @@
 Lenguaje: PERL
 Dependencias: 
 
--GD
--Tk-MultiMediaControls
--Script ```plot_latlong.pl``` ubicado en el directorio superior
+..* GD
+..* Tk-MultiMediaControls
+..* Script ```plot_latlong.pl``` ubicado en el directorio superior
 
 *Procedimiento*
 
