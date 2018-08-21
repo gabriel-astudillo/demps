@@ -1,7 +1,11 @@
 *Scripts para visualizar los archivos log de DEMPS*
 
 Lenguaje: PERL
-Dependencias: GD, Tk-MultiMediaControls
+Dependencias: 
+
+-GD
+-Tk-MultiMediaControls
+-Script ```plot_latlong.pl``` ubicado en el directorio superior
 
 *Procedimiento*
 
