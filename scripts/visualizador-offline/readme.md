@@ -1,4 +1,4 @@
-*Scripts para visualizar los archivos log de DEMPS*
+# Scripts para visualizar los archivos log de DEMPS*
 
 Lenguaje: PERL
 Dependencias: 
@@ -7,7 +7,7 @@ Dependencias:
 * Tk-MultiMediaControls
 * Script ```plot_latlong.pl``` ubicado en el directorio superior
 
-*Procedimiento*
+## Procedimiento
 
 1) Crear los archivos imagen:
 ```
