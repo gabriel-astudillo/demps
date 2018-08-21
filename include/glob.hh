@@ -40,6 +40,7 @@
 #include <string>
 #include <mutex>
 #include <list>
+#include <random>
 
 #include <json.hpp>
 #include <kdtree++/kdtree.hpp>

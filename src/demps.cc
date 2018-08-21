@@ -85,7 +85,7 @@ int main(int argc,char** argv) {
     } /*else
         projector=std::make_shared<LocalCartesian>(reference_point["features"][0]["geometry"]["coordinates"][1],reference_point["features"][0]["geometry"]["coordinates"][0],0,Geocentric::WGS84());*/
 
-    Simulator sim(settings,initial_zones,reference_zones,reference_point,map_osrm);
+	Simulator sim(settings,initial_zones,reference_zones,reference_point,map_osrm);
 
     sim.calibrate();
     sim.run();

@@ -10,7 +10,7 @@
 			}
 		},
 		{
-			"number" : 2500,
+			"number" : 0,
 			"model" : "FollowTheCrowd",
 			"speed" : {
 				"min" : 0.1, 

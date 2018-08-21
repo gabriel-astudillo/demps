@@ -9,7 +9,9 @@ Simulator::Simulator(const json &_fsettings,const json &_finitial_zones,const js
 
     this->_fsettings=_fsettings;
     this->_projector=LocalCartesian(_freference_point["features"][0]["geometry"]["coordinates"][1],_freference_point["features"][0]["geometry"]["coordinates"][0],0,Geocentric::WGS84());
-    this->_router=Router(_freference_point,_map_osrm);
+    
+	//std::cout << _freference_point << std::endl;
+	this->_router=Router(_freference_point,_map_osrm);
 
     for(auto& feature : _freference_zones["features"])
         this->_reference_zones.push_back(Zone(_freference_point,feature));
