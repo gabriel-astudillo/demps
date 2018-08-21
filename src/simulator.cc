@@ -1,5 +1,19 @@
 #include <simulator.hh>
 
+
+void printProgress (double percentage)
+{
+	std::string PBSTR = "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||";
+	int PBWIDTH = PBSTR.length();
+	
+    int val = (int) (percentage * 100);
+    int lpad = (int) (percentage * PBWIDTH);
+    int rpad = PBWIDTH - lpad;
+    printf ("\r%3d%% [%.*s%*s]", val, lpad, PBSTR.c_str(), rpad, "");
+    fflush (stdout);
+}
+
+
 Simulator::Simulator(void) {
 
 }
@@ -9,9 +23,7 @@ Simulator::Simulator(const json &_fsettings,const json &_finitial_zones,const js
 
     this->_fsettings=_fsettings;
     this->_projector=LocalCartesian(_freference_point["features"][0]["geometry"]["coordinates"][1],_freference_point["features"][0]["geometry"]["coordinates"][0],0,Geocentric::WGS84());
-    
-	//std::cout << _freference_point << std::endl;
-	this->_router=Router(_freference_point,_map_osrm);
+    this->_router=Router(_freference_point,_map_osrm);
 
     for(auto& feature : _freference_zones["features"])
         this->_reference_zones.push_back(Zone(_freference_point,feature));
@@ -31,17 +43,22 @@ Simulator::Simulator(const json &_fsettings,const json &_finitial_zones,const js
 }
 void Simulator::calibrate(void) {
     std::cout << "calibrating" << std::endl;
+	
+	uint32_t calibration_time = this->_fsettings["calibration"].get<uint32_t>();
 
-    for(uint32_t t=0U; t<CALIBRATION_TIME; t++) {
+    for(uint32_t t=0; t<calibration_time; t++) {
+		//uint32_t it = 0;
         for(auto& agent : this->_agents){
             if(this->_routes[agent.id()].empty()){
                auto response=this->_router.route(agent.position(),RANDOMWALKWAY_RADIUS);
                this->_routes[agent.id()]=response.path();
             }
             agent.random_walkway(this->_routes[agent.id()]);
+			//printProgress(double(it++)/double( this->_agents.size() ));
         }
     }
 
+	uint32_t it = 0;
     for(auto& agent : this->_agents) {
         switch(agent.model()) {
         case SHORTESTPATH: {
@@ -63,25 +80,31 @@ void Simulator::calibrate(void) {
             exit(EXIT_FAILURE);
         }
         }
+		printProgress(double(it++)/double(this->_agents.size()));
     }
 }
 double distance(Agent a,Agent b){
    return(sqrt(CGAL::squared_distance(a.position(),b.position())));
 }
 void Simulator::run(void) {
-    this->run(this->_fsettings["duration"],true);
+    this->run( this->_fsettings["duration"] );
 }
-void Simulator::run(const uint32_t &_duration,const bool &_save_to_disk) {
+void Simulator::run(const uint32_t &_duration) {
     std::cout << "simulating" << std::endl;
+	
+	bool save_to_disk = this->_fsettings["output"]["filesim-out"].get<bool>();
+	uint32_t interval = this->_fsettings["output"]["interval"].get<uint32_t>();
 
     Router router=this->_router;
     Environment env(this->_agents);
     
     for(uint32_t t=0U; t<_duration; t++) {
         std::cout << "time: "<< t << std::endl;
-        if(_save_to_disk && ((t%SAVE)==0)) this->save(t/SAVE);
+        if(save_to_disk && ((t%interval)==0)) {
+			this->save(t); //GAM: 16/08/2018, WAS this->save(t/SAVE) 
+		} 
 
-        #pragma omp parallel for firstprivate(router) schedule(dynamic,8) shared(env)
+        //#pragma omp parallel for firstprivate(router) schedule(dynamic,8) shared(env)
         for(uint32_t i=0U;i<this->_agents.size();i++){
             switch(this->_agents[i].model()) {
             case SHORTESTPATH: {
@@ -115,6 +138,9 @@ void Simulator::run(const uint32_t &_duration,const bool &_save_to_disk) {
         }
         env.update(this->_agents);
     }
+	
+	//getchar();
+	
 }
 
 Simulator::~Simulator(void) {
@@ -123,13 +149,33 @@ Simulator::~Simulator(void) {
     this->_reference_zones.clear();
 }
 void Simulator::save(const uint32_t &_t) {
-    static std::map<uint32_t,int> types={{9366416273040049814U,0},{10676684734677566718U,1},{5792789823329120861U,2}};//model
+    static std::map<model_t,int> types={{SHORTESTPATH,0},{FOLLOWTHECROWD,1},{RANDOMWALKWAY,2}};//model
 
-    std::ofstream ofs(this->_fsettings["output"]["directory-path"].get<std::string>()+"/"+this->_fsettings["output"]["filename-prefix"].get<std::string>()+std::to_string(_t)+this->_fsettings["output"]["filename-sufix"].get<std::string>());
 
+	std::string nameFile = this->_fsettings["output"]["filesim-prefix"].get<std::string>()+std::to_string(_t)+this->_fsettings["output"]["filesim-sufix"].get<std::string>();
+    std::string pathFile = this->_fsettings["output"]["filesim-path"].get<std::string>() + "/" + nameFile ;
+	std::ofstream ofs(pathFile);
+		
     for(auto& agent : this->_agents) {
         double latitude,longitude,h;
         this->_projector.Reverse(agent.position()[0],agent.position()[1],0,latitude,longitude,h);
         ofs << agent.id() << " " << latitude << " " << longitude << " " << types[agent.model()] <<std::endl;
     }
+	
+	/*auto image_out = _fsettings["output"]["image-out"].get<bool>();
+	
+	if(image_out){
+		std::string nameFilePng = this->_fsettings["output"]["image-prefix"].get<std::string>()+std::to_string(_t)+ ".png";
+		std::string pathFilePng = this->_fsettings["output"]["image-path"].get<std::string>() + "/" + nameFilePng ;
+		
+		std::string image_helper = this->_fsettings["output"]["image-helper"].get<std::string>();
+	
+		std::string cmd = "cat " + pathFile + " | " + image_helper + " > " + pathFilePng;
+		//std::cout << cmd << std::endl;
+		system(cmd.c_str());	
+	}*/
+	
+	
+	
+	//showfile( pathFilePng.c_str() );
 }
