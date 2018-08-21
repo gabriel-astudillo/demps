@@ -22,7 +22,7 @@ private:
 
     std::map<uint32_t,std::list<Point2D>> _routes;
 
-    void run(const uint32_t&,const bool&);
+    void run(const uint32_t&);
     void save(const uint32_t&);
 
 public:
