@@ -1,12 +1,21 @@
-Scripts para visualizar los archivos log de DEMPS
+*Scripts para visualizar los archivos log de DEMPS*
 
 Lenguaje: PERL
 Dependencias: GD, Tk-MultiMediaControls
 
+*Procedimiento*
 
-Para crear los archivos imagen, se debe ejecutar:
+1) Crear los archivos imagen:
 ```
 ./make_maps.pl -r ../../results
+```
+donde ```../../results``` es el directorio de los logs de DEMPS.
+Los archivos PNG resultantes se almacenan en el directorio ```mapimages_sim``` (si no existe, el script lo crea). Se recomienda eliminar los archivos existentes si este directorio existe.
 
+2) Para obtener una visualización temporal, ejecutar:
+```
+./anim.pl
+```
+Los archivos los carga desde el directorio ```mapimages_sim```
 
-donde
+3) El archivo ```global.pm``` tiene la configuración global utilizada por ambas scripts.
