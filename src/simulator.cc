@@ -59,6 +59,7 @@ void Simulator::calibrate(void) {
     }
 
 	uint32_t it = 0;
+	
     for(auto& agent : this->_agents) {
         switch(agent.model()) {
         case SHORTESTPATH: {
@@ -104,7 +105,7 @@ void Simulator::run(const uint32_t &_duration) {
 			this->save(t); //GAM: 16/08/2018, WAS this->save(t/SAVE) 
 		} 
 
-        //#pragma omp parallel for firstprivate(router) schedule(dynamic,8) shared(env)
+		#pragma omp parallel for firstprivate(router) schedule(dynamic,8) shared(env)
         for(uint32_t i=0U;i<this->_agents.size();i++){
             switch(this->_agents[i].model()) {
             case SHORTESTPATH: {
@@ -139,8 +140,6 @@ void Simulator::run(const uint32_t &_duration) {
         env.update(this->_agents);
     }
 	
-	//getchar();
-	
 }
 
 Simulator::~Simulator(void) {
@@ -162,20 +161,4 @@ void Simulator::save(const uint32_t &_t) {
         ofs << agent.id() << " " << latitude << " " << longitude << " " << types[agent.model()] <<std::endl;
     }
 	
-	/*auto image_out = _fsettings["output"]["image-out"].get<bool>();
-	
-	if(image_out){
-		std::string nameFilePng = this->_fsettings["output"]["image-prefix"].get<std::string>()+std::to_string(_t)+ ".png";
-		std::string pathFilePng = this->_fsettings["output"]["image-path"].get<std::string>() + "/" + nameFilePng ;
-		
-		std::string image_helper = this->_fsettings["output"]["image-helper"].get<std::string>();
-	
-		std::string cmd = "cat " + pathFile + " | " + image_helper + " > " + pathFilePng;
-		//std::cout << cmd << std::endl;
-		system(cmd.c_str());	
-	}*/
-	
-	
-	
-	//showfile( pathFilePng.c_str() );
 }
