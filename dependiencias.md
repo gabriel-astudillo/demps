@@ -1,0 +1,15 @@
+#Dependencias
+
+## Geographic lib
+
+1) Bajar de https://geographiclib.sourceforge.io, descomprimir y entrar al directorio.
+2) Compilar e instalar la librería en el directorio por omisión ```/usr/local/```:
+```
+mkdir build
+cd build
+../configure
+make
+make install
+```
+
+3) Incluir la biblioteca ```<GeographicLib/LocalCartesian.hpp>```. En el linker, agregar ```-lGeographic```
