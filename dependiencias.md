@@ -11,7 +11,7 @@ cd build
 make
 make install (!)
 ```
-(!) Necesita permisos de superusario
+(!) Necesita permisos de superusario.
 
 3) Incluir la biblioteca ```<GeographicLib/LocalCartesian.hpp>```. En el linker, agregar ```-lGeographic```
 
@@ -31,8 +31,20 @@ Versión: ≥ 4.10
 ```
 mkdir build
 cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release
+cmake .. -DCMAKE_BUILD_TYPE=Release (!)
 cmake --build .
-cmake --build . --target intall  (!)
+cmake --build . --target intall  (!!)
 ```
-(!) Necesita permisos de superusario
+(!) Este proceso necesita al menos 3GB en RAM.
+(!!) Necesita permisos de superusario.
+
+## kdtree
+```
+git clone https://github.com/nvmd/libkdtree.git
+./configure
+make install (!)
+```
+(!) Necesita permisos de superusario.
+
+
+
