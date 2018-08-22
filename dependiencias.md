@@ -1,5 +1,17 @@
 # Dependencias
 
+## JSON
+
+JSON for Modern C++: https://github.com/nlohmann/json
+
+1) Bajar la biblioteca desde https://github.com/nlohmann/json/blob/develop/single_include/nlohmann/json.hpp
+2) Incluirla como:
+```
+#include "json.hpp"
+using json = nlohmann::json;
+```
+
+
 ## Geographic lib
 
 1) Bajar de https://geographiclib.sourceforge.io, descomprimir y entrar al directorio respectivo.
@@ -24,6 +36,8 @@ Versión: ≥ 4.10
 * Linux: ```apt-get install libcgal-dev```
 * Mac: ```port install cgal```
 
+En el linker, agregar ```-lCGAL```.
+
 ## OSRM backend
 
 1) Bajar de https://github.com/Project-OSRM/osrm-backend/releases, descomprimir y entrar al directorio respectivo.
@@ -38,6 +52,8 @@ cmake --build . --target intall  (!!)
 (!) Este proceso necesita al menos 3GB en RAM.
 
 (!!) Necesita permisos de superusario.
+
+En el linker, agregar ```-losrm```.
 
 ## kdtree
 ```
