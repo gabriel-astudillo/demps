@@ -24,6 +24,6 @@ Los archivos los carga desde el directorio ```mapimages_sim```. El archivo ```gl
 
 Tambien se puede utilizar el script:
 ```
-./anim.gif.sh
+./anim_gif.sh
 ```
 Este script utiliza el comando ```convert``` de la librería ImageMagick para crear un gif animado con la secuencia de imagénes del directorio ```mapimages_sim```.
