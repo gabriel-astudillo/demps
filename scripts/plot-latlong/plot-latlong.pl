@@ -99,9 +99,9 @@ my $first_map;
 my $map_directory;  # directory containing map images
 my %configuration;
 
-my $base_path = dirname(abs_path($0));
+my $base_path = dirname(abs_path($0)); # GAM 21/08/2018
 
-my @mapinfo_locations = ("$base_path/plot-latlong-conf/mapinfo", "$ENV{HOME}/.mapinfo");
+my @mapinfo_locations = ("$base_path/plot-latlong-conf/mapinfo", "$ENV{HOME}/.mapinfo"); # GAM 21/08/2018
 if ($opt_i) {
     unshift @mapinfo_locations, $opt_i;
 }
@@ -146,10 +146,14 @@ my $map;
 
 my $green;
 my $red;
+my $blue;
 
 $map = load_map($selected_map);
-$green = $map->colorAllocate(64, 192, 64);
-$red = $map->colorAllocate(220, 64, 64);
+$red   = $map->colorAllocate(255, 0  , 0  ); # GAM 21/08/2018
+$green = $map->colorAllocate(0  , 255, 0  ); # GAM 21/08/2018
+$blue  = $map->colorAllocate(0  , 0  , 255); # GAM 21/08/2018
+
+my @agent_color = ($red, $green, $blue);
  
 while (<>)
 {
@@ -159,7 +163,7 @@ while (<>)
 
   # REQUIRE: -90 <= $lat <= 90
   #my ($lat, $long) = split /\s+/; #Original
-  my ($id, $lat, $long, $z) = split /\s+/;
+  my ($id, $lat, $long, $agent_type) = split /\s+/; # GAM 21/08/2018
   
   my $adjusted_long = $long;
   if ($long < $map_top_long) {
@@ -173,7 +177,8 @@ while (<>)
 
   if ($point_size == 1)
   {
-    $map->setPixel($x, $y, $red);
+    #$map->setPixel($x, $y, $red);
+	$map->setPixel($x, $y, $agent_color[$agent_type]); # GAM 21/08/2018
   }
   else
   {
