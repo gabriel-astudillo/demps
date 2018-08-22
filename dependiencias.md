@@ -1,4 +1,4 @@
-#Dependencias
+# Dependencias
 
 ## Geographic lib
 
@@ -11,5 +11,11 @@ cd build
 make
 make install
 ```
-
 3) Incluir la biblioteca ```<GeographicLib/LocalCartesian.hpp>```. En el linker, agregar ```-lGeographic```
+
+## CGAL
+
+https://www.cgal.org: The Computational Geometry Algorithms Library
+
+* Linux: ```apt-get install libcgal-dev```
+* Mac: ```port install cgal```
