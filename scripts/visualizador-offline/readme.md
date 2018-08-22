@@ -1,8 +1,8 @@
 # Scripts para visualizar los archivos log de DEMPS*
 
+# Scripts: ```make_maps.pl``` y ```anim.pl```
 Lenguaje: PERL
 Dependencias: 
-
 * GD
 * Tk-MultiMediaControls
 * Script ```plot_latlong.pl``` ubicado en el directorio superior
