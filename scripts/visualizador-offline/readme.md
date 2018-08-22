@@ -1,6 +1,6 @@
 # Scripts para visualizar los archivos log de DEMPS*
 
-# Scripts: ```make_maps.pl``` y ```anim.pl```
+### Scripts: ```make_maps.pl``` y ```anim.pl```
 Lenguaje: PERL
 Dependencias: 
 * GD
