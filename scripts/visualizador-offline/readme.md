@@ -7,6 +7,11 @@ Dependencias:
 * Tk-MultiMediaControls
 * Script ```plot_latlong.pl``` ubicado en el directorio superior
 
+### Script ```anim_gif.sh```
+Lenguaje: BASH
+Dependencias: 
+* comando ```convert``` de la libreria ```ImageMagick```
+
 ## Procedimiento
 
 1) Crear los archivos imagen:
