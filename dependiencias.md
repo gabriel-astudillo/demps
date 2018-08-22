@@ -14,6 +14,8 @@ using json = nlohmann::json;
 
 ## Geographic lib
 
+"GeographicLib is a small set of C++ classes for performing conversions between geographic, UTM, UPS, MGRS, geocentric, and local cartesian coordinates", https://geographiclib.sourceforge.io
+
 1) Bajar de https://geographiclib.sourceforge.io, descomprimir y entrar al directorio respectivo.
 2) Compilar e instalar la librería en el directorio por omisión ```/usr/local/```:
 ```
@@ -29,7 +31,7 @@ make install (!)
 
 ## CGAL
 
-https://www.cgal.org: The Computational Geometry Algorithms Library
+The Computational Geometry Algorithms Library, https://www.cgal.org
 
 Versión: ≥ 4.10
 
@@ -39,6 +41,8 @@ Versión: ≥ 4.10
 En el linker, agregar ```-lCGAL```.
 
 ## OSRM backend
+
+Open Source Routing Machine: The OpenStreetMap Data Routing Engine, http://project-osrm.org
 
 1) Bajar de https://github.com/Project-OSRM/osrm-backend/releases, descomprimir y entrar al directorio respectivo.
 2) Compilar e instalar. Por omisión, ```--prefix=/usr/local```:
