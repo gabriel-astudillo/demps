@@ -41,7 +41,7 @@ En el linker, agregar ```-lCGAL```.
 ## OSRM backend
 
 1) Bajar de https://github.com/Project-OSRM/osrm-backend/releases, descomprimir y entrar al directorio respectivo.
-2) Compilar e instalar la librería en el directorio por omisión ```/usr/local/```:
+2) Compilar e instalar. Por omisión, ```--prefix=/usr/local```:
 ```
 mkdir build
 cd build
@@ -56,7 +56,7 @@ cmake --build . --target intall  (!!)
 En el linker, agregar ```-losrm```.
 
 ## kdtree
-1) Instalar
+1) Instalar. Por omisión, ```--prefix=/usr/local```
 ```
 git clone https://github.com/nvmd/libkdtree.git
 ./configure
