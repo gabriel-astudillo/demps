@@ -36,6 +36,7 @@ cmake --build .
 cmake --build . --target intall  (!!)
 ```
 (!) Este proceso necesita al menos 3GB en RAM.
+
 (!!) Necesita permisos de superusario.
 
 ## kdtree
