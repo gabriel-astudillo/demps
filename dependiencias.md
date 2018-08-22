@@ -17,5 +17,10 @@ make install
 
 https://www.cgal.org: The Computational Geometry Algorithms Library
 
+Versión: ≥ 4.10
+
 * Linux: ```apt-get install libcgal-dev```
 * Mac: ```port install cgal```
+
+## OSRM backend
+
