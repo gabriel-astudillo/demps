@@ -20,6 +20,10 @@ Los archivos PNG resultantes se almacenan en el directorio ```mapimages_sim``` (
 ```
 ./anim.pl
 ```
-Los archivos los carga desde el directorio ```mapimages_sim```
+Los archivos los carga desde el directorio ```mapimages_sim```. El archivo ```global.pm``` tiene la configuración global utilizada por ambos scripts.
 
-3) El archivo ```global.pm``` tiene la configuración global utilizada por ambas scripts.
+Tambien se puede utilizar el script:
+```
+./anim.gif.sh
+```
+Este script utiliza el comando ```convert``` de la librería ImageMagick para crear un gif animado con la secuencia de imagénes del directorio ```mapimages_sim```.
