@@ -187,7 +187,7 @@ while (<>)
     my $top_y = $y - $half;
     $map->filledRectangle($left_x, $top_y,
 			  $left_x + $point_size - 1, $top_y + $point_size - 1,
-			  $red);
+			  $agent_color[$agent_type]); # GAM 03/09/2018 was: $red);			  
   }
 }
 
