@@ -17,4 +17,4 @@ dir_img="mapimages_sim"
 
 convert -delay 10 -loop 0 $dir_img/*.png anim.gif
 
-rm -rf $temp
+#rm -rf $temp
