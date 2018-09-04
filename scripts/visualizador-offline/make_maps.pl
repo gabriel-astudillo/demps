@@ -79,7 +79,12 @@ foreach my $file (@files) {
 	my $path_file = "$sim_data_results_directory/$file";
 	my $file_img = $file;
 	
-	$file_img =~ s/\..*/.png/;
+	#$file_img =~ s/(\d+)\..*/$1.png/;
+	$file_img =~ /(\d+)\..*/;
+	my $suff;
+	$suff = sprintf("%010d", $1);
+	$file_img = "$suff.png";
+	
 	my $cmd = "cat $path_file | $plot_latlong_script > $global::sim_img_results_directory/$file_img";
 	`$cmd`;
 	$isOk = 0; # Para el spinner
