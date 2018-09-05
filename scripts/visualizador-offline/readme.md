@@ -11,6 +11,7 @@ Dependencias:
 Lenguaje: BASH
 Dependencias: 
 * comando ```convert``` de la libreria ```ImageMagick```
+* comando ```gifsicle```. Página oficial: https://www.lcdf.org/gifsicle/. En debian, ```apt-get install gifsicle```
 
 ## Procedimiento
 
@@ -31,4 +32,4 @@ Tambien se puede utilizar el script:
 ```
 ./anim_gif.sh
 ```
-Este script utiliza el comando ```convert``` de la librería ImageMagick para crear un gif animado con la secuencia de imagénes del directorio ```mapimages_sim```.
+Este script utiliza el comando ```convert``` de la librería ImageMagick y ```gifsicle``` para crear un gif animado comprimido con la secuencia de imagénes del directorio ```mapimages_sim```.
