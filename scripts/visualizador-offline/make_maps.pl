@@ -87,7 +87,7 @@ foreach my $file (@files) {
 	$suff = sprintf("%010d", $1);
 	$file_img = "$suff.png";
 	
-	my $cmd = "cat $path_file | $plot_latlong_script > $global::sim_img_results_directory/$file_img";
+	my $cmd = "cat $path_file | $plot_latlong_script -t $1 > $global::sim_img_results_directory/$file_img";
 	`$cmd`;
 	$isOk = 0; # Para el spinner
 	$index++;
