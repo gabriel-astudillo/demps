@@ -2,15 +2,14 @@
 
 
 void printProgress (double percentage){
-	
 	std::string PBSTR = std::string(60, '*');
 	int PBWIDTH = PBSTR.length();
-	
-    int val = (int) (percentage * 100);
-    int lpad = (int) (percentage * PBWIDTH);
-    int rpad = PBWIDTH - lpad;
-    printf ("\r%3d%% [%.*s%*s]", val, lpad, PBSTR.c_str(), rpad, "");
-    fflush (stdout);
+
+	int val = (int) (percentage * 100);
+	int lpad = (int) (percentage * PBWIDTH);
+	int rpad = PBWIDTH - lpad;
+	printf ("\r%3d%% [%.*s%*s]", val, lpad, PBSTR.c_str(), rpad, "");
+	fflush (stdout);
 }
 
 
@@ -26,26 +25,26 @@ Simulator::Simulator(const json &_fsettings,const json &_finitial_zones,const js
     this->_router    = Router(_freference_point,_map_osrm);
 	
 
-    for(auto& feature : _freference_zones["features"]){
-        this->_reference_zones.push_back(Zone(_freference_point, feature));
+	for(auto& feature : _freference_zones["features"]){
+		this->_reference_zones.push_back(Zone(_freference_point, feature));
 	}
 
-    for(auto& feature : _finitial_zones["features"]){
+	for(auto& feature : _finitial_zones["features"]){
 		this->_initial_zones.push_back(Zone(_freference_point, feature));
 	}
 
-    uint32_t id=0;
-    
+	uint32_t id=0;
+
 	std::uniform_int_distribution<uint32_t> zone(0, this->_initial_zones.size()-1);
-	
-    for(auto& fagent : _fsettings["agents"]) {
-        for(uint32_t i=0; i<uint32_t(fagent["number"]); i++,id++) {
-            Point2D position=this->_initial_zones[zone(rng)].generate();
-			
+
+	for(auto& fagent : _fsettings["agents"]) {
+		for(uint32_t i=0; i<uint32_t(fagent["number"]); i++,id++) {
+			Point2D position=this->_initial_zones[zone(rng)].generate();
+
 			auto agent=Agent(id,position,fagent["speed"]["min"],fagent["speed"]["max"],model_t(this->_hash(fagent["model"].get<std::string>())));
-            this->_agents.push_back(agent);
-        }
-    }
+			this->_agents.push_back(agent);
+		}
+	}
 	
 	//Se crea el ambiente con los agentes recien creados. 
 	this->env = Environment(this->_agents);
@@ -56,55 +55,55 @@ void Simulator::calibrate(void) {
 	
 	std::cout << "Ajustando posición inicial de los agentes..." << std::endl;
 
-    for(uint32_t t=0; t<calibration_time; t++) {
+	for(uint32_t t=0; t<calibration_time; t++) {
 		printProgress(double(t)/double( calibration_time - 1));
-        for(auto& agent : this->_agents){
-            if(this->_routes[agent.id()].empty()){
-               auto response=this->_router.route(agent.position(),RANDOMWALKWAY_RADIUS);
-               this->_routes[agent.id()]=response.path();
-            }
-            agent.random_walkway(this->_routes[agent.id()]);
-        }
-    }
+		for(auto& agent : this->_agents){
+			if(this->_routes[agent.id()].empty()){
+				auto response=this->_router.route(agent.position(),RANDOMWALKWAY_RADIUS);
+				this->_routes[agent.id()]=response.path();
+			}
+			agent.random_walkway(this->_routes[agent.id()]);
+		}
+	}
 
 	std::cout << std::endl;
 	std::cout << "Ajustando reglas de los agentes... " << std::endl;
 	uint32_t it = 0;
 	//#pragma omp parallel firstprivate(_router) shared(env)
-    for(auto& agent : this->_agents) {
+	for(auto& agent : this->_agents) {
 		printProgress(double(it++)/double(this->_agents.size() - 1) );
-        switch(agent.model()) {
-	        case SHORTESTPATH: {
-	            double distance=DBL_MAX;
-	            for(auto &reference_zone : this->_reference_zones) {
-	                auto response=this->_router.route(agent.position(),reference_zone.generate());
-	                if(response.distance()<distance) {
-	                    distance=response.distance();
-	                    this->_routes[agent.id()]=response.path();
-	                }
-	            }
-	            break;
-	        }
-	        case RANDOMWALKWAY:  {					            
-	            break;
-	        }
-	        case FOLLOWTHECROWD: break;
-	        case WORKINGDAY: break;
-	        default: {
-	            std::cerr << "error::simulator_constructor::unknown_mobility_model::\"" << agent.model() << "\"" << std::endl;
-	            exit(EXIT_FAILURE);
-	        }
-        }
-    }
+		switch(agent.model()) {
+			case SHORTESTPATH: {
+				double distance=DBL_MAX;
+				for(auto &reference_zone : this->_reference_zones) {
+				    auto response=this->_router.route(agent.position(),reference_zone.generate());
+				    if(response.distance()<distance) {
+				        distance=response.distance();
+				        this->_routes[agent.id()]=response.path();
+				    }
+				}
+				break;
+			}
+			case RANDOMWALKWAY:  {					            
+				break;
+			}
+			case FOLLOWTHECROWD: break;
+			case WORKINGDAY: break;
+			default: {
+				std::cerr << "error::simulator_constructor::unknown_mobility_model::\"" << agent.model() << "\"" << std::endl;
+				exit(EXIT_FAILURE);
+			}
+		}
+	}
 }
 double distance(Agent a,Agent b){
-   return(sqrt(CGAL::squared_distance(a.position(),b.position())));
+	return(sqrt(CGAL::squared_distance(a.position(),b.position())));
 }
 void Simulator::run(void) {
-    this->run( this->_fsettings["duration"] );
+	this->run( this->_fsettings["duration"] );
 }
 void Simulator::run(const uint32_t &_duration) {
-    std::cout << std::endl << "Simulando..." << std::endl;
+	std::cout << std::endl << "Simulando..." << std::endl;
 	
 	bool save_to_disk = this->_fsettings["output"]["filesim-out"].get<bool>();
 	uint32_t interval = this->_fsettings["output"]["interval"].get<uint32_t>();
@@ -159,22 +158,22 @@ void Simulator::run(const uint32_t &_duration) {
 }
 
 Simulator::~Simulator(void) {
-    this->_agents.clear();
-    this->_initial_zones.clear();
-    this->_reference_zones.clear();
+	this->_agents.clear();
+	this->_initial_zones.clear();
+	this->_reference_zones.clear();
 }
 void Simulator::save(const uint32_t &_t) {
-    static std::map<model_t,int> types={{SHORTESTPATH,0},{FOLLOWTHECROWD,1},{RANDOMWALKWAY,2}};//model
+	static std::map<model_t,int> types={{SHORTESTPATH,0},{FOLLOWTHECROWD,1},{RANDOMWALKWAY,2}};//model
 
 
 	std::string nameFile = this->_fsettings["output"]["filesim-prefix"].get<std::string>()+std::to_string(_t)+this->_fsettings["output"]["filesim-sufix"].get<std::string>();
-    std::string pathFile = this->_fsettings["output"]["filesim-path"].get<std::string>() + "/" + nameFile ;
+	std::string pathFile = this->_fsettings["output"]["filesim-path"].get<std::string>() + "/" + nameFile ;
 	std::ofstream ofs(pathFile);
 		
-    for(auto& agent : this->_agents) {
-        double latitude,longitude,h;
-        this->_projector.Reverse(agent.position()[0],agent.position()[1],0,latitude,longitude,h);
-        ofs << agent.id() << " " << latitude << " " << longitude << " " << types[agent.model()] <<std::endl;
-    }
+	for(auto& agent : this->_agents) {
+		double latitude,longitude,h;
+		this->_projector.Reverse(agent.position()[0],agent.position()[1],0,latitude,longitude,h);
+		ofs << agent.id() << " " << latitude << " " << longitude << " " << types[agent.model()] <<std::endl;
+	}
 	
 }
