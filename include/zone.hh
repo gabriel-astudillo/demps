@@ -2,22 +2,21 @@
 #define _ZONE_H_
 #include <glob.hh>
 
-class Zone
-{
+class Zone {
 private:
-    LocalCartesian       _projector;
-    Polygon2D            _polygon;
-    CDT                  _cdt;
+	LocalCartesian       _projector;
+	Polygon2D            _polygon;
+	CDT                  _cdt;
 
 public:
-    Zone(void);
-    Zone(const json&,const json&);
-    Zone(const Zone&);
-    ~Zone(void);
+	Zone(void);
+	Zone(const json&,const json&);
+	Zone(const Zone&);
+	~Zone(void);
 
-    Zone& operator=(const Zone&);
+	Zone& operator=(const Zone&);
 
-    Point2D generate(void);
+	Point2D generate(void);
 	
 private:
 	void mark_domains(CDT& cdt);
