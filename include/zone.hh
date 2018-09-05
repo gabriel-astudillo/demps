@@ -18,5 +18,9 @@ public:
     Zone& operator=(const Zone&);
 
     Point2D generate(void);
+	
+private:
+	void mark_domains(CDT& cdt);
+	void mark_domains(CDT& ct, CDT::Face_handle start, int index, std::list<CDT::Edge>& border );
 };
 #endif
