@@ -51,17 +51,18 @@ if (! -e $global::sim_img_results_directory) {
 ###########SPINNER#############
 my $ready : shared = 0;
 my $isOk : shared  = 0;
+my $perc : shared  = 0;
 
 async {
     local $| = 1;
     while ( !$ready ) {
         do {
             select undef, undef, undef, 0.2;
-            printf "\r ($_)" if ($isOk);
+            printf "\r ($_) $perc%" if ($isOk);
           }
           for qw[ / - \ | ];
     }
-    print "\r    \n";
+    print "\r       OK\n";
     $ready = 0;
   }
   ->detach;
@@ -73,9 +74,10 @@ opendir(DIR, $sim_data_results_directory);
 closedir(DIR);
 @files = sort {$a <=> $b}  @files;
 
-
+my $index = 0;
 foreach my $file (@files) {
 	$isOk = 1; # Para el spinner
+	$perc = int($index / $#files * 100);
 	my $path_file = "$sim_data_results_directory/$file";
 	my $file_img = $file;
 	
@@ -88,6 +90,7 @@ foreach my $file (@files) {
 	my $cmd = "cat $path_file | $plot_latlong_script > $global::sim_img_results_directory/$file_img";
 	`$cmd`;
 	$isOk = 0; # Para el spinner
+	$index++;
 }
 
 $isOk = 0;  # Para el spinner
