@@ -5,8 +5,6 @@
 #include <glob.hh>
 #include <simulator.hh>
 
-std::shared_ptr<LocalCartesian> projector;
-
 int main(int argc,char** argv) {
 	char c;
 	std::string map_osrm;
