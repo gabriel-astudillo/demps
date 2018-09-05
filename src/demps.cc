@@ -80,13 +80,10 @@ int main(int argc,char** argv) {
 	    exit(EXIT_FAILURE);
 	} 
 	
-	
-	
 	Simulator sim(settings,initial_zones,reference_zones,reference_point,map_osrm);
 
 	sim.calibrate();
 	sim.run();
 
-
-	return(0);
+	return(EXIT_SUCCESS);
 }
