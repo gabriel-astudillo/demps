@@ -78,14 +78,14 @@ use File::Basename;
 use Cwd 'abs_path';
 use GD;
 use Getopt::Std;
-use vars qw($opt_m $opt_s $opt_c $opt_i);
+use vars qw($opt_m $opt_s $opt_c $opt_i $opt_t);
 
 sub usage
 {
   die "usage: cat datapoints | plot-latlong [-m <map-name>] [-s <point-size>] [-c] [-i <map-info-file>] >output.png\n";
 }
 
-if (not getopts('m:s:ci:'))
+if (not getopts('m:s:ci:t:'))
 {
   usage();
 }
@@ -189,6 +189,9 @@ while (<>)
 			  $left_x + $point_size - 1, $top_y + $point_size - 1,
 			  $agent_color[$agent_type]); # GAM 03/09/2018 was: $red);			  
   }
+  
+  # gdTinyFont, gdSmallFont, gdMediumBoldFont, gdLargeFont, gdGiantFont
+  $map->string(gdLargeFont, 2, 2, "t=$opt_t", $blue); # GAM 05/09/2018
 }
 
 print $map->png if not $DEBUG;
