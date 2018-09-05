@@ -15,6 +15,10 @@ dir_img="mapimages_sim"
 #
 #convert -delay 10 -loop 0 $temp/*.gif anim.gif
 
+echo "Creando gif"
 convert -delay 10 -loop 0 $dir_img/*.png anim.gif
+
+echo "Optimizando gif"
+gifsicle -i anim.gif -O3 --colors 128 -o anim.gif 
 
 #rm -rf $temp
