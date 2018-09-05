@@ -87,6 +87,8 @@ foreach my $file (@files) {
 	$suff = sprintf("%010d", $1);
 	$file_img = "$suff.png";
 	
+	# El parámetro -t indica el tiempo de simulación que
+	# corresponde al archivo de log.
 	my $cmd = "cat $path_file | $plot_latlong_script -t $1 > $global::sim_img_results_directory/$file_img";
 	`$cmd`;
 	$isOk = 0; # Para el spinner
