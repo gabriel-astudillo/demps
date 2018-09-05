@@ -2,10 +2,12 @@
 
 
 void printProgress (double percentage){
-	std::string PBSTR = std::string(60, '*');
-	int PBWIDTH = PBSTR.length();
+	
+	int PBWIDTH       = 60;
+	std::string PBSTR = std::string(PBWIDTH, '*');
+	
 
-	int val = (int) (percentage * 100);
+	int val  = (int) (percentage * 100);
 	int lpad = (int) (percentage * PBWIDTH);
 	int rpad = PBWIDTH - lpad;
 	printf ("\r%3d%% [%.*s%*s]", val, lpad, PBSTR.c_str(), rpad, "");
@@ -33,21 +35,21 @@ Simulator::Simulator(const json &_fsettings,const json &_finitial_zones,const js
 		this->_initial_zones.push_back(Zone(_freference_point, feature));
 	}
 
-	uint32_t id=0;
+	uint32_t id = 0;
 
 	std::uniform_int_distribution<uint32_t> zone(0, this->_initial_zones.size()-1);
 
 	for(auto& fagent : _fsettings["agents"]) {
-		for(uint32_t i=0; i<uint32_t(fagent["number"]); i++,id++) {
-			Point2D position=this->_initial_zones[zone(rng)].generate();
+		for(uint32_t i = 0; i<uint32_t(fagent["number"]); i++,id++) {
+			Point2D position = this->_initial_zones[zone(rng)].generate();
 
-			auto agent=Agent(id,position,fagent["speed"]["min"],fagent["speed"]["max"],model_t(this->_hash(fagent["model"].get<std::string>())));
+			auto agent = Agent(id,position,fagent["speed"]["min"],fagent["speed"]["max"],model_t(this->_hash(fagent["model"].get<std::string>())));
 			this->_agents.push_back(agent);
 		}
 	}
 	
 	//Se crea el ambiente con los agentes recien creados. 
-	this->env = Environment(this->_agents);
+	this->_env = Environment(this->_agents);
 }
 void Simulator::calibrate(void) {
 	
@@ -55,12 +57,12 @@ void Simulator::calibrate(void) {
 	
 	std::cout << "Ajustando posición inicial de los agentes..." << std::endl;
 
-	for(uint32_t t=0; t<calibration_time; t++) {
+	for(uint32_t t = 0; t < calibration_time; t++) {
 		printProgress(double(t)/double( calibration_time - 1));
 		for(auto& agent : this->_agents){
 			if(this->_routes[agent.id()].empty()){
-				auto response=this->_router.route(agent.position(),RANDOMWALKWAY_RADIUS);
-				this->_routes[agent.id()]=response.path();
+				auto response = this->_router.route(agent.position(),RANDOMWALKWAY_RADIUS);
+				this->_routes[agent.id()] = response.path();
 			}
 			agent.random_walkway(this->_routes[agent.id()]);
 		}
@@ -69,17 +71,17 @@ void Simulator::calibrate(void) {
 	std::cout << std::endl;
 	std::cout << "Ajustando reglas de los agentes... " << std::endl;
 	uint32_t it = 0;
-	//#pragma omp parallel firstprivate(_router) shared(env)
+	//#pragma omp parallel firstprivate(_router) shared(_env)
 	for(auto& agent : this->_agents) {
 		printProgress(double(it++)/double(this->_agents.size() - 1) );
 		switch(agent.model()) {
 			case SHORTESTPATH: {
-				double distance=DBL_MAX;
+				double distance = DBL_MAX;
 				for(auto &reference_zone : this->_reference_zones) {
-				    auto response=this->_router.route(agent.position(),reference_zone.generate());
-				    if(response.distance()<distance) {
-				        distance=response.distance();
-				        this->_routes[agent.id()]=response.path();
+				    auto response = this->_router.route(agent.position(),reference_zone.generate());
+				    if(response.distance() < distance) {
+				        distance = response.distance();
+				        this->_routes[agent.id()] = response.path();
 				    }
 				}
 				break;
@@ -109,19 +111,19 @@ void Simulator::run(const uint32_t &_duration) {
 	uint32_t interval = this->_fsettings["output"]["interval"].get<uint32_t>();
 
     //Router router=this->_router; //Esta declaración no corresponde aquí <03/09/2018>
-    //Environment env(this->_agents); //env es un atributo del objeto, no una variable local. Mover al constructor. <03/09/2018>
+    //Environment _env(this->_agents); //_env es un atributo del objeto, no una variable local. Mover al constructor. <03/09/2018>
 	
     
-    for(uint32_t t=0; t<_duration; t++) {
+    for(uint32_t t = 0; t < _duration; t++) {
         //std::cout << "time: "<< t << std::endl;
 		printProgress(double(t)/double(_duration - 1) );
 		
-        if(save_to_disk && ((t%interval)==0)) {
+        if(save_to_disk && ((t%interval) == 0)) {
 			this->save(t); //GAM: <16/08/2018>, WAS this->save(t/SAVE) 
 		} 
 
-#pragma omp parallel for firstprivate(_router) schedule(dynamic,8) shared(env)
-        for(uint32_t i=0U;i<this->_agents.size();i++){
+#pragma omp parallel for firstprivate(_router) schedule(dynamic,8) shared(_env)
+        for(uint32_t i = 0; i < this->_agents.size(); i++){
             switch(this->_agents[i].model()) {
             case SHORTESTPATH: {
                 this->_agents[i].follow_path(this->_routes[this->_agents[i].id()]);
@@ -129,19 +131,19 @@ void Simulator::run(const uint32_t &_duration) {
             }
             case RANDOMWALKWAY: {
                 if(this->_routes[this->_agents[i].id()].empty()){    
-                     auto response=_router.route(this->_agents[i].position(),RANDOMWALKWAY_RADIUS);
-                     this->_routes[this->_agents[i].id()]=response.path();
+                     auto response = _router.route(this->_agents[i].position(),RANDOMWALKWAY_RADIUS);
+                     this->_routes[this->_agents[i].id()] = response.path();
                 }
                 this->_agents[i].random_walkway(this->_routes[this->_agents[i].id()]);
                 break;
             }
             case FOLLOWTHECROWD: {
-                Agent::Neighbors neighbors=env.neighbors_of(this->_agents[i],ATTRACTION_RADIUS,SHORTESTPATH);
+                Agent::Neighbors neighbors = _env.neighbors_of(this->_agents[i],ATTRACTION_RADIUS,SHORTESTPATH);
                 
                 if(neighbors.empty()){
                   if(this->_routes[this->_agents[i].id()].empty()){    
-                     auto response=_router.route(this->_agents[i].position(),RANDOMWALKWAY_RADIUS);
-                     this->_routes[this->_agents[i].id()]=response.path();
+                     auto response = _router.route(this->_agents[i].position(),RANDOMWALKWAY_RADIUS);
+                     this->_routes[this->_agents[i].id()] = response.path();
                    }
                   this->_agents[i].random_walkway(this->_routes[this->_agents[i].id()]);
                 }
@@ -152,7 +154,7 @@ void Simulator::run(const uint32_t &_duration) {
               case WORKINGDAY: break;
             }
         }
-        env.update(this->_agents);
+        _env.update(this->_agents);
     }
 	
 }
