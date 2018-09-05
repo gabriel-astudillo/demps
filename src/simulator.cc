@@ -1,9 +1,9 @@
 #include <simulator.hh>
 
 
-void printProgress (double percentage)
-{
-	std::string PBSTR = "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||";
+void printProgress (double percentage){
+	
+	std::string PBSTR = std::string(60, '*');
 	int PBWIDTH = PBSTR.length();
 	
     int val = (int) (percentage * 100);
@@ -21,67 +21,80 @@ Simulator::Simulator(const json &_fsettings,const json &_finitial_zones,const js
     static thread_local std::random_device device;
     static thread_local std::mt19937 rng(device());
 
-    this->_fsettings=_fsettings;
-    this->_projector=LocalCartesian(_freference_point["features"][0]["geometry"]["coordinates"][1],_freference_point["features"][0]["geometry"]["coordinates"][0],0,Geocentric::WGS84());
-    this->_router=Router(_freference_point,_map_osrm);
+    this->_fsettings = _fsettings;
+    this->_projector = LocalCartesian(_freference_point["features"][0]["geometry"]["coordinates"][1],_freference_point["features"][0]["geometry"]["coordinates"][0],0,Geocentric::WGS84());
+    this->_router    = Router(_freference_point,_map_osrm);
+	
 
-    for(auto& feature : _freference_zones["features"])
-        this->_reference_zones.push_back(Zone(_freference_point,feature));
+    for(auto& feature : _freference_zones["features"]){
+        this->_reference_zones.push_back(Zone(_freference_point, feature));
+	}
 
-    for(auto& feature : _finitial_zones["features"])
-        this->_initial_zones.push_back(Zone(_freference_point,feature));
+    for(auto& feature : _finitial_zones["features"]){
+		this->_initial_zones.push_back(Zone(_freference_point, feature));
+	}
 
-    uint32_t id=0U;
-    std::uniform_int_distribution<uint32_t> zone(0U,this->_initial_zones.size()-1U);
+    uint32_t id=0;
+    
+	std::uniform_int_distribution<uint32_t> zone(0, this->_initial_zones.size()-1);
+	
     for(auto& fagent : _fsettings["agents"]) {
-        for(uint32_t i=0U; i<uint32_t(fagent["number"]); i++,id++) {
+        for(uint32_t i=0; i<uint32_t(fagent["number"]); i++,id++) {
             Point2D position=this->_initial_zones[zone(rng)].generate();
-            auto agent=Agent(id,position,fagent["speed"]["min"],fagent["speed"]["max"],model_t(this->_hash(fagent["model"].get<std::string>())));
+			
+			auto agent=Agent(id,position,fagent["speed"]["min"],fagent["speed"]["max"],model_t(this->_hash(fagent["model"].get<std::string>())));
             this->_agents.push_back(agent);
         }
     }
+	
+	//Se crea el ambiente con los agentes recien creados. 
+	this->env = Environment(this->_agents);
 }
 void Simulator::calibrate(void) {
-    std::cout << "calibrating" << std::endl;
 	
 	uint32_t calibration_time = this->_fsettings["calibration"].get<uint32_t>();
+	
+	std::cout << "Ajustando posición inicial de los agentes..." << std::endl;
 
     for(uint32_t t=0; t<calibration_time; t++) {
-		//uint32_t it = 0;
+		printProgress(double(t)/double( calibration_time - 1));
         for(auto& agent : this->_agents){
             if(this->_routes[agent.id()].empty()){
                auto response=this->_router.route(agent.position(),RANDOMWALKWAY_RADIUS);
                this->_routes[agent.id()]=response.path();
             }
             agent.random_walkway(this->_routes[agent.id()]);
-			//printProgress(double(it++)/double( this->_agents.size() ));
         }
     }
 
+	std::cout << std::endl;
+	std::cout << "Ajustando reglas de los agentes... " << std::endl;
 	uint32_t it = 0;
-	
+	//#pragma omp parallel firstprivate(_router) shared(env)
     for(auto& agent : this->_agents) {
+		printProgress(double(it++)/double(this->_agents.size() - 1) );
         switch(agent.model()) {
-        case SHORTESTPATH: {
-            double distance=DBL_MAX;
-            for(auto &reference_zone : this->_reference_zones) {
-                auto response=this->_router.route(agent.position(),reference_zone.generate());
-                if(response.distance()<distance) {
-                    distance=response.distance();
-                    this->_routes[agent.id()]=response.path();
-                }
-            }
-            break;
+	        case SHORTESTPATH: {
+	            double distance=DBL_MAX;
+	            for(auto &reference_zone : this->_reference_zones) {
+	                auto response=this->_router.route(agent.position(),reference_zone.generate());
+	                if(response.distance()<distance) {
+	                    distance=response.distance();
+	                    this->_routes[agent.id()]=response.path();
+	                }
+	            }
+	            break;
+	        }
+	        case RANDOMWALKWAY:  {					            
+	            break;
+	        }
+	        case FOLLOWTHECROWD: break;
+	        case WORKINGDAY: break;
+	        default: {
+	            std::cerr << "error::simulator_constructor::unknown_mobility_model::\"" << agent.model() << "\"" << std::endl;
+	            exit(EXIT_FAILURE);
+	        }
         }
-        case RANDOMWALKWAY: break;
-        case FOLLOWTHECROWD: break;
-        case WORKINGDAY: break;
-        default: {
-            std::cerr << "error::simulator_constructor::unknown_mobility_model::\"" << agent.model() << "\"" << std::endl;
-            exit(EXIT_FAILURE);
-        }
-        }
-		printProgress(double(it++)/double(this->_agents.size()));
     }
 }
 double distance(Agent a,Agent b){
@@ -91,21 +104,24 @@ void Simulator::run(void) {
     this->run( this->_fsettings["duration"] );
 }
 void Simulator::run(const uint32_t &_duration) {
-    std::cout << "simulating" << std::endl;
+    std::cout << std::endl << "Simulando..." << std::endl;
 	
 	bool save_to_disk = this->_fsettings["output"]["filesim-out"].get<bool>();
 	uint32_t interval = this->_fsettings["output"]["interval"].get<uint32_t>();
 
-    Router router=this->_router;
-    Environment env(this->_agents);
+    //Router router=this->_router; //Esta declaración no corresponde aquí <03/09/2018>
+    //Environment env(this->_agents); //env es un atributo del objeto, no una variable local. Mover al constructor. <03/09/2018>
+	
     
-    for(uint32_t t=0U; t<_duration; t++) {
-        std::cout << "time: "<< t << std::endl;
+    for(uint32_t t=0; t<_duration; t++) {
+        //std::cout << "time: "<< t << std::endl;
+		printProgress(double(t)/double(_duration - 1) );
+		
         if(save_to_disk && ((t%interval)==0)) {
-			this->save(t); //GAM: 16/08/2018, WAS this->save(t/SAVE) 
+			this->save(t); //GAM: <16/08/2018>, WAS this->save(t/SAVE) 
 		} 
 
-		#pragma omp parallel for firstprivate(router) schedule(dynamic,8) shared(env)
+#pragma omp parallel for firstprivate(_router) schedule(dynamic,8) shared(env)
         for(uint32_t i=0U;i<this->_agents.size();i++){
             switch(this->_agents[i].model()) {
             case SHORTESTPATH: {
