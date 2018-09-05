@@ -4,31 +4,31 @@ Zone::Zone(void) {
     ;
 }
 Zone::Zone(const json &_freference_point,const json &_fpolygon) {
-    this->_projector=LocalCartesian(_freference_point["features"][0]["geometry"]["coordinates"][1],_freference_point["features"][0]["geometry"]["coordinates"][0],0,Geocentric::WGS84());
+	this->_projector=LocalCartesian(_freference_point["features"][0]["geometry"]["coordinates"][1],_freference_point["features"][0]["geometry"]["coordinates"][0],0,Geocentric::WGS84());
 
-    if(_fpolygon["geometry"]["type"]!="Polygon") {
-        std::cerr << "Error::input feature is not a polygon" << std::endl;
-        exit(EXIT_FAILURE);
-    }
-    for(auto& fpoint : _fpolygon["geometry"]["coordinates"][0]) {
-        double x,y,z,h;
-        this->_projector.Forward(fpoint[1],fpoint[0],h,x,y,z);
-        this->_polygon.push_back(Point2D(x,y));
-    }
+	if(_fpolygon["geometry"]["type"]!="Polygon") {
+		std::cerr << "Error::input feature is not a polygon" << std::endl;
+		exit(EXIT_FAILURE);
+	}
+	for(auto& fpoint : _fpolygon["geometry"]["coordinates"][0]) {
+		double x,y,z,h;
+		this->_projector.Forward(fpoint[1],fpoint[0],h,x,y,z);
+		this->_polygon.push_back(Point2D(x,y));
+	}
 
 	// Insert the polygons into a constrained triangulation
-    this->_cdt.insert_constraint(this->_polygon.vertices_begin(),this->_polygon.vertices_end(),true);
+	this->_cdt.insert_constraint(this->_polygon.vertices_begin(),this->_polygon.vertices_end(),true);
 
-  	// Mark facets that are inside the domain bounded by the polygon
+	// Mark facets that are inside the domain bounded by the polygon
 	// Ref: https://doc.cgal.org/latest/Triangulation_2/Triangulation_2_2polygon_triangulation_8cpp-example.html
-    mark_domains(_cdt);
+	mark_domains(_cdt);
 	
 }
 
 Zone::Zone(const Zone &_z) {
-    this->_cdt=_z._cdt;
-    this->_polygon=_z._polygon;
-    this->_projector=_z._projector;
+	this->_cdt=_z._cdt;
+	this->_polygon=_z._polygon;
+	this->_projector=_z._projector;
 }
 
 Zone::~Zone(void) {
@@ -36,14 +36,14 @@ Zone::~Zone(void) {
 }
 
 Zone& Zone::operator=(const Zone &_z) {
-    this->_cdt=_z._cdt;
-    this->_polygon=_z._polygon;
-    this->_projector=_z._projector;
-    return(*this);
+	this->_cdt=_z._cdt;
+	this->_polygon=_z._polygon;
+	this->_projector=_z._projector;
+	return(*this);
 }
 
 Point2D Zone::generate(void) {
-    std::vector<Point2D> points;
+	std::vector<Point2D> points;
 
 	/*
 		El CDT está constituido por "faces", que son triangulos que están delimitados
@@ -89,32 +89,37 @@ Point2D Zone::generate(void) {
 
 // Mark facets that are inside the domain bounded by the polygon
 // Ref: https://doc.cgal.org/latest/Triangulation_2/Triangulation_2_2polygon_triangulation_8cpp-example.html
-void 
-Zone::mark_domains(CDT& ct, 
+void Zone::mark_domains(CDT& ct, 
              CDT::Face_handle start, 
              int index, 
-             std::list<CDT::Edge>& border )
-{
-  if(start->info().nesting_level != -1){
-    return;
-  }
-  std::list<CDT::Face_handle> queue;
-  queue.push_back(start);
-  while(! queue.empty()){
-    CDT::Face_handle fh = queue.front();
-    queue.pop_front();
-    if(fh->info().nesting_level == -1){
-      fh->info().nesting_level = index;
-      for(int i = 0; i < 3; i++){
-        CDT::Edge e(fh,i);
-        CDT::Face_handle n = fh->neighbor(i);
-        if(n->info().nesting_level == -1){
-          if(ct.is_constrained(e)) border.push_back(e);
-          else queue.push_back(n);
-        }
-      }
-    }
-  }
+             std::list<CDT::Edge>& border ) {
+				 	
+	if(start->info().nesting_level != -1){
+		return;
+	}
+	
+	std::list<CDT::Face_handle> queue;
+	queue.push_back(start);
+	
+	while(! queue.empty()){
+		CDT::Face_handle fh = queue.front();
+		queue.pop_front();
+		if(fh->info().nesting_level == -1){
+			fh->info().nesting_level = index;
+			for(int i = 0; i < 3; i++){
+				CDT::Edge e(fh,i);
+				CDT::Face_handle n = fh->neighbor(i);
+				if(n->info().nesting_level == -1){
+					if(ct.is_constrained(e)){
+						border.push_back(e);
+					}
+					else{ 
+						queue.push_back(n);
+					}
+				}
+			}
+		}
+	}
 }
 //explore set of facets connected with non constrained edges,
 //and attribute to each such set a nesting level.
@@ -122,21 +127,22 @@ Zone::mark_domains(CDT& ct,
 //level of 0. Then we recursively consider the non-explored facets incident 
 //to constrained edges bounding the former set and increase the nesting level by 1.
 //Facets in the domain are those with an odd nesting level.
-void
-Zone::mark_domains(CDT& cdt)
-{
-  for(CDT::All_faces_iterator it = cdt.all_faces_begin(); it != cdt.all_faces_end(); ++it){
-    it->info().nesting_level = -1;
-  }
-  std::list<CDT::Edge> border;
-  mark_domains(cdt, cdt.infinite_face(), 0, border);
-  while(! border.empty()){
-    CDT::Edge e = border.front();
-    border.pop_front();
-    CDT::Face_handle n = e.first->neighbor(e.second);
-    if(n->info().nesting_level == -1){
-      mark_domains(cdt, n, e.first->info().nesting_level+1, border);
-    }
-  }
+void Zone::mark_domains(CDT& cdt) {
+	for(CDT::All_faces_iterator it = cdt.all_faces_begin(); it != cdt.all_faces_end(); ++it){
+		it->info().nesting_level = -1;
+	}
+	
+	std::list<CDT::Edge> border;
+	mark_domains(cdt, cdt.infinite_face(), 0, border);
+	
+	while(! border.empty()){
+		CDT::Edge e = border.front();
+		border.pop_front();
+		CDT::Face_handle n = e.first->neighbor(e.second);
+		
+		if(n->info().nesting_level == -1){
+			mark_domains(cdt, n, e.first->info().nesting_level+1, border);
+		}
+	}
 }
 
