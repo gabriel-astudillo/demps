@@ -4,6 +4,7 @@
 #include <CGAL/Origin.h>
 #include <CGAL/Polygon_2.h>
 //#include <CGAL/Cartesian.h>
+#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>  //new 
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/Delaunay_mesher_2.h>
 #include <CGAL/point_generators_2.h>
@@ -41,33 +42,54 @@
 #include <mutex>
 #include <list>
 #include <random>
+#include <omp.h>
 
 #include <json.hpp>
 #include <kdtree++/kdtree.hpp>
 
 #define CGAL_HAS_THREADS
 
-typedef CGAL::Simple_cartesian<double> K;
+
+struct FaceInfo2
+{
+  FaceInfo2(){}
+  int nesting_level;
+  bool in_domain(){ 
+    return nesting_level%2 == 1;
+  }
+};
+
+typedef CGAL::Exact_predicates_inexact_constructions_kernel      K;//new 
+//typedef CGAL::Simple_cartesian<double> K;
+
 typedef CGAL::Aff_transformation_2<K> Transformation;
-typedef CGAL::Line_2<K>    Line2D;
-typedef CGAL::Point_2<K>   Point2D;
-typedef CGAL::Vector_2<K>  Vector2D;
-typedef CGAL::Polygon_2<K> Polygon2D;
+
+typedef CGAL::Line_2<K>     Line2D;
+typedef CGAL::Point_2<K>    Point2D;
+typedef CGAL::Triangle_2<K> Triangle2D;//new
+typedef CGAL::Vector_2<K>   Vector2D;
+typedef CGAL::Polygon_2<K>  Polygon2D;
 
 typedef CGAL::Triangulation_vertex_base_2<K>                      Vb;
-typedef CGAL::Delaunay_mesh_face_base_2<K>                        Fb;
+typedef CGAL::Triangulation_face_base_with_info_2<FaceInfo2,K>    Fbb;//new 
+//typedef CGAL::Delaunay_mesh_face_base_2<K>                        Fb;
+typedef CGAL::Constrained_triangulation_face_base_2<K,Fbb>        Fb;//new
 typedef CGAL::Triangulation_data_structure_2<Vb, Fb>              Tds;
-typedef CGAL::Constrained_Delaunay_triangulation_2<K, Tds>        CDT;
+
+typedef CGAL::Exact_predicates_tag                                Itag;//new
+typedef CGAL::Constrained_Delaunay_triangulation_2<K, Tds, Itag>  CDT;//new
+//typedef CGAL::Constrained_Delaunay_triangulation_2<K, Tds>        CDT;
+
 typedef CGAL::Delaunay_mesh_size_criteria_2<CDT>                  Mesh_2_criteria;
+
 
 using json=nlohmann::json;
 using namespace GeographicLib;
 
 #define CLOSE_ENOUGH          1.0
 #define RANDOMWALKWAY_RADIUS  500.0
-#define CALIBRATION_TIME      250U
 #define ATTRACTION_RADIUS     2.0
-#define SAVE                  10
+
 
 enum model_t {SHORTESTPATH=9366416273040049814U,FOLLOWTHECROWD=10676684734677566718U,RANDOMWALKWAY=5792789823329120861U,WORKINGDAY};
 

@@ -14,6 +14,7 @@ private:
     json                                _fsettings;
 
     Router                              _router;
+	Environment                          env;
     LocalCartesian                      _projector;
     std::vector<GeoCoords>              _reference_points;
     std::vector<Zone>                   _initial_zones;
