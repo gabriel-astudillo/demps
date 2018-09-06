@@ -1,5 +1,14 @@
 #!/bin/bash
 
-#time ./demps -m input/iquique/area.osrm -s input/iquique/settings.json -i input/iquique/initial_zones.geojson -r input/iquique/reference_zones.geojson -p input/iquique/reference_point.geojson
+#### CONFIGURACION ####
+DEMPS_PATH=./demps 
+DEMPS_OPTS="-s demps.config"
+RESULTS_FILES="./results/*"
 
-time ./demps  -s demps.config
+RM_CMD="$(which rm) -f"
+
+#### MAIN ####
+echo "Eliminando resultados anteriores..."
+$RM_CMD $RESULTS_FILES
+echo "Ejecutando DEMPS..."
+time $DEMPS_PATH $DEMPS_OPTS
