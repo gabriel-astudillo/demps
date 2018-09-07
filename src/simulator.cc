@@ -1,18 +1,181 @@
 #include <simulator.hh>
 
 
-void printProgress (double percentage){
-	
-	int PBWIDTH       = 60;
-	std::string PBSTR = std::string(PBWIDTH, '*');
-	
+class Timer{
+ private:
+  typedef std::chrono::high_resolution_clock clock;
+  typedef std::chrono::duration<double, std::ratio<1> > second;
 
-	int val  = (int) (percentage * 100);
-	int lpad = (int) (percentage * PBWIDTH);
-	int rpad = PBWIDTH - lpad;
-	printf ("\r%3d%% [%.*s%*s]", val, lpad, PBSTR.c_str(), rpad, "");
-	fflush (stdout);
-}
+  std::chrono::time_point<clock> start_time; ///< Last time the timer was started
+  double accumulated_time;                   ///< Accumulated running time since creation
+  bool running;                              ///< True when the timer is running
+
+ public:
+  Timer(){
+    accumulated_time = 0;
+    running          = false;
+  }
+
+  ///Start the timer. Throws an exception if timer was already running.
+  void start(){
+    if(running)
+      throw std::runtime_error("Timer was already started!");
+    running=true;
+    start_time = clock::now();
+  }
+
+  ///Stop the timer. Throws an exception if timer was already stopped.
+  ///Calling this adds to the timer's accumulated time.
+  ///@return The accumulated time in seconds.
+  double stop(){
+    if(!running)
+      throw std::runtime_error("Timer was already stopped!");
+
+    accumulated_time += lap();
+    running           = false;
+
+    return accumulated_time;
+  }
+
+  ///Returns the timer's accumulated time. Throws an exception if the timer is
+  ///running.
+  double accumulated(){
+    if(running)
+      throw std::runtime_error("Timer is still running!");
+    return accumulated_time;
+  }
+
+  ///Returns the time between when the timer was started and the current
+  ///moment. Throws an exception if the timer is not running.
+  double lap(){
+    if(!running)
+      throw std::runtime_error("Timer was not started!");
+    return std::chrono::duration_cast<second> (clock::now() - start_time).count();
+  }
+
+  ///Stops the timer and resets its accumulated time. No exceptions are thrown
+  ///ever.
+  void reset(){
+    accumulated_time = 0;
+    running          = false;
+  }
+};
+
+
+///@brief Manages a console-based progress bar to keep the user entertained.
+///
+///Defining the global `NOPROGRESS` will
+///disable all progress operations, potentially speeding up a program. The look
+///of the progress bar is shown in ProgressBar.hpp.
+class ProgressBar{
+ private:
+  uint32_t total_work;    ///< Total work to be accomplished
+  uint32_t next_update;   ///< Next point to update the visible progress bar
+  uint32_t call_diff;     ///< Interval between updates in work units
+  uint32_t work_done;
+  uint16_t old_percent;   ///< Old percentage value (aka: should we update the progress bar) TODO: Maybe that we do not need this
+  Timer    timer;         ///< Used for generating ETA
+
+  ///Clear current line on console so a new progress bar can be written
+  void clearConsoleLine() const {
+    std::cerr<<"\r\033[2K"<<std::flush;
+  }
+
+ public:
+  ///@brief Start/reset the progress bar.
+  ///@param total_work  The amount of work to be completed, usually specified in cells.
+  void start(uint32_t total_work){
+    timer = Timer();
+    timer.start();
+    this->total_work = total_work;
+    next_update      = 0;
+    call_diff        = total_work/200;
+    old_percent      = 0;
+    work_done        = 0;
+    clearConsoleLine();
+  }
+
+  ///@brief Update the visible progress bar, but only if enough work has been done.
+  ///
+  ///Define the global `NOPROGRESS` flag to prevent this from having an
+  ///effect. Doing so may speed up the program's execution.
+  void update(uint32_t work_done0){
+    //Provide simple way of optimizing out progress updates
+    #ifdef NOPROGRESS
+      return;
+    #endif
+
+    //Quick return if this isn't the main thread
+    if(omp_get_thread_num()!=0)
+      return;
+
+    //Update the amount of work done
+    work_done = work_done0;
+
+    //Quick return if insufficient progress has occurred
+    if(work_done<next_update)
+      return;
+
+    //Update the next time at which we'll do the expensive update stuff
+    next_update += call_diff;
+
+    //Use a uint16_t because using a uint8_t will cause the result to print as a
+    //character instead of a number
+    uint16_t percent = (uint8_t)(work_done*omp_get_num_threads()*100/total_work);
+
+    //Handle overflows
+    if(percent>100)
+      percent=100;
+
+    //In the case that there has been no update (which should never be the case,
+    //actually), skip the expensive screen print
+    if(percent==old_percent)
+      return;
+
+    //Update old_percent accordingly
+    old_percent=percent;
+
+    //Print an update string which looks like this:
+    //  [================================================  ] (96% - 1.0s - 4 threads)
+    std::cerr<<"\r\033[2K["
+             <<std::string(percent/2, '=')<<std::string(50-percent/2, ' ')
+             <<"] ("
+             <<percent<<"% - "
+             <<std::fixed<<std::setprecision(1)<<timer.lap()/percent*(100-percent)
+			 << "s" <<std::flush;
+            // <<"s - "
+            // <<omp_get_num_threads()<< " threads)"<<std::flush;
+  }
+
+  ///Increment by one the work done and update the progress bar
+  ProgressBar& operator++(){
+    //Quick return if this isn't the main thread
+    if(omp_get_thread_num()!=0)
+      return *this;
+
+    work_done++;
+    update(work_done);
+    return *this;
+  }
+
+  ///Stop the progress bar. Throws an exception if it wasn't started.
+  ///@return The number of seconds the progress bar was running.
+  double stop(){
+    clearConsoleLine();
+
+    timer.stop();
+    return timer.accumulated();
+  }
+
+  ///@return Return the time the progress bar ran for.
+  double time_it_took(){
+    return timer.accumulated();
+  }
+
+  uint32_t cellsProcessed() const {
+    return work_done;
+  }
+};
 
 
 Simulator::Simulator(void) {
@@ -57,8 +220,10 @@ void Simulator::calibrate(void) {
 	
 	std::cout << "Ajustando posición inicial de los agentes..." << std::endl;
 
+	ProgressBar pg;
+	pg.start(calibration_time-1);
 	for(uint32_t t = 0; t < calibration_time; t++) {
-		printProgress(double(t)/double( calibration_time - 1));
+		pg.update(t);
 		for(auto& agent : this->_agents){
 			if(this->_routes[agent.id()].empty()){
 				auto response = this->_router.route(agent.position(),RANDOMWALKWAY_RADIUS);
@@ -70,10 +235,15 @@ void Simulator::calibrate(void) {
 
 	std::cout << std::endl;
 	std::cout << "Ajustando reglas de los agentes... " << std::endl;
-	uint32_t it = 0;
-	//#pragma omp parallel firstprivate(_router) shared(_env)
-	for(auto& agent : this->_agents) {
-		printProgress(double(it++)/double(this->_agents.size() - 1) );
+	
+	pg.start(this->_agents.size()-1);
+
+#pragma omp parallel for firstprivate(_router) shared(_agents) //schedule(dynamic,8)
+	for(uint32_t i = 0; i < this->_agents.size(); i++){
+		pg.update(i);
+		
+		Agent agent = _agents[i];
+		
 		switch(agent.model()) {
 			case SHORTESTPATH: {
 				double distance = DBL_MAX;
@@ -96,8 +266,10 @@ void Simulator::calibrate(void) {
 				exit(EXIT_FAILURE);
 			}
 		}
+
 	}
 }
+
 double distance(Agent a,Agent b){
 	return(sqrt(CGAL::squared_distance(a.position(),b.position())));
 }
@@ -113,16 +285,19 @@ void Simulator::run(const uint32_t &_duration) {
     //Router router=this->_router; //Esta declaración no corresponde aquí <03/09/2018>
     //Environment _env(this->_agents); //_env es un atributo del objeto, no una variable local. Mover al constructor. <03/09/2018>
 	
-    
+	ProgressBar pg;
+    pg.start(_duration-1);
+	
     for(uint32_t t = 0; t < _duration; t++) {
         //std::cout << "time: "<< t << std::endl;
-		printProgress(double(t)/double(_duration - 1) );
+		//printProgress(double(t)/double(_duration - 1) );
+		pg.update(t);
 		
         if(save_to_disk && ((t%interval) == 0)) {
 			this->save(t); //GAM: <16/08/2018>, WAS this->save(t/SAVE) 
 		} 
 
-#pragma omp parallel for firstprivate(_router) schedule(dynamic,8) shared(_env)
+#pragma omp parallel for firstprivate(_router) shared(_env) //schedule(dynamic,8) 
         for(uint32_t i = 0; i < this->_agents.size(); i++){
             switch(this->_agents[i].model()) {
             case SHORTESTPATH: {
@@ -130,9 +305,10 @@ void Simulator::run(const uint32_t &_duration) {
                 break;
             }
             case RANDOMWALKWAY: {
-                if(this->_routes[this->_agents[i].id()].empty()){    
-                     auto response = _router.route(this->_agents[i].position(),RANDOMWALKWAY_RADIUS);
-                     this->_routes[this->_agents[i].id()] = response.path();
+                if(this->_routes[this->_agents[i].id()].empty()){  
+					//std::cout << "t=" << t<<  ", Agent[" <<  i << "] con ruta vacía"<<std::endl;
+					auto response = _router.route(this->_agents[i].position(),RANDOMWALKWAY_RADIUS);
+					this->_routes[this->_agents[i].id()] = response.path();
                 }
                 this->_agents[i].random_walkway(this->_routes[this->_agents[i].id()]);
                 break;
