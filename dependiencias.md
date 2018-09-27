@@ -59,15 +59,9 @@ cmake --build . --target intall  (!!)
 
 En el linker, agregar ```-losrm```.
 
-## kdtree
-1) Instalar. Por omisión, ```--prefix=/usr/local```
-```
-git clone https://github.com/nvmd/libkdtree.git
-./configure
-make install (!)
-```
-(!) Necesita permisos de superusario.
+## Observaciones
 
-2) Incluir la biblioteca ```#include <kdtree++/kdtree.hpp>```
+Esta versión no depende de la librería kdtree
+
 
 
