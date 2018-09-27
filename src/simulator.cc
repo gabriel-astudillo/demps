@@ -1,6 +1,5 @@
 #include <simulator.hh>
 
-
 class Timer{
  private:
   typedef std::chrono::high_resolution_clock clock;
@@ -181,15 +180,18 @@ class ProgressBar{
 Simulator::Simulator(void) {
 
 }
-Simulator::Simulator(const json &_fsettings,const json &_finitial_zones,const json &_freference_zones,const json &_freference_point,const std::string &_map_osrm) {
+Simulator::Simulator(const json &_fsettings,const json &_finitial_zones,const json &_freference_zones,const json &_freference_point,const json &_fmap_zone,const std::string &_map_osrm) {
     static thread_local std::random_device device;
     static thread_local std::mt19937 rng(device());
+	
+	timeExecCal = 0;
+	timeExecSim = 0;
 
     this->_fsettings = _fsettings;
     this->_projector = LocalCartesian(_freference_point["features"][0]["geometry"]["coordinates"][1],_freference_point["features"][0]["geometry"]["coordinates"][0],0,Geocentric::WGS84());
     this->_router    = Router(_freference_point,_map_osrm);
 	
-
+	
 	for(auto& feature : _freference_zones["features"]){
 		this->_reference_zones.push_back(Zone(_freference_point, feature));
 	}
@@ -197,33 +199,69 @@ Simulator::Simulator(const json &_fsettings,const json &_finitial_zones,const js
 	for(auto& feature : _finitial_zones["features"]){
 		this->_initial_zones.push_back(Zone(_freference_point, feature));
 	}
-
+	
+	std::list<double> map_x;
+	std::list<double> map_y;
+	
+	double xMin, xMax, yMin, yMax;
+	//double mapWidth, mapHeight;
+	 
+	for(auto& point : _fmap_zone["features"][0]["geometry"]["coordinates"][0]){
+		double x,y,z;
+		_projector.Forward(point[1],point[0],0,x,y,z);
+		
+		map_x.push_back( x );
+		map_y.push_back( y );
+	}
+	
+	map_x.sort(); map_y.sort();
+	xMin = map_x.front(); xMax = map_x.back();	
+	yMin = map_y.front(); yMax = map_y.back();
+	
+	//Tamaño del cuadrante
+	uint32_t quadSize = this->_fsettings["quadSize"].get<uint32_t>(); //quadSize[m] x quadSize[m]
+	
+	//Se crea el ambiente vacío. 
+	this->_env = Environment(xMin, xMax, yMin, yMax, quadSize);
+	
 	uint32_t id = 0;
-
 	std::uniform_int_distribution<uint32_t> zone(0, this->_initial_zones.size()-1);
 
 	for(auto& fagent : _fsettings["agents"]) {
 		for(uint32_t i = 0; i<uint32_t(fagent["number"]); i++,id++) {
 			Point2D position = this->_initial_zones[zone(rng)].generate();
 
-			auto agent = Agent(id,position,fagent["speed"]["min"],fagent["speed"]["max"],model_t(this->_hash(fagent["model"].get<std::string>())));
+			auto agent = Agent(id,\
+				position,\
+				fagent["speed"]["min"],\
+				fagent["speed"]["max"],\
+				model_t(this->_hash(fagent["model"].get<std::string>())),\
+				&_env
+				);
 			this->_agents.push_back(agent);
+			
 		}
 	}
 	
-	//Se crea el ambiente con los agentes recien creados. 
-	this->_env = Environment(this->_agents);
+	//Se agregan al ambiente con los agentes recien creados. 
+	this->_env.addAgents(this->_agents);
 }
 void Simulator::calibrate(void) {
 	
+	bool showProgressBar      = this->_fsettings["output"]["progressBar"].get<bool>();
 	uint32_t calibration_time = this->_fsettings["calibration"].get<uint32_t>();
 	
 	std::cout << "Ajustando posición inicial de los agentes..." << std::endl;
 
+	auto start = std::chrono::system_clock::now(); //Measure Time
+
 	ProgressBar pg;
 	pg.start(calibration_time-1);
 	for(uint32_t t = 0; t < calibration_time; t++) {
-		pg.update(t);
+		if(showProgressBar){
+			pg.update(t);
+		}	
+		
 		for(auto& agent : this->_agents){
 			if(this->_routes[agent.id()].empty()){
 				auto response = this->_router.route(agent.position(),RANDOMWALKWAY_RADIUS);
@@ -233,14 +271,18 @@ void Simulator::calibrate(void) {
 		}
 	}
 
-	std::cout << std::endl;
+	if(showProgressBar){
+		std::cout << std::endl;
+	}
 	std::cout << "Ajustando reglas de los agentes... " << std::endl;
 	
 	pg.start(this->_agents.size()-1);
 
 #pragma omp parallel for firstprivate(_router) shared(_agents) //schedule(dynamic,8)
 	for(uint32_t i = 0; i < this->_agents.size(); i++){
-		pg.update(i);
+		if(showProgressBar){
+			pg.update(i);
+		}
 		
 		Agent agent = _agents[i];
 		
@@ -268,6 +310,14 @@ void Simulator::calibrate(void) {
 		}
 
 	}
+	
+	auto end = std::chrono::system_clock::now(); //Measure Time
+	auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+	timeExecCal += elapsed.count();
+	
+	if(showProgressBar){
+		std::cout << std::endl;
+	}
 }
 
 double distance(Agent a,Agent b){
@@ -277,61 +327,71 @@ void Simulator::run(void) {
 	this->run( this->_fsettings["duration"] );
 }
 void Simulator::run(const uint32_t &_duration) {
-	std::cout << std::endl << "Simulando..." << std::endl;
+	std::cout << "Simulando..." << std::endl;
 	
-	bool save_to_disk = this->_fsettings["output"]["filesim-out"].get<bool>();
-	uint32_t interval = this->_fsettings["output"]["interval"].get<uint32_t>();
+	bool showProgressBar = this->_fsettings["output"]["progressBar"].get<bool>();
+	bool save_to_disk    = this->_fsettings["output"]["filesim-out"].get<bool>();
+	uint32_t interval    = this->_fsettings["output"]["interval"].get<uint32_t>();
 
-    //Router router=this->_router; //Esta declaración no corresponde aquí <03/09/2018>
-    //Environment _env(this->_agents); //_env es un atributo del objeto, no una variable local. Mover al constructor. <03/09/2018>
-	
 	ProgressBar pg;
     pg.start(_duration-1);
 	
     for(uint32_t t = 0; t < _duration; t++) {
-        //std::cout << "time: "<< t << std::endl;
-		//printProgress(double(t)/double(_duration - 1) );
-		pg.update(t);
+        
+		if(showProgressBar){
+			pg.update(t);
+		}
 		
         if(save_to_disk && ((t%interval) == 0)) {
 			this->save(t); //GAM: <16/08/2018>, WAS this->save(t/SAVE) 
 		} 
 
+		auto start = std::chrono::system_clock::now(); //Measure Time
 #pragma omp parallel for firstprivate(_router) shared(_env) //schedule(dynamic,8) 
         for(uint32_t i = 0; i < this->_agents.size(); i++){
             switch(this->_agents[i].model()) {
-            case SHORTESTPATH: {
-                this->_agents[i].follow_path(this->_routes[this->_agents[i].id()]);
-                break;
-            }
-            case RANDOMWALKWAY: {
-                if(this->_routes[this->_agents[i].id()].empty()){  
-					//std::cout << "t=" << t<<  ", Agent[" <<  i << "] con ruta vacía"<<std::endl;
-					auto response = _router.route(this->_agents[i].position(),RANDOMWALKWAY_RADIUS);
-					this->_routes[this->_agents[i].id()] = response.path();
-                }
-                this->_agents[i].random_walkway(this->_routes[this->_agents[i].id()]);
-                break;
-            }
-            case FOLLOWTHECROWD: {
-                Agent::Neighbors neighbors = _env.neighbors_of(this->_agents[i],ATTRACTION_RADIUS,SHORTESTPATH);
+	            case SHORTESTPATH: {
+	                this->_agents[i].follow_path(this->_routes[this->_agents[i].id()]);
+	                break;
+	            }
+	            case RANDOMWALKWAY: {
+	                if(this->_routes[this->_agents[i].id()].empty()){  
+						auto response = _router.route(this->_agents[i].position(),RANDOMWALKWAY_RADIUS);
+						this->_routes[this->_agents[i].id()] = response.path();
+	                }
+	                this->_agents[i].random_walkway(this->_routes[this->_agents[i].id()]);
+	                break;
+	            }
+	            case FOLLOWTHECROWD: {/*
+	                Agent::Neighbors neighbors = _env.neighbors_of(this->_agents[i],ATTRACTION_RADIUS,SHORTESTPATH);
                 
-                if(neighbors.empty()){
-                  if(this->_routes[this->_agents[i].id()].empty()){    
-                     auto response = _router.route(this->_agents[i].position(),RANDOMWALKWAY_RADIUS);
-                     this->_routes[this->_agents[i].id()] = response.path();
-                   }
-                  this->_agents[i].random_walkway(this->_routes[this->_agents[i].id()]);
-                }
-                else
-                   this->_agents[i].follow_the_crowd(neighbors);
-                break;
-            }
-              case WORKINGDAY: break;
+	                if(neighbors.empty()){
+	                  if(this->_routes[this->_agents[i].id()].empty()){    
+	                     auto response = _router.route(this->_agents[i].position(),RANDOMWALKWAY_RADIUS);
+	                     this->_routes[this->_agents[i].id()] = response.path();
+	                   }
+	                  this->_agents[i].random_walkway(this->_routes[this->_agents[i].id()]);
+	                }
+	                else
+	                   this->_agents[i].follow_the_crowd(neighbors);
+	                */
+					break;
+	            }
+	              case WORKINGDAY: break;
+				  case SNITCH: break;
             }
         }
+		
         _env.update(this->_agents);
+		
+		auto end = std::chrono::system_clock::now(); //Measure Time
+		auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+		timeExecSim += elapsed.count();
     }
+	
+	if(showProgressBar){
+		std::cout << std::endl;
+	}	
 	
 }
 
@@ -355,3 +415,21 @@ void Simulator::save(const uint32_t &_t) {
 	}
 	
 }
+
+void Simulator::showTimeExec(void){
+	/*std::cout << "Sim time     : " << _fsettings["duration"] << std::endl;
+	std::cout << "Agents  0    : " << _fsettings["agents"][0]["number"] << std::endl;
+	std::cout << "Agents  1    : " << _fsettings["agents"][1]["number"] << std::endl;
+	std::cout << "Agents  2    : " << _fsettings["agents"][2]["number"] << std::endl;
+	std::cout << "Exec Time Cal: " << timeExecCal << std::endl;
+	std::cout << "Exec Time Sim: " << timeExecSim << std::endl;*/
+	
+	std::cout << _fsettings["duration"] << ":" 
+		<< _fsettings["agents"][0]["number"] << ":" 
+		<< _fsettings["agents"][1]["number"] << ":" 
+		<< _fsettings["agents"][2]["number"] << ":" 
+		<< timeExecCal << ":" 
+		<< timeExecSim << std::endl;
+}
+
+

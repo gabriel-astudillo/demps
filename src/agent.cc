@@ -19,6 +19,17 @@ Agent::Agent(const uint32_t &_id,const Point2D &_position,const double &_min_spe
     this->_position=_position;
     this->_direction=Vector2D(0.0,0.0);
 }
+
+Agent::Agent(const uint32_t &_id,const Point2D &_position,const double &_min_speed,const double &_max_speed,const model_t &_model, Environment* _myEnv) {
+	this->_id        = _id;
+	this->_min_speed = _min_speed;
+	this->_max_speed = _max_speed;
+	this->_model     = _model;
+	this->_position  = _position;
+	this->_direction = Vector2D(0.0,0.0);
+	this->_myEnv     = _myEnv;
+}
+
 Agent& Agent::operator=(const Agent &_agent) {
     this->_id=_agent._id;
     this->_min_speed=_agent._min_speed;
