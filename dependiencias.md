@@ -59,7 +59,7 @@ cmake --build . --target intall  (!!)
 
 En el linker, agregar ```-losrm```.
 
-## Observaciones
+## Observaciones
 
 Esta versión no depende de la librería kdtree
 
