@@ -2,6 +2,7 @@
 #define _AGENT_HH_
 #include <glob.hh>
 
+class Environment;
 
 class Agent
 {
@@ -18,18 +19,21 @@ private:
     Vector2D _direction;
 
     model_t  _model;
+	
+	Environment* _myEnv;
 
 public:
     Agent(void);
     Agent(const Agent&);
     Agent(const uint32_t&,const Point2D&,const double&,const double&,const model_t&);
+	Agent(const uint32_t&,const Point2D&,const double&,const double&,const model_t&, Environment* _myEnv);
     ~Agent(void);
     Agent& operator=(const Agent&);
 
     Point2D  position(void) const;
     Vector2D direction(void) const;
 
-    void geographic(const GeoCoords&);
+    void geographic(const GeoCoords&); //NO SE USA
 
     uint32_t id(void) const;
     model_t model(void) const;

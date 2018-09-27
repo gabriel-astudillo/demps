@@ -12,12 +12,15 @@ private:
 	json                                _fsettings;
 
 	Router                              _router;
-	Environment                          env;
+	Environment                         _env;
 	LocalCartesian                      _projector;
 	std::vector<GeoCoords>              _reference_points;
 	std::vector<Zone>                   _initial_zones;
 	std::vector<Zone>                   _reference_zones;
 	std::vector<Agent>                  _agents;
+	
+	uint32_t timeExecCal;
+	uint32_t timeExecSim;
 
 	std::map<uint32_t,std::list<Point2D>> _routes;
 
@@ -26,11 +29,12 @@ private:
 
 public:
 	Simulator(void);
-	Simulator(const json&,const json&,const json&,const json&,const std::string&);
+	Simulator(const json&,const json&,const json&,const json&,const json&, const std::string&);
 
 	void run(void);
 	void calibrate(void);
 
 	~Simulator(void);
+	void showTimeExec(void);
 };
 #endif
