@@ -80,8 +80,8 @@ void Agent::update(){
 		    //   this->_agents[i].follow_the_crowd(neighbors);  
 			break;
 		}
-		  case WORKINGDAY: break;
-		  case SNITCH: break;
+		case WORKINGDAY: break;
+		case SNITCH: break;
 	}
 	
 	
