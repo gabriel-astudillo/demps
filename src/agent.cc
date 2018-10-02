@@ -81,9 +81,7 @@ void Agent::update(){
 		case WORKINGDAY: break;
 		case SNITCH: break;
 	}
-	
-	
-	
+
 }
 
 
