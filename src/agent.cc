@@ -62,8 +62,6 @@ void Agent::update(){
 				_myEnv->_routes[this->id()] = response.path();
 			}
 		    this->random_walkway(_myEnv->_routes[this->id()]);
-
-
 		    break;
 		}
 		case FOLLOWTHECROWD: {
