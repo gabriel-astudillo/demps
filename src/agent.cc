@@ -50,39 +50,39 @@ void Agent::setEnvironment(std::shared_ptr<Environment> myEnv){
 void Agent::update(){
 	// Las rutas se almacenan en la estructura _routes en _myEnv.
 	// Por hacer: las rutas deben ser una propiedad de los agentes.
-	
+
 	switch(this->model()) {
-        case SHORTESTPATH: {
-            this->follow_path(_myEnv->_routes[this->id()]);
-            break;
-        }
-        case RANDOMWALKWAY: {
-            if(_myEnv->_routes[this->id()].empty()){  
+		case SHORTESTPATH: {
+		    this->follow_path(_myEnv->_routes[this->id()]);
+		    break;
+		}
+		case RANDOMWALKWAY: {
+		    if(_myEnv->_routes[this->id()].empty()){  
 				auto response = _myEnv->getRouter().route(this->position(),RANDOMWALKWAY_RADIUS);
 				_myEnv->_routes[this->id()] = response.path();
 			}
-            this->random_walkway(_myEnv->_routes[this->id()]);
-			
-			
-            break;
-        }
-        case FOLLOWTHECROWD: {
-            //Agent::Neighbors neighbors = _env.neighbors_of(this->_agents[i],ATTRACTION_RADIUS,SHORTESTPATH);
-        	//
-            //if(neighbors.empty()){
-            //  if(this->_routes[this->_agents[i].id()].empty()){    
-            //     auto response = _router.route(this->_agents[i].position(),RANDOMWALKWAY_RADIUS);
-            //     this->_routes[this->_agents[i].id()] = response.path();
-            //   }
-            //  this->_agents[i].random_walkway(this->_routes[this->_agents[i].id()]);
-            //}
-            //else
-            //   this->_agents[i].follow_the_crowd(neighbors);  
+		    this->random_walkway(_myEnv->_routes[this->id()]);
+
+
+		    break;
+		}
+		case FOLLOWTHECROWD: {
+		    //Agent::Neighbors neighbors = _env.neighbors_of(this->_agents[i],ATTRACTION_RADIUS,SHORTESTPATH);
+			//
+		    //if(neighbors.empty()){
+		    //  if(this->_routes[this->_agents[i].id()].empty()){    
+		    //     auto response = _router.route(this->_agents[i].position(),RANDOMWALKWAY_RADIUS);
+		    //     this->_routes[this->_agents[i].id()] = response.path();
+		    //   }
+		    //  this->_agents[i].random_walkway(this->_routes[this->_agents[i].id()]);
+		    //}
+		    //else
+		    //   this->_agents[i].follow_the_crowd(neighbors);  
 			break;
-        }
-          case WORKINGDAY: break;
+		}
+		  case WORKINGDAY: break;
 		  case SNITCH: break;
-    }
+	}
 	
 	
 	
