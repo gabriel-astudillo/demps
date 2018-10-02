@@ -106,7 +106,7 @@ int main(int argc,char** argv) {
 	sim.calibrate();
 	sim.run();
 	
-	sim.showTimeExec();
+	//sim.showTimeExec();
 
 	return(EXIT_SUCCESS);
 }

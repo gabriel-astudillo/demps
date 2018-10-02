@@ -1,7 +1,7 @@
 #include <environment.hh>
 
 Environment::Environment(void) {
-    //this->_tree=std::make_shared<kdtree>();
+    ;
 }
 
 Environment::Environment(double xMin, double xMax, double yMin, double yMax, uint32_t quadSize){
@@ -19,23 +19,18 @@ Environment::Environment(double xMin, double xMax, double yMin, double yMax, uin
 	_quadY = int(_mapHeight / _quadSize + 1);
 }
 
-Environment::Environment(const std::vector<Agent> &_vAgents) {
-    
-	this->_vAgents = _vAgents;
-	
-	/*for(auto& agent : _agents) {
-        _vAgents.push_back(agent);
-	}*/
-	
-    /*
-	this->_tree=std::make_shared<kdtree>();
-
-    for(auto& agent : _agents) 
-        this->_tree->insert(Agent(agent));
-
-    this->_tree->optimise();
-	*/
+void Environment::setRouter(const json &_freference_point,const std::string &_map_osrm){
+	_router =  Router(_freference_point,_map_osrm);
 }
+
+Router Environment::getRouter(){
+	return(_router);
+}
+
+Environment::Environment(const std::vector<Agent> &_vAgents) {
+	this->_vAgents = _vAgents;
+}
+
 Environment::Environment(const Environment &_env) {
     //this->_tree=std::make_shared<kdtree>(*_env._tree);
 }
@@ -48,10 +43,24 @@ Environment& Environment::operator=(const Environment &_env) {
     return(*this);
 }
 
+
 void Environment::addAgents(const std::vector<Agent> &_vAgents) {
-	
 	this->_vAgents = _vAgents;
 }
+
+uint32_t Environment::getTotalAgents(){
+	return(_vAgents.size());
+}
+
+Agent* Environment::getAgent(uint32_t id){
+	return(&_vAgents[id]);
+}
+
+std::vector<Agent> Environment::getAgents(){
+	return(_vAgents);
+}
+
+
 
 Agent::Neighbors Environment::neighbors_of(const Agent &_agent,const double &_max_distance,const model_t &_model) {
     Agent::Neighbors neighbors;
@@ -74,13 +83,13 @@ Agent::Neighbors Environment::neighbors_of(const Agent &_agent,const double &_ma
     return(neighbors);
 }
 
-void Environment::update(const std::vector<Agent> &_agents) {
-    /*
-	this->_tree->clear();
-
-    for(auto& agent : _agents) 
-        this->_tree->insert(Agent(agent));
-
-    this->_tree->optimise();
-	*/
+void Environment::updateAgents(){
+		
+#pragma omp parallel for  //schedule(dynamic,8)  firstprivate(_router) shared(_env) 
+    for(uint32_t i = 0; i < this->getTotalAgents(); i++){	
+		Agent* agent = this->getAgent(i);
+		
+		agent->update();				
+    }
+		
 }

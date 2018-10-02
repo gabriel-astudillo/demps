@@ -1,4 +1,8 @@
 #include <simulator.hh>
+#include <environment.hh>
+
+std::shared_ptr<Environment> Simulator::_env;
+//Environment* Simulator::_env;
 
 class Timer{
  private:
@@ -184,14 +188,14 @@ Simulator::Simulator(const json &_fsettings,const json &_finitial_zones,const js
     static thread_local std::random_device device;
     static thread_local std::mt19937 rng(device());
 	
+	std::vector<Agent> _agents;
+	
 	timeExecCal = 0;
 	timeExecSim = 0;
 
     this->_fsettings = _fsettings;
     this->_projector = LocalCartesian(_freference_point["features"][0]["geometry"]["coordinates"][1],_freference_point["features"][0]["geometry"]["coordinates"][0],0,Geocentric::WGS84());
-    this->_router    = Router(_freference_point,_map_osrm);
-	
-	
+    
 	for(auto& feature : _freference_zones["features"]){
 		this->_reference_zones.push_back(Zone(_freference_point, feature));
 	}
@@ -222,7 +226,15 @@ Simulator::Simulator(const json &_fsettings,const json &_finitial_zones,const js
 	uint32_t quadSize = this->_fsettings["quadSize"].get<uint32_t>(); //quadSize[m] x quadSize[m]
 	
 	//Se crea el ambiente vacío. 
-	this->_env = Environment(xMin, xMax, yMin, yMax, quadSize);
+	_env = std::make_shared<Environment>(xMin, xMax, yMin, yMax, quadSize);
+	
+	_env->setRouter(_freference_point,_map_osrm);
+	
+	/// Se crea un agente temporal para
+	// inicializar la variable estática _myEnv
+	// de la clase Agent
+	auto fooAgent = Agent();
+	fooAgent.setEnvironment(_env);
 	
 	uint32_t id = 0;
 	std::uniform_int_distribution<uint32_t> zone(0, this->_initial_zones.size()-1);
@@ -235,17 +247,18 @@ Simulator::Simulator(const json &_fsettings,const json &_finitial_zones,const js
 				position,\
 				fagent["speed"]["min"],\
 				fagent["speed"]["max"],\
-				model_t(this->_hash(fagent["model"].get<std::string>())),\
-				&_env
-				);
-			this->_agents.push_back(agent);
+				model_t(this->_hash(fagent["model"].get<std::string>()))\
+				); 
+
+			_agents.push_back(agent);
 			
 		}
 	}
 	
 	//Se agregan al ambiente con los agentes recien creados. 
-	this->_env.addAgents(this->_agents);
+	_env->addAgents(_agents);
 }
+
 void Simulator::calibrate(void) {
 	
 	bool showProgressBar      = this->_fsettings["output"]["progressBar"].get<bool>();
@@ -261,39 +274,43 @@ void Simulator::calibrate(void) {
 		if(showProgressBar){
 			pg.update(t);
 		}	
-		
-		for(auto& agent : this->_agents){
-			if(this->_routes[agent.id()].empty()){
-				auto response = this->_router.route(agent.position(),RANDOMWALKWAY_RADIUS);
-				this->_routes[agent.id()] = response.path();
+
+		for(auto& agent : _env->getAgents()){
+			if(_env->_routes[agent.id()].empty()){
+				auto response = _env->getRouter().route(agent.position(),RANDOMWALKWAY_RADIUS);
+				_env->_routes[agent.id()] = response.path();				
 			}
-			agent.random_walkway(this->_routes[agent.id()]);
+			agent.random_walkway(_env->_routes[agent.id()]);
+			
+			
 		}
 	}
 
 	if(showProgressBar){
 		std::cout << std::endl;
 	}
-	std::cout << "Ajustando reglas de los agentes... " << std::endl;
-	
-	pg.start(this->_agents.size()-1);
+	std::cout << "Ajustando reglas de los agentes... " <<  std::endl;
 
-#pragma omp parallel for firstprivate(_router) shared(_agents) //schedule(dynamic,8)
-	for(uint32_t i = 0; i < this->_agents.size(); i++){
+	
+	pg.start(_env->getTotalAgents()-1);
+
+
+#pragma omp parallel for //firstprivate(_router) //shared(_agents) //schedule(dynamic,8)
+	for(uint32_t i = 0; i < _env->getTotalAgents(); i++){
 		if(showProgressBar){
 			pg.update(i);
 		}
 		
-		Agent agent = _agents[i];
+		Agent* agent = _env->getAgent(i);
 		
-		switch(agent.model()) {
+		switch(agent->model()) {
 			case SHORTESTPATH: {
 				double distance = DBL_MAX;
 				for(auto &reference_zone : this->_reference_zones) {
-				    auto response = this->_router.route(agent.position(),reference_zone.generate());
+				    auto response = _env->getRouter().route(agent->position(),reference_zone.generate());
 				    if(response.distance() < distance) {
 				        distance = response.distance();
-				        this->_routes[agent.id()] = response.path();
+				        _env->_routes[agent->id()] = response.path();
 				    }
 				}
 				break;
@@ -304,7 +321,7 @@ void Simulator::calibrate(void) {
 			case FOLLOWTHECROWD: break;
 			case WORKINGDAY: break;
 			default: {
-				std::cerr << "error::simulator_constructor::unknown_mobility_model::\"" << agent.model() << "\"" << std::endl;
+				std::cerr << "error::simulator_constructor::unknown_mobility_model::\"" << agent->model() << "\"" << std::endl;
 				exit(EXIT_FAILURE);
 			}
 		}
@@ -347,42 +364,8 @@ void Simulator::run(const uint32_t &_duration) {
 		} 
 
 		auto start = std::chrono::system_clock::now(); //Measure Time
-#pragma omp parallel for firstprivate(_router) shared(_env) //schedule(dynamic,8) 
-        for(uint32_t i = 0; i < this->_agents.size(); i++){
-            switch(this->_agents[i].model()) {
-	            case SHORTESTPATH: {
-	                this->_agents[i].follow_path(this->_routes[this->_agents[i].id()]);
-	                break;
-	            }
-	            case RANDOMWALKWAY: {
-	                if(this->_routes[this->_agents[i].id()].empty()){  
-						auto response = _router.route(this->_agents[i].position(),RANDOMWALKWAY_RADIUS);
-						this->_routes[this->_agents[i].id()] = response.path();
-	                }
-	                this->_agents[i].random_walkway(this->_routes[this->_agents[i].id()]);
-	                break;
-	            }
-	            case FOLLOWTHECROWD: {/*
-	                Agent::Neighbors neighbors = _env.neighbors_of(this->_agents[i],ATTRACTION_RADIUS,SHORTESTPATH);
-                
-	                if(neighbors.empty()){
-	                  if(this->_routes[this->_agents[i].id()].empty()){    
-	                     auto response = _router.route(this->_agents[i].position(),RANDOMWALKWAY_RADIUS);
-	                     this->_routes[this->_agents[i].id()] = response.path();
-	                   }
-	                  this->_agents[i].random_walkway(this->_routes[this->_agents[i].id()]);
-	                }
-	                else
-	                   this->_agents[i].follow_the_crowd(neighbors);
-	                */
-					break;
-	            }
-	              case WORKINGDAY: break;
-				  case SNITCH: break;
-            }
-        }
-		
-        _env.update(this->_agents);
+
+		_env->updateAgents();
 		
 		auto end = std::chrono::system_clock::now(); //Measure Time
 		auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
@@ -396,7 +379,6 @@ void Simulator::run(const uint32_t &_duration) {
 }
 
 Simulator::~Simulator(void) {
-	this->_agents.clear();
 	this->_initial_zones.clear();
 	this->_reference_zones.clear();
 }
@@ -408,7 +390,7 @@ void Simulator::save(const uint32_t &_t) {
 	std::string pathFile = this->_fsettings["output"]["filesim-path"].get<std::string>() + "/" + nameFile ;
 	std::ofstream ofs(pathFile);
 		
-	for(auto& agent : this->_agents) {
+	for( auto& agent : _env->getAgents() ) {
 		double latitude,longitude,h;
 		this->_projector.Reverse(agent.position()[0],agent.position()[1],0,latitude,longitude,h);
 		ofs << agent.id() << " " << latitude << " " << longitude << " " << types[agent.model()] <<std::endl;
@@ -417,19 +399,14 @@ void Simulator::save(const uint32_t &_t) {
 }
 
 void Simulator::showTimeExec(void){
-	/*std::cout << "Sim time     : " << _fsettings["duration"] << std::endl;
-	std::cout << "Agents  0    : " << _fsettings["agents"][0]["number"] << std::endl;
-	std::cout << "Agents  1    : " << _fsettings["agents"][1]["number"] << std::endl;
-	std::cout << "Agents  2    : " << _fsettings["agents"][2]["number"] << std::endl;
-	std::cout << "Exec Time Cal: " << timeExecCal << std::endl;
-	std::cout << "Exec Time Sim: " << timeExecSim << std::endl;*/
 	
 	std::cout << _fsettings["duration"] << ":" 
 		<< _fsettings["agents"][0]["number"] << ":" 
 		<< _fsettings["agents"][1]["number"] << ":" 
 		<< _fsettings["agents"][2]["number"] << ":" 
 		<< timeExecCal << ":" 
-		<< timeExecSim << std::endl;
+		<< timeExecSim 
+		<< std::endl;
 }
 
 
