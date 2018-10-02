@@ -2,13 +2,17 @@
 #define _ENVIRONMENT_H_
 #include <glob.hh>
 #include <agent.hh>
+#include <router.hh>
+
+
+class Router;
 
 class Environment{
 public:
-    //typedef KDTree::KDTree<2,Agent> kdtree;
+    std::map<uint32_t,std::list<Point2D>> _routes;
 
 private:
-    //std::shared_ptr<kdtree> _tree;
+	Router _router;
 	
 	std::vector<Agent> _vAgents;
 	double _xMin, _xMax, _yMin, _yMax;
@@ -23,13 +27,22 @@ private:
 public:
     Environment(void);
 	Environment(double xMin,double xMax, double yMin, double yMax, uint32_t quadSize);
-    Environment(const Environment&);
+
+	Environment(const Environment&);
     Environment(const std::vector<Agent>&);
     ~Environment(void);
     Environment& operator=(const Environment&);
 
 	void addAgents(const std::vector<Agent> &_vAgents);
+	uint32_t getTotalAgents();
+	Agent* getAgent(uint32_t id);
+	std::vector<Agent> getAgents();
+	
     Agent::Neighbors neighbors_of(const Agent&,const double&,const model_t&);
-    void update(const std::vector<Agent>&);
+    
+	void updateAgents();
+	
+	void setRouter(const json &_freference_point,const std::string &_map_osrm);
+	Router getRouter(void);
 };
 #endif
