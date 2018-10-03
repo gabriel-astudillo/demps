@@ -32,15 +32,15 @@ Environment::Environment(const std::vector<Agent> &_vAgents) {
 }
 
 Environment::Environment(const Environment &_env) {
-    //this->_tree=std::make_shared<kdtree>(*_env._tree);
+	//this->_tree=std::make_shared<kdtree>(*_env._tree);
 }
 Environment::~Environment(void) {
-    //this->_tree->clear();
+	//this->_tree->clear();
 }
 
 Environment& Environment::operator=(const Environment &_env) {
-    //this->_tree=std::make_shared<kdtree>(*_env._tree);
-    return(*this);
+	//this->_tree=std::make_shared<kdtree>(*_env._tree);
+	return(*this);
 }
 
 
