@@ -5,63 +5,63 @@ std::shared_ptr<Environment> Simulator::_env;
 //Environment* Simulator::_env;
 
 class Timer{
- private:
-  typedef std::chrono::high_resolution_clock clock;
-  typedef std::chrono::duration<double, std::ratio<1> > second;
+private:
+	typedef std::chrono::high_resolution_clock clock;
+	typedef std::chrono::duration<double, std::ratio<1> > second;
 
-  std::chrono::time_point<clock> start_time; ///< Last time the timer was started
-  double accumulated_time;                   ///< Accumulated running time since creation
-  bool running;                              ///< True when the timer is running
+	std::chrono::time_point<clock> start_time; ///< Last time the timer was started
+	double accumulated_time;                   ///< Accumulated running time since creation
+	bool running;                              ///< True when the timer is running
 
- public:
-  Timer(){
-    accumulated_time = 0;
-    running          = false;
-  }
+public:
+	Timer(){
+		accumulated_time = 0;
+		running          = false;
+	}
 
-  ///Start the timer. Throws an exception if timer was already running.
-  void start(){
-    if(running)
-      throw std::runtime_error("Timer was already started!");
-    running=true;
-    start_time = clock::now();
-  }
+	///Start the timer. Throws an exception if timer was already running.
+	void start(){
+		if(running)
+			throw std::runtime_error("Timer was already started!");
+		running=true;
+		start_time = clock::now();
+	}
 
-  ///Stop the timer. Throws an exception if timer was already stopped.
-  ///Calling this adds to the timer's accumulated time.
-  ///@return The accumulated time in seconds.
-  double stop(){
-    if(!running)
-      throw std::runtime_error("Timer was already stopped!");
+	///Stop the timer. Throws an exception if timer was already stopped.
+	///Calling this adds to the timer's accumulated time.
+	///@return The accumulated time in seconds.
+	double stop(){
+		if(!running)
+			throw std::runtime_error("Timer was already stopped!");
 
-    accumulated_time += lap();
-    running           = false;
+		accumulated_time += lap();
+		running           = false;
 
-    return accumulated_time;
-  }
+		return accumulated_time;
+	}
 
-  ///Returns the timer's accumulated time. Throws an exception if the timer is
-  ///running.
-  double accumulated(){
-    if(running)
-      throw std::runtime_error("Timer is still running!");
-    return accumulated_time;
-  }
+	///Returns the timer's accumulated time. Throws an exception if the timer is
+	///running.
+	double accumulated(){
+		if(running)
+			throw std::runtime_error("Timer is still running!");
+		return accumulated_time;
+	}
 
-  ///Returns the time between when the timer was started and the current
-  ///moment. Throws an exception if the timer is not running.
-  double lap(){
-    if(!running)
-      throw std::runtime_error("Timer was not started!");
-    return std::chrono::duration_cast<second> (clock::now() - start_time).count();
-  }
+	///Returns the time between when the timer was started and the current
+	///moment. Throws an exception if the timer is not running.
+	double lap(){
+		if(!running)
+			throw std::runtime_error("Timer was not started!");
+		return std::chrono::duration_cast<second> (clock::now() - start_time).count();
+	}
 
-  ///Stops the timer and resets its accumulated time. No exceptions are thrown
-  ///ever.
-  void reset(){
-    accumulated_time = 0;
-    running          = false;
-  }
+	///Stops the timer and resets its accumulated time. No exceptions are thrown
+	///ever.
+	void reset(){
+		accumulated_time = 0;
+		running          = false;
+	}
 };
 
 
@@ -71,113 +71,113 @@ class Timer{
 ///disable all progress operations, potentially speeding up a program. The look
 ///of the progress bar is shown in ProgressBar.hpp.
 class ProgressBar{
- private:
-  uint32_t total_work;    ///< Total work to be accomplished
-  uint32_t next_update;   ///< Next point to update the visible progress bar
-  uint32_t call_diff;     ///< Interval between updates in work units
-  uint32_t work_done;
-  uint16_t old_percent;   ///< Old percentage value (aka: should we update the progress bar) TODO: Maybe that we do not need this
-  Timer    timer;         ///< Used for generating ETA
+private:
+	uint32_t total_work;    ///< Total work to be accomplished
+	uint32_t next_update;   ///< Next point to update the visible progress bar
+	uint32_t call_diff;     ///< Interval between updates in work units
+	uint32_t work_done;
+	uint16_t old_percent;   ///< Old percentage value (aka: should we update the progress bar) TODO: Maybe that we do not need this
+	Timer    timer;         ///< Used for generating ETA
 
-  ///Clear current line on console so a new progress bar can be written
-  void clearConsoleLine() const {
-    std::cerr<<"\r\033[2K"<<std::flush;
-  }
+	///Clear current line on console so a new progress bar can be written
+	void clearConsoleLine() const {
+		std::cerr<<"\r\033[2K"<<std::flush;
+	}
 
- public:
-  ///@brief Start/reset the progress bar.
-  ///@param total_work  The amount of work to be completed, usually specified in cells.
-  void start(uint32_t total_work){
-    timer = Timer();
-    timer.start();
-    this->total_work = total_work;
-    next_update      = 0;
-    call_diff        = total_work/200;
-    old_percent      = 0;
-    work_done        = 0;
-    clearConsoleLine();
-  }
+public:
+	///@brief Start/reset the progress bar.
+	///@param total_work  The amount of work to be completed, usually specified in cells.
+	void start(uint32_t total_work){
+		timer = Timer();
+		timer.start();
+		this->total_work = total_work;
+		next_update      = 0;
+		call_diff        = total_work/200;
+		old_percent      = 0;
+		work_done        = 0;
+		clearConsoleLine();
+	}
 
-  ///@brief Update the visible progress bar, but only if enough work has been done.
-  ///
-  ///Define the global `NOPROGRESS` flag to prevent this from having an
-  ///effect. Doing so may speed up the program's execution.
-  void update(uint32_t work_done0){
-    //Provide simple way of optimizing out progress updates
-    #ifdef NOPROGRESS
-      return;
-    #endif
+	///@brief Update the visible progress bar, but only if enough work has been done.
+	///
+	///Define the global `NOPROGRESS` flag to prevent this from having an
+	///effect. Doing so may speed up the program's execution.
+	void update(uint32_t work_done0){
+		//Provide simple way of optimizing out progress updates
+		#ifdef NOPROGRESS
+		return;
+		#endif
 
-    //Quick return if this isn't the main thread
-    if(omp_get_thread_num()!=0)
-      return;
+		//Quick return if this isn't the main thread
+		if(omp_get_thread_num()!=0)
+			return;
 
-    //Update the amount of work done
-    work_done = work_done0;
+		//Update the amount of work done
+		work_done = work_done0;
 
-    //Quick return if insufficient progress has occurred
-    if(work_done<next_update)
-      return;
+		//Quick return if insufficient progress has occurred
+		if(work_done<next_update)
+			return;
 
-    //Update the next time at which we'll do the expensive update stuff
-    next_update += call_diff;
+		//Update the next time at which we'll do the expensive update stuff
+		next_update += call_diff;
 
-    //Use a uint16_t because using a uint8_t will cause the result to print as a
-    //character instead of a number
-    uint16_t percent = (uint8_t)(work_done*omp_get_num_threads()*100/total_work);
+		//Use a uint16_t because using a uint8_t will cause the result to print as a
+		//character instead of a number
+		uint16_t percent = (uint8_t)(work_done*omp_get_num_threads()*100/total_work);
 
-    //Handle overflows
-    if(percent>100)
-      percent=100;
+		//Handle overflows
+		if(percent>100)
+			percent=100;
 
-    //In the case that there has been no update (which should never be the case,
-    //actually), skip the expensive screen print
-    if(percent==old_percent)
-      return;
+		//In the case that there has been no update (which should never be the case,
+		//actually), skip the expensive screen print
+		if(percent==old_percent)
+			return;
 
-    //Update old_percent accordingly
-    old_percent=percent;
+		//Update old_percent accordingly
+		old_percent=percent;
 
-    //Print an update string which looks like this:
-    //  [================================================  ] (96% - 1.0s - 4 threads)
-    std::cerr<<"\r\033[2K["
-             <<std::string(percent/2, '=')<<std::string(50-percent/2, ' ')
-             <<"] ("
-             <<percent<<"% - "
-             <<std::fixed<<std::setprecision(1)<<timer.lap()/percent*(100-percent)
-			 << "s" <<std::flush;
-            // <<"s - "
-            // <<omp_get_num_threads()<< " threads)"<<std::flush;
-  }
+		//Print an update string which looks like this:
+		//  [================================================  ] (96% - 1.0s - 4 threads)
+		std::cerr<<"\r\033[2K["
+			<<std::string(percent/2, '=')<<std::string(50-percent/2, ' ')
+			<<"] ("
+			<<percent<<"% - "
+			<<std::fixed<<std::setprecision(1)<<timer.lap()/percent*(100-percent)
+			<< "s" <<std::flush;
+			// <<"s - "
+			// <<omp_get_num_threads()<< " threads)"<<std::flush;
+	}
 
-  ///Increment by one the work done and update the progress bar
-  ProgressBar& operator++(){
-    //Quick return if this isn't the main thread
-    if(omp_get_thread_num()!=0)
-      return *this;
+	///Increment by one the work done and update the progress bar
+	ProgressBar& operator++(){
+		//Quick return if this isn't the main thread
+		if(omp_get_thread_num()!=0)
+			return *this;
 
-    work_done++;
-    update(work_done);
-    return *this;
-  }
+		work_done++;
+		update(work_done);
+		return *this;
+	}
 
-  ///Stop the progress bar. Throws an exception if it wasn't started.
-  ///@return The number of seconds the progress bar was running.
-  double stop(){
-    clearConsoleLine();
+	///Stop the progress bar. Throws an exception if it wasn't started.
+	///@return The number of seconds the progress bar was running.
+	double stop(){
+		clearConsoleLine();
 
-    timer.stop();
-    return timer.accumulated();
-  }
+		timer.stop();
+		return timer.accumulated();
+	}
 
-  ///@return Return the time the progress bar ran for.
-  double time_it_took(){
-    return timer.accumulated();
-  }
+	///@return Return the time the progress bar ran for.
+	double time_it_took(){
+		return timer.accumulated();
+	}
 
-  uint32_t cellsProcessed() const {
-    return work_done;
-  }
+	uint32_t cellsProcessed() const {
+		return work_done;
+	}
 };
 
 
@@ -185,17 +185,17 @@ Simulator::Simulator(void) {
 
 }
 Simulator::Simulator(const json &_fsettings,const json &_finitial_zones,const json &_freference_zones,const json &_freference_point,const json &_fmap_zone,const std::string &_map_osrm) {
-    static thread_local std::random_device device;
-    static thread_local std::mt19937 rng(device());
-	
+	static thread_local std::random_device device;
+	static thread_local std::mt19937 rng(device());
+
 	std::vector<Agent> _agents;
-	
+
 	timeExecCal = 0;
 	timeExecSim = 0;
 
-    this->_fsettings = _fsettings;
-    this->_projector = LocalCartesian(_freference_point["features"][0]["geometry"]["coordinates"][1],_freference_point["features"][0]["geometry"]["coordinates"][0],0,Geocentric::WGS84());
-    
+	this->_fsettings = _fsettings;
+	this->_projector = LocalCartesian(_freference_point["features"][0]["geometry"]["coordinates"][1],_freference_point["features"][0]["geometry"]["coordinates"][0],0,Geocentric::WGS84());
+
 	for(auto& feature : _freference_zones["features"]){
 		this->_reference_zones.push_back(Zone(_freference_point, feature));
 	}
@@ -221,13 +221,13 @@ Simulator::Simulator(const json &_fsettings,const json &_finitial_zones,const js
 	map_x.sort(); map_y.sort();
 	xMin = map_x.front(); xMax = map_x.back();	
 	yMin = map_y.front(); yMax = map_y.back();
-	
+
 	//Tamaño del cuadrante
 	uint32_t quadSize = this->_fsettings["quadSize"].get<uint32_t>(); //quadSize[m] x quadSize[m]
-	
+
 	//Se crea el ambiente vacío. 
 	_env = std::make_shared<Environment>(xMin, xMax, yMin, yMax, quadSize);
-	
+
 	_env->setRouter(_freference_point,_map_osrm);
 	
 	/// Se crea un agente temporal para
@@ -235,7 +235,7 @@ Simulator::Simulator(const json &_fsettings,const json &_finitial_zones,const js
 	// de la clase Agent
 	auto fooAgent = Agent();
 	fooAgent.setEnvironment(_env);
-	
+
 	uint32_t id = 0;
 	std::uniform_int_distribution<uint32_t> zone(0, this->_initial_zones.size()-1);
 
@@ -263,7 +263,7 @@ void Simulator::calibrate(void) {
 	
 	bool showProgressBar      = this->_fsettings["output"]["progressBar"].get<bool>();
 	uint32_t calibration_time = this->_fsettings["calibration"].get<uint32_t>();
-	
+
 	std::cout << "Ajustando posición inicial de los agentes..." << std::endl;
 
 	auto start = std::chrono::system_clock::now(); //Measure Time
@@ -280,9 +280,7 @@ void Simulator::calibrate(void) {
 				auto response = _env->getRouter().route(agent.position(),RANDOMWALKWAY_RADIUS);
 				_env->_routes[agent.id()] = response.path();				
 			}
-			agent.random_walkway(_env->_routes[agent.id()]);
-			
-			
+			agent.random_walkway(_env->_routes[agent.id()]);		
 		}
 	}
 
