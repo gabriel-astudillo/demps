@@ -86,10 +86,10 @@ Agent::Neighbors Environment::neighbors_of(const Agent &_agent,const double &_ma
 void Environment::updateAgents(){
 		
 #pragma omp parallel for  //schedule(dynamic,8)  firstprivate(_router) shared(_env) 
-    for(uint32_t i = 0; i < this->getTotalAgents(); i++){	
+	for(uint32_t i = 0; i < this->getTotalAgents(); i++){	
 		Agent* agent = this->getAgent(i);
 		
 		agent->update();				
-    }
+	}
 		
 }
