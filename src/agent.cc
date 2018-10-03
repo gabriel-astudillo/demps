@@ -47,6 +47,7 @@ void Agent::setEnvironment(std::shared_ptr<Environment> myEnv){
 	this->_myEnv = myEnv;
 }
 
+
 void Agent::update(){
 	// Las rutas se almacenan en la estructura _routes en _myEnv.
 	// Por hacer: las rutas deben ser una propiedad de los agentes.
@@ -58,7 +59,7 @@ void Agent::update(){
 		}
 		case RANDOMWALKWAY: {
 		    if(_myEnv->_routes[this->id()].empty()){  
-				auto response = _myEnv->getRouter().route(this->position(),RANDOMWALKWAY_RADIUS);
+				auto response = _myEnv->getRouter()->route(this->position(),RANDOMWALKWAY_RADIUS);
 				_myEnv->_routes[this->id()] = response.path();
 			}
 		    this->random_walkway(_myEnv->_routes[this->id()]);
