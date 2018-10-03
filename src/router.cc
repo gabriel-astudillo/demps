@@ -13,6 +13,7 @@ Router::Router(const json &_freference_point,const std::string &_map_osrm) {
     this->_osrm=std::make_shared<osrm::OSRM>(this->_config);
 
     this->_projector=LocalCartesian(_freference_point["features"][0]["geometry"]["coordinates"][1],_freference_point["features"][0]["geometry"]["coordinates"][0],0,Geocentric::WGS84());
+
 }
 Router::~Router(void) {
     ;
@@ -21,6 +22,8 @@ Router& Router::operator=(const Router &_router) {
     this->_config=_router._config;
     this->_projector=_router._projector;
     this->_osrm=std::make_shared<osrm::OSRM>(this->_config);
+	
+	
     return(*this);
 }
 Router::Response Router::route(const Point2D &_src,const Point2D &_dst) {
@@ -60,6 +63,7 @@ Router::Response Router::route(const Point2D &_src,const Point2D &_dst) {
         }
         response=Response(route.values["distance"].get<osrm::json::Number>().value,route.values["duration"].get<osrm::json::Number>().value,path);
     }
+	
     return(response);
 }
 Router::Response Router::route(const Point2D &_src,const double &_radius) {

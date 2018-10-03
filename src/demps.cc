@@ -7,9 +7,9 @@
 
 int main(int argc,char** argv) {
 	char c;
-	std::string map_osrm;
-	json area;
+	
 	json settings;
+	json area_zone;
 	json initial_zones;
 	json reference_zones;
 	json reference_point;
@@ -27,16 +27,29 @@ int main(int argc,char** argv) {
 	}
 
 	if(settings.empty()) {
-	    std::cerr << "Mandatory parameter -s <settings.json> needed" << std::endl;
+	    std::cerr << "Mandatory parameter -s <config.json> needed" << std::endl;
 	    exit(EXIT_FAILURE);
 	}
 	
+	std::string map_osrm;
+	std::string area_zone_file;
+	std::string initial_zones_file;
+	std::string reference_zones_file;
+	std::string reference_point_file;
 	
 	map_osrm                  = settings["input"]["map"].get<std::string>();
+	try {
+		area_zone_file       = settings["input"]["area"].get<std::string>();
+		initial_zones_file   = settings["input"]["initial_zones"].get<std::string>();
+		reference_zones_file = settings["input"]["reference_zones"].get<std::string>();
+		reference_point_file = settings["input"]["reference_point"].get<std::string>();
+	}catch (json::exception &e){
+		std::cerr << "Error in get action from 'input' section in <config.json>:" << std::endl;
+		std::cerr << e.what() << std::endl;
+		exit(EXIT_FAILURE);
+	}
+		
 	
-	auto initial_zones_file   = settings["input"]["initial_zones"].get<std::string>();
-	auto reference_zones_file = settings["input"]["reference_zones"].get<std::string>();
-	auto reference_point_file = settings["input"]["reference_point"].get<std::string>();
 	
 	std::ifstream ifs;
 	
@@ -45,6 +58,15 @@ int main(int argc,char** argv) {
 	    std::cerr << "Error in file:"<<  map_osrm << std::endl;
 	    exit(EXIT_FAILURE);
 	}
+	ifs.close();
+
+	ifs.open(area_zone_file,std::ifstream::in);
+	if(ifs.fail()) {
+	    std::cerr << "Error in file:"<<  area_zone_file << std::endl;
+	    exit(EXIT_FAILURE);
+	}
+
+	ifs >> area_zone;
 	ifs.close();
 
 	ifs.open(initial_zones_file,std::ifstream::in);
@@ -73,15 +95,18 @@ int main(int argc,char** argv) {
 	ifs.close();
 
 
-	if(map_osrm.empty() || initial_zones.empty() || reference_zones.empty() || reference_point.empty()) {
+	if(map_osrm.empty() || area_zone.empty() || initial_zones.empty() || reference_zones.empty() || reference_point.empty()) {
 	    std::cerr << "Check file path in input section" << std::endl;
 	    exit(EXIT_FAILURE);
 	} 
 	
-	Simulator sim(settings,initial_zones,reference_zones,reference_point,map_osrm);
+
+	Simulator sim(settings,initial_zones,reference_zones,reference_point,area_zone,map_osrm);
 
 	sim.calibrate();
 	sim.run();
+	
+	//sim.showTimeExec();
 
 	return(EXIT_SUCCESS);
 }
