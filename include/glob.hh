@@ -1,5 +1,28 @@
 #ifndef _GLOB_H_
 #define _GLOB_H_
+
+
+#include <exception>
+#include <iostream>
+#include <utility>
+#include <cstdlib>
+#include <fstream>
+#include <memory>
+#include <string>
+#include <mutex>
+#include <list>
+#include <random>
+#include <omp.h>
+#include <iomanip>
+#include <stdexcept>
+#include <chrono>
+#include <cmath>
+
+#include <json.hpp>
+#include <kdtree++/kdtree.hpp>
+#include <progressBar.hpp>
+
+
 #include <CGAL/Line_2.h>
 #include <CGAL/Origin.h>
 #include <CGAL/Polygon_2.h>
@@ -14,6 +37,8 @@
 #include <CGAL/Delaunay_mesh_size_criteria_2.h>
 #include <CGAL/Triangulation_face_base_with_info_2.h>
 #include <CGAL/Constrained_Delaunay_triangulation_2.h>
+
+#define CGAL_HAS_THREADS
 
 
 #include <GeographicLib/Geodesic.hpp>
@@ -32,22 +57,6 @@
 #include <osrm/osrm.hpp>
 #include <osrm/status.hpp>
 
-#include <exception>
-#include <iostream>
-#include <utility>
-#include <cstdlib>
-#include <fstream>
-#include <memory>
-#include <string>
-#include <mutex>
-#include <list>
-#include <random>
-#include <omp.h>
-
-#include <json.hpp>
-#include <kdtree++/kdtree.hpp>
-
-#define CGAL_HAS_THREADS
 
 
 struct FaceInfo2
@@ -91,6 +100,6 @@ using namespace GeographicLib;
 #define ATTRACTION_RADIUS     2.0
 
 
-enum model_t {SHORTESTPATH=9366416273040049814U,FOLLOWTHECROWD=10676684734677566718U,RANDOMWALKWAY=5792789823329120861U,WORKINGDAY};
+enum model_t {SHORTESTPATH=9366416273040049814U,FOLLOWTHECROWD=10676684734677566718U,RANDOMWALKWAY=5792789823329120861U,WORKINGDAY, SNITCH=666};
 
 #endif
