@@ -349,15 +349,15 @@ void Simulator::run(const uint32_t &_duration) {
 	uint32_t interval    = this->_fsettings["output"]["interval"].get<uint32_t>();
 
 	ProgressBar pg;
-    pg.start(_duration-1);
+	pg.start(_duration-1);
 	
-    for(uint32_t t = 0; t < _duration; t++) {
+	for(uint32_t t = 0; t < _duration; t++) {
         
 		if(showProgressBar){
 			pg.update(t);
 		}
 		
-        if(save_to_disk && ((t%interval) == 0)) {
+		if(save_to_disk && ((t%interval) == 0)) {
 			this->save(t); //GAM: <16/08/2018>, WAS this->save(t/SAVE) 
 		} 
 
@@ -368,7 +368,7 @@ void Simulator::run(const uint32_t &_duration) {
 		auto end = std::chrono::system_clock::now(); //Measure Time
 		auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
 		timeExecSim += elapsed.count();
-    }
+	}
 	
 	if(showProgressBar){
 		std::cout << std::endl;
