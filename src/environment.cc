@@ -80,7 +80,7 @@ Agent::Neighbors Environment::neighbors_of(const Agent &_agent,const double &_ma
 	}
 	*/
 
-    return(neighbors);
+	return(neighbors);
 }
 
 void Environment::updateAgents(){
