@@ -63,21 +63,21 @@ std::vector<Agent> Environment::getAgents(){
 
 
 Agent::Neighbors Environment::neighbors_of(const Agent &_agent,const double &_max_distance,const model_t &_model) {
-    Agent::Neighbors neighbors;
-    /*
+	Agent::Neighbors neighbors;
+	/*
 	std::deque<Agent> results;
-    double dist=0.0;
+	double dist=0.0;
 
-    this->_tree->find_within_range(_agent,_max_distance,std::back_inserter(results));
+	this->_tree->find_within_range(_agent,_max_distance,std::back_inserter(results));
 
-    for (std::deque<Agent>::iterator it=results.begin(); it!=results.end(); ++it) {
-        Agent agent=*it;
-        if(agent.model()==_model){   
-            dist=_agent.distance(agent);
-            if(dist<=_max_distance)
-                neighbors.push_back(agent);
-        }
-    }
+	for (std::deque<Agent>::iterator it=results.begin(); it!=results.end(); ++it) {
+	    Agent agent=*it;
+	    if(agent.model()==_model){   
+	        dist=_agent.distance(agent);
+	        if(dist<=_max_distance)
+	            neighbors.push_back(agent);
+	    }
+	}
 	*/
 
     return(neighbors);
