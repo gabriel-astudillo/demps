@@ -20,6 +20,7 @@
 
 #include <json.hpp>
 #include <kdtree++/kdtree.hpp>
+#include <progressBar.hpp>
 
 
 #include <CGAL/Line_2.h>
