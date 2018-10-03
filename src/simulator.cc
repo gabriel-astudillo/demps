@@ -305,11 +305,11 @@ void Simulator::calibrate(void) {
 			case SHORTESTPATH: {
 				double distance = DBL_MAX;
 				for(auto &reference_zone : this->_reference_zones) {
-				    auto response = _env->getRouter().route(agent->position(),reference_zone.generate());
-				    if(response.distance() < distance) {
-				        distance = response.distance();
-				        _env->_routes[agent->id()] = response.path();
-				    }
+					auto response = _env->getRouter().route(agent->position(),reference_zone.generate());
+					if(response.distance() < distance) {
+						distance = response.distance();
+						_env->_routes[agent->id()] = response.path();
+					}
 				}
 				break;
 			}
