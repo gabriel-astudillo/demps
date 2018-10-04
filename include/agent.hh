@@ -6,8 +6,9 @@ class Environment;
 
 class Agent{
 public:
-	typedef double value_type;
 	typedef std::vector<Agent> Neighbors;
+	
+	std::list<Point2D> _route; // Primer intento. Debe ser un atributo privado.
 	
 private:
 	uint32_t _id;
@@ -40,9 +41,10 @@ public:
 	
 	void update();
 
-	void follow_path(std::list<Point2D>&);
-	void random_walkway(std::list<Point2D>&);
-	void follow_the_crowd(const Neighbors&);
+	void shortestPath();
+	void followPath();
+	void randomWalkway();
+	void followTheCrowd(const Neighbors&);
 
 	double distance(Agent const &_agent) const{
 		return(sqrt(CGAL::squared_distance(this->_position,_agent._position)));

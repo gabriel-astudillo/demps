@@ -10,7 +10,7 @@ class Router;
 
 class Environment{
 public:
-	std::map<uint32_t,std::list<Point2D>> _routes;
+	//std::map<uint32_t,std::list<Point2D>> _routes;
 	
 	//Router _router;
 	//std::vector<Agent> _vAgents;
@@ -61,7 +61,8 @@ public:
 
 	Agent::Neighbors neighbors_of(const Agent&,const double&,const model_t&);
 
-	void adjustAgentsRules(); //Por hacer
+	void adjustAgentsInitialPosition(const uint32_t& calibrationTime); //Por hacer
+	void adjustAgentsRules(); 
 	void updateAgents();
 
 };

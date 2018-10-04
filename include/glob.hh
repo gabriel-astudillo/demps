@@ -95,9 +95,10 @@ typedef CGAL::Delaunay_mesh_size_criteria_2<CDT>                  Mesh_2_criteri
 using json=nlohmann::json;
 using namespace GeographicLib;
 
-#define CLOSE_ENOUGH          1.0
-#define RANDOMWALKWAY_RADIUS  500.0
-#define ATTRACTION_RADIUS     2.0
+extern bool  g_showProgressBar;
+extern float g_closeEnough;
+extern float g_randomWalkwayRadius;
+extern float g_attractionRadius;
 
 
 enum model_t {SHORTESTPATH=9366416273040049814U,FOLLOWTHECROWD=10676684734677566718U,RANDOMWALKWAY=5792789823329120861U,WORKINGDAY, SNITCH=666};
