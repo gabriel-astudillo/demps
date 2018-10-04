@@ -5,6 +5,11 @@
 #include <glob.hh>
 #include <simulator.hh>
 
+bool  g_showProgressBar;
+float g_closeEnough;
+float g_randomWalkwayRadius;
+float g_attractionRadius;
+
 int main(int argc,char** argv) {
 	char c;
 	

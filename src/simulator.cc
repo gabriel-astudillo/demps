@@ -3,7 +3,6 @@
 
 std::shared_ptr<Environment> Simulator::_env;
 
-
 Simulator::Simulator(void) {
 
 }
@@ -27,8 +26,12 @@ Simulator::Simulator(const json &_fsettings,const json &_finitial_zones,const js
 	_filesimSufix    = this->_fsettings["output"]["filesim-sufix"].get<std::string>();
 	_filesimPath     = this->_fsettings["output"]["filesim-path"].get<std::string>();
 	
-	// showProgressBar debe ser global al proyecto
-	bool showProgressBar = this->_fsettings["output"]["progressBar"].get<bool>();
+
+	// Asignación de variables globales del proyecto
+	g_showProgressBar     = this->_fsettings["output"]["progressBar"].get<bool>();
+	g_closeEnough         = this->_fsettings["closeEnough"].get<float>();
+	g_randomWalkwayRadius = this->_fsettings["randomWalkwayRadius"].get<float>();
+	g_attractionRadius    = this->_fsettings["attractionRadius"].get<float>();
 	
 
 	//Tamaño del cuadrante
@@ -61,7 +64,7 @@ Simulator::Simulator(const json &_fsettings,const json &_finitial_zones,const js
 		pg.start(totalAgents);
 		 
 		for(uint32_t i = 0; i < totalAgents; i++, id++) {
-			if(showProgressBar){
+			if(g_showProgressBar){
 				pg.update(i);
 			}
 			
@@ -79,7 +82,7 @@ Simulator::Simulator(const json &_fsettings,const json &_finitial_zones,const js
 		}
 	}
 	
-	if(showProgressBar){
+	if(g_showProgressBar){
 		std::cout << std::endl;
 	}
 	
@@ -89,65 +92,16 @@ Simulator::Simulator(const json &_fsettings,const json &_finitial_zones,const js
 
 void Simulator::calibrate(void) {
 	
-	bool showProgressBar      = this->_fsettings["output"]["progressBar"].get<bool>();
-	
 	//
 	// Se realiza un ajuste en la posición inicial de los agentes,
-	// para que queden en las calles del mapa. Esto se realiza
-	// en dos pasos:
-	// 1) Se ajusta el modelo de movilidad de todos los agentes a RANDOMWALK
-	// 2) Los agentes caminan un tiempo determinado para que finalmente
-	//    queden en las calles
+	// para que queden en las calles del mapa. 
 	//
+	std::cout << "Ajustando posición inicial de los agentes..." << std::endl;
 	
-	//
-	// AJUSTE: PASO 1
-	//
-	std::cout << "Ajustando posición inicial de los agentes...(1/2)" << std::endl;
 	auto start = std::chrono::system_clock::now(); //Measure Time
-	
-	ProgressBar pg;
-	pg.start(_env->getTotalAgents()-1);
-	
-	#pragma omp parallel for 
-	for(uint32_t i = 0; i < _env->getTotalAgents(); i++){
-		if(showProgressBar){
-			pg.update(i);
-		}
-		
-		Agent* agent = _env->getAgent(i);
-	
-		auto response = _env->getRouter()->route(agent->position(),RANDOMWALKWAY_RADIUS);
-		_env->_routes[agent->id()] = response.path();					
-	}
+	_env->adjustAgentsInitialPosition(_calibrationTime);
 
-	if(showProgressBar){
-		std::cout << std::endl;
-	}
-	
-	//
-	// AJUSTE: PASO 2
-	//
-	std::cout << "Ajustando posición inicial de los agentes...(2/2)" << std::endl;
-	pg.start(_calibrationTime-1);
-	for(uint32_t t = 0; t < _calibrationTime; t++) {
-		if(showProgressBar){
-			pg.update(t);
-		}	
-
-		#pragma omp parallel for 
-		for(uint32_t i = 0; i < _env->getTotalAgents(); i++){
-			Agent* agent = _env->getAgent(i);
-			
-			if(_env->_routes[agent->id()].empty()){
-				auto response = _env->getRouter()->route(agent->position(),RANDOMWALKWAY_RADIUS);
-				_env->_routes[agent->id()] = response.path();				
-			}
-			agent->random_walkway(_env->_routes[agent->id()]);				
-		}
-	}
-
-	if(showProgressBar){
+	if(g_showProgressBar){
 		std::cout << std::endl;
 	}
 	
@@ -162,7 +116,7 @@ void Simulator::calibrate(void) {
 	auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
 	timeExecCal += elapsed.count();
 	
-	if(showProgressBar){
+	if(g_showProgressBar){
 		std::cout << std::endl;
 	}
 }
@@ -175,19 +129,17 @@ double distance(Agent a,Agent b){
 void Simulator::run() {
 	std::cout << "Simulando..." << std::endl;
 	
-	bool showProgressBar = this->_fsettings["output"]["progressBar"].get<bool>();
-	
 	ProgressBar pg;
 	pg.start(_duration-1);
 	
 	for(uint32_t t = 0; t < _duration; t++) {
         
-		if(showProgressBar){
+		if(g_showProgressBar){
 			pg.update(t);
 		}
 		
 		if(_saveToDisk && ((t%_interval) == 0)) {
-			this->save(t); //GAM: <16/08/2018>, WAS this->save(t/SAVE) 
+			this->save(t);
 		} 
 
 		auto start = std::chrono::system_clock::now(); //Measure Time
@@ -199,7 +151,7 @@ void Simulator::run() {
 		timeExecSim += elapsed.count();
 	}
 	
-	if(showProgressBar){
+	if(g_showProgressBar){
 		std::cout << std::endl;
 	}	
 	

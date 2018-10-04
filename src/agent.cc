@@ -47,30 +47,23 @@ void Agent::setEnvironment(std::shared_ptr<Environment> myEnv){
 	this->_myEnv = myEnv;
 }
 
-
 void Agent::update(){
-	// Las rutas se almacenan en la estructura _routes en _myEnv.
-	// Por hacer: las rutas deben ser una propiedad de los agentes.
 
 	switch(this->model()) {
 		case SHORTESTPATH: {
-		    this->follow_path(_myEnv->_routes[this->id()]);
+		    this->shortestPath();
 		    break;
 		}
 		case RANDOMWALKWAY: {
-		    if(_myEnv->_routes[this->id()].empty()){  
-				auto response = _myEnv->getRouter()->route(this->position(),RANDOMWALKWAY_RADIUS);
-				_myEnv->_routes[this->id()] = response.path();
-			}
-		    this->random_walkway(_myEnv->_routes[this->id()]);
+			this->randomWalkway();
 		    break;
 		}
 		case FOLLOWTHECROWD: {
-		    //Agent::Neighbors neighbors = _env.neighbors_of(this->_agents[i],ATTRACTION_RADIUS,SHORTESTPATH);
+		    //Agent::Neighbors neighbors = _env.neighbors_of(this->_agents[i],g_attractionRadius,SHORTESTPATH);
 			//
 		    //if(neighbors.empty()){
 		    //  if(this->_routes[this->_agents[i].id()].empty()){    
-		    //     auto response = _router.route(this->_agents[i].position(),RANDOMWALKWAY_RADIUS);
+		    //     auto response = _router.route(this->_agents[i].position(),g_randomWalkwayRadius);
 		    //     this->_routes[this->_agents[i].id()] = response.path();
 		    //   }
 		    //  this->_agents[i].random_walkway(this->_routes[this->_agents[i].id()]);
@@ -85,8 +78,51 @@ void Agent::update(){
 
 }
 
+void Agent::shortestPath(){
+	//El agente ya tiene la ruta más corta asignada desde el inicio
+	//de la simulación. Solo debe seguir dicha ruta.
+	this->followPath();
+}
 
-void Agent::follow_the_crowd(const Neighbors &_neighbors){
+
+void Agent::randomWalkway() {
+	
+	if(this->_route.empty()){  
+		auto response = _myEnv->getRouter()->route(this->position(),g_randomWalkwayRadius);
+		this->_route = response.path();
+	}
+    this->followPath();
+}
+
+void Agent::followPath(){
+    static thread_local std::random_device device;
+    static thread_local std::mt19937 rng(device());
+	
+    if(_route.empty()) return;
+
+    std::uniform_real_distribution<double> speed(this->_min_speed,this->_max_speed);
+
+    while(!_route.empty()) {
+        Point2D dst = _route.front();
+        double dist = sqrt(CGAL::squared_distance(this->_position,dst));
+
+        if(dist < g_closeEnough) {
+            _route.pop_front();
+            continue;
+        }
+
+        Transformation scale(CGAL::SCALING,1.0,dist);
+        Vector2D direction(this->_position,dst);
+        direction = scale(direction);
+
+        Transformation translate(CGAL::TRANSLATION,direction*speed(rng));
+        this->_position = translate(this->_position);
+        break;
+    }
+
+}
+
+void Agent::followTheCrowd(const Neighbors &_neighbors){
    static thread_local std::random_device device;
    static thread_local std::mt19937 rng(device());
 
@@ -102,36 +138,6 @@ void Agent::follow_the_crowd(const Neighbors &_neighbors){
 
    Transformation translate(CGAL::TRANSLATION,this->_direction*speed(rng));
    this->_position=translate(this->_position);
-}
-
-void Agent::random_walkway(std::list<Point2D> &_path) {
-    this->follow_path(_path);
-}
-
-void Agent::follow_path(std::list<Point2D> &_path){
-    static thread_local std::random_device device;
-    static thread_local std::mt19937 rng(device());
-    if(_path.empty()) return;
-
-    std::uniform_real_distribution<double> speed(this->_min_speed,this->_max_speed);
-
-    while(!_path.empty()) {
-        Point2D dst=_path.front();
-        double dist=sqrt(CGAL::squared_distance(this->_position,dst));
-
-        if(dist<CLOSE_ENOUGH) {
-            _path.pop_front();
-            continue;
-        }
-
-        Transformation scale(CGAL::SCALING,1.0,dist);
-        Vector2D direction(this->_position,dst);
-        direction=scale(direction);
-
-        Transformation translate(CGAL::TRANSLATION,direction*speed(rng));
-        this->_position=translate(this->_position);
-        break;
-    }
 }
 
 Vector2D Agent::direction(void) const {

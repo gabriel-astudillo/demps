@@ -198,6 +198,73 @@ Agent::Neighbors Environment::neighbors_of(const Agent &_agent,const double &_ma
 }
 
 /**
+* @brief Ajusta la posición inicial de los agentes del Environment
+*
+*A cada agente que pertenezca al Environment, se le
+*ajusta su posición incial en el mapa. Esto es debido a que
+*la posición inicial del agente puede estar en un lugar donde
+*no es necesariamente una calle. Esto se realiza en dos pasos:
+*
+* 1) Se ajusta el modelo de movilidad de todos los agentes a RANDOMWALK
+* 2) Los agentes caminan un tiempo determinado para que finalmente
+*    queden en las calles
+*
+*Este método es llamado por
+*el método Simulator::calibrate()
+*
+* @param void
+* @return void
+*/
+void Environment::adjustAgentsInitialPosition(const uint32_t& calibrationTime){
+	//
+	// AJUSTE: PASO 1
+	//
+	std::cout << "...(1/2)" << std::endl;
+	
+	ProgressBar pg;
+	pg.start(this->getTotalAgents()-1);
+	
+	#pragma omp parallel for 
+	for(uint32_t i = 0; i < this->getTotalAgents(); i++){
+		if(g_showProgressBar){
+			pg.update(i);
+		}
+		
+		Agent* agent = this->getAgent(i);
+	
+		auto response = this->getRouter()->route(agent->position(),g_randomWalkwayRadius);
+		agent->_route = response.path();
+	}
+
+	if(g_showProgressBar){
+		std::cout << std::endl;
+	}
+	
+	//
+	// AJUSTE: PASO 2
+	//
+	std::cout << "...(2/2)" << std::endl;
+	pg.start(calibrationTime-1);
+	for(uint32_t t = 0; t < calibrationTime; t++) {
+		if(g_showProgressBar){
+			pg.update(t);
+		}	
+
+		#pragma omp parallel for 
+		for(uint32_t i = 0; i < this->getTotalAgents(); i++){
+			Agent* agent = this->getAgent(i);
+			
+			if(agent->_route.empty()){
+				auto response = this->getRouter()->route(agent->position(),g_randomWalkwayRadius);
+				agent->_route = response.path();
+			}
+			agent->randomWalkway();
+		}
+	}
+	
+}
+
+/**
 * @brief Ajusta las reglas iniciales de los agentes del Environment
 *
 *A cada agente que pertenezca al Environment, se le
@@ -213,7 +280,9 @@ void Environment::adjustAgentsRules(){
 	
 #pragma omp parallel for
 	for(uint32_t i = 0; i < this->getTotalAgents(); i++){
-		pg.update(i); //FALTA: condiciar visualización con la variable "showProgressBar"
+		if(g_showProgressBar){
+			pg.update(i);
+		}
 			
 		Agent* agent = this->getAgent(i);
 		
@@ -224,7 +293,7 @@ void Environment::adjustAgentsRules(){
 					auto response = this->getRouter()->route(agent->position(),reference_zone.generate());
 					if(response.distance() < distance) {
 						distance = response.distance();
-						this->_routes[agent->id()] = response.path();
+						agent->_route = response.path();
 					}
 				}
 				break;
@@ -247,8 +316,8 @@ void Environment::adjustAgentsRules(){
 * @brief Actualiza agentes del Environment
 *
 *Por cada agente que pertenezca al Environment, se
-*actualza su estado. Este método es llamado por
-*el método Simulator::run()
+*actualiza su estado. Este método es llamado por
+*Simulator::run()
 *
 * @param void
 * @return void
@@ -257,9 +326,10 @@ void Environment::updateAgents(){
 		
 #pragma omp parallel for  //schedule(dynamic,8)  firstprivate(_router) shared(_env) 
 	for(uint32_t i = 0; i < this->getTotalAgents(); i++){	
-		Agent* agent = this->getAgent(i);
 		
+		Agent* agent = this->getAgent(i);	
 		agent->update();				
+	
 	}
 		
 }
