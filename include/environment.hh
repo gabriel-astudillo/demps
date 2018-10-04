@@ -9,12 +9,6 @@
 class Router;
 
 class Environment{
-public:
-	//std::map<uint32_t,std::list<Point2D>> _routes;
-	
-	//Router _router;
-	//std::vector<Agent> _vAgents;
-
 private:
 	Router _router;
 	
