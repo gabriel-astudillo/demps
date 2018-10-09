@@ -16,6 +16,7 @@ private:
 	double   _max_speed;
 
 	Point2D  _position;
+	uint32_t _quad;
 	Vector2D _direction;
 
 	model_t  _model;
@@ -32,6 +33,10 @@ public:
 	Agent& operator=(const Agent&);
 
 	Point2D  position(void) const;
+	void     showPosition();
+	uint32_t determineQuad();
+	void     setQuad();
+	uint32_t getQuad();
 	Vector2D direction(void) const;
 
 	uint32_t id(void) const;

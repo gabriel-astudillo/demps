@@ -99,6 +99,7 @@ extern bool  g_showProgressBar;
 extern float g_closeEnough;
 extern float g_randomWalkwayRadius;
 extern float g_attractionRadius;
+extern uint32_t g_currTimeSim;
 
 
 enum model_t {SHORTESTPATH=9366416273040049814U,FOLLOWTHECROWD=10676684734677566718U,RANDOMWALKWAY=5792789823329120861U,WORKINGDAY, SNITCH=666};
