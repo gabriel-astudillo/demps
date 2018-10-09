@@ -71,7 +71,7 @@ public:
 
 	Agent::Neighbors neighbors_of(const Agent&,const double&,const model_t&);
 
-	void adjustAgentsInitialPosition(const uint32_t& calibrationTime); //Por hacer
+	void adjustAgentsInitialPosition(const uint32_t& calibrationTime);
 	void adjustAgentsRules(); 
 	void updateAgents();
 
