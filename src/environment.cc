@@ -113,17 +113,34 @@ void Environment::setGrid(const json &_fmap_zone, uint32_t quadSize){
 	}
 	map_x.sort(); map_y.sort();
 	
-	_xMin = map_x.front(); _xMax = map_x.back();	
-	_yMin = map_y.front(); _yMax = map_y.back();
-	
+	//Coordenadas min y max para x e y.
+	_grid._xMin = map_x.front(); _grid._xMax = map_x.back();	
+	_grid._yMin = map_y.front(); _grid._yMax = map_y.back();
+
 	//Ancho y alto del mapa
-	_mapWidth  = std::abs(_xMax - _xMin);
-	_mapHeight = std::abs(_yMax - _yMin);
+	_grid._mapWidth  = std::abs(_grid._xMax - _grid._xMin);
+	_grid._mapHeight = std::abs(_grid._yMax - _grid._yMin);
+	
+	//Tamaño del cuadrante
+	_grid._quadSize  = quadSize;
 	
 	//Cantidad de cuadrantes en el eje X e Y
-	_quadX = int(_mapWidth / _quadSize + 1);
-	_quadY = int(_mapHeight / _quadSize + 1);
+	_grid._quadX = int(_grid._mapWidth / _grid._quadSize + 1);
+	_grid._quadY = int(_grid._mapHeight / _grid._quadSize + 1);
 
+}
+
+Environment::grid_t Environment::getGrid(){
+	return(_grid);
+}
+
+void Environment::showGrid(){
+	std::cout <<
+		"quadSize:" << _grid._quadSize << "\n" <<
+		"xMin:" << _grid._xMin  << ", xMax:" << _grid._xMax << "\n" <<
+		"yMin:" << _grid._yMin  << ", yMax:" << _grid._yMax << "\n" <<
+		"mapWidth: " << _grid._mapWidth << ", mapHeight:" << _grid._mapHeight << "\n" <<
+		"quadX:" << _grid._quadX << ", quadY:"  << _grid._quadY << std::endl;
 }
 
 Zone Environment::getInitialZone(uint32_t id){
@@ -259,6 +276,7 @@ void Environment::adjustAgentsInitialPosition(const uint32_t& calibrationTime){
 				agent->_route = response.path();
 			}
 			agent->randomWalkway();
+			agent->setQuad();
 		}
 	}
 	

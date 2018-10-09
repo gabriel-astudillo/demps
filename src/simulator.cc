@@ -47,6 +47,7 @@ Simulator::Simulator(const json &_fsettings,const json &_finitial_zones,const js
 	_env->setInitialZones(_finitial_zones);
 	
 	_env->setGrid(_fmap_zone, quadSize);
+	_env->showGrid();
 	
 	/// Se crea un agente temporal para
 	// inicializar la variable estática _myEnv
@@ -133,6 +134,7 @@ void Simulator::run() {
 	pg.start(_duration-1);
 	
 	for(uint32_t t = 0; t < _duration; t++) {
+		g_currTimeSim = t;
         
 		if(g_showProgressBar){
 			pg.update(t);

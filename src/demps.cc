@@ -9,6 +9,7 @@ bool  g_showProgressBar;
 float g_closeEnough;
 float g_randomWalkwayRadius;
 float g_attractionRadius;
+uint32_t g_currTimeSim;
 
 int main(int argc,char** argv) {
 	char c;
