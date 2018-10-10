@@ -193,7 +193,6 @@ std::vector<Agent> Environment::getAgents(){
 	return(_vAgents);
 }
 
-//Agent::Neighbors Environment::neighbors_of(const Agent &_agent,const double &_max_distance,const model_t &_model) {
 Agent::Neighbors Environment::getNeighborsOf(const uint32_t& idAgent) {
 	Agent::Neighbors neighbors;
 	std::vector<uint32_t> idsAgents;
