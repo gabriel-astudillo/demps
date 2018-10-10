@@ -30,4 +30,4 @@ echo "Eliminando resultados anteriores..."
 $RM_CMD $RESULTS_FILES
 
 echo "Ejecutando DEMPS..."
-time $DEMPS_PATH $DEMPS_OPTS
+$DEMPS_PATH $DEMPS_OPTS
