@@ -1,2 +1,7 @@
-sim
-results
+demps
+._*
+.DS*
+*~
+area.osrm*
+results/
+
