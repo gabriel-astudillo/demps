@@ -13,9 +13,6 @@ Simulator::Simulator(const json &_fsettings,const json &_finitial_zones,const js
 
 	std::vector<Agent> _agents;
 
-	timeExecCal = 0;
-	timeExecSim = 0;
-
 	this->_fsettings = _fsettings;
 	
 	_duration        = this->_fsettings["duration"];
@@ -115,17 +112,12 @@ void Simulator::calibrate(void) {
 
 	auto end = std::chrono::system_clock::now(); //Measure Time
 	auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-	timeExecCal += elapsed.count();
+	g_timeExecCal += elapsed.count();
 	
 	if(g_showProgressBar){
 		std::cout << std::endl;
 	}
 }
-
-double distance(Agent a,Agent b){
-	return(sqrt(CGAL::squared_distance(a.position(),b.position())));
-}
-
 
 void Simulator::run() {
 	std::cout << "Simulando..." << std::endl;
@@ -150,7 +142,7 @@ void Simulator::run() {
 		
 		auto end = std::chrono::system_clock::now(); //Measure Time
 		auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-		timeExecSim += elapsed.count();
+		g_timeExecSim += elapsed.count();
 	}
 	
 	if(g_showProgressBar){
@@ -181,12 +173,14 @@ void Simulator::save(const uint32_t &_t) {
 
 void Simulator::showTimeExec(void){
 	
-	std::cout << _fsettings["duration"] << ":" 
-		<< _fsettings["agents"][0]["number"] << ":" 
-		<< _fsettings["agents"][1]["number"] << ":" 
-		<< _fsettings["agents"][2]["number"] << ":" 
-		<< timeExecCal << ":" 
-		<< timeExecSim 
+	std::cout << _duration << ":"
+		<< _calibrationTime << ":"
+		<< _fsettings["agents"][0]["number"] << ":"
+		<< _fsettings["agents"][1]["number"] << ":"
+		<< _fsettings["agents"][2]["number"] << ":"
+		<< g_timeExecCal << ":"
+		<< g_timeExecSim << ":"
+		<< g_timeExecSimQuad
 		<< std::endl;
 }
 

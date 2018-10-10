@@ -39,10 +39,6 @@ Agent& Agent::operator=(const Agent &_agent) {
 	return(*this);
 }
 
-uint32_t Agent::id(void) const {
-	return(this->_id);
-}
-
 Agent::~Agent(void) {
 	;
 }
@@ -51,21 +47,59 @@ void Agent::setEnvironment(std::shared_ptr<Environment> myEnv){
 	this->_myEnv = myEnv;
 }
 
+Point2D Agent::position(void) const {
+    return(this->_position);
+}
+
+void Agent::showPosition(){
+	std::cout << "t:" << g_currTimeSim << ", id:" << this->_id <<
+		", x:" << this->_position[0] <<
+		", y:" << this->_position[1] <<
+		", Quad:" << getQuad() << std::endl;
+}
+
+uint32_t Agent::determineQuad(){
+	uint32_t idQuad;
+	Environment::grid_t gridData = _myEnv->getGrid();
+
+	idQuad = (int)(this->_position[0] - gridData._xMin)/gridData._quadSize + 
+		(int)((this->_position[1] - gridData._yMin) / gridData._quadSize) * gridData._quadX;
+	
+	return(idQuad);
+}
+
+void Agent::setQuad(){	
+	_quad = this->determineQuad();
+}
+
+uint32_t Agent::getQuad() const{	
+	return(this->_quad);
+}
+
+Vector2D Agent::direction(void) const {
+    return(this->_direction);
+}
+
+uint32_t Agent::id(void) const {
+	return(this->_id);
+}
+
+model_t Agent::model(void) const{
+    return(this->_model);
+}
+
 void Agent::update(){
 	uint32_t currQuad;
 	
 	currQuad = this->determineQuad();
 	
+	auto start = std::chrono::system_clock::now(); //Measure Time
 	if(currQuad != _quad){ //Cambio de cuadrante
 		uint32_t oldQuad = _quad;
 		if( ! _myEnv->_agentsInQuad.empty() ) {
 			//
 			// Buscar identificador del agente para eliminarlo	
 			//	
-			/*for(auto& n : _myEnv->_agentsInQuad[oldQuad]) {
-				std::cout << n << " ";
-			}*/
-			
 			// Environment::_agentsInQuad es una variable compartida por los agentes
 			// mejorar esto... la variable compartida en sección critica es 
 			// el vector de agentes _agentsInQuad[oldQuad]
@@ -74,6 +108,7 @@ void Agent::update(){
 				for (auto it = _myEnv->_agentsInQuad[oldQuad].begin(); it != _myEnv->_agentsInQuad[oldQuad].end();) {
 					if (*it == _id) {
 						it = _myEnv->_agentsInQuad[oldQuad].erase(it);
+						break;
 					} else {
 						++it;
 					}
@@ -87,15 +122,29 @@ void Agent::update(){
 		//Agregar Id del agente al vector del cuadrante actual
 		#pragma omp critical
 		{
+			/*
+			if(_id == 20100){
+				std::cout << "--------------------" << std::endl;
+				this->showPosition();
+				std::cout << oldQuad << "->" << this->getQuad() << std::endl;
+				for(auto& n : _myEnv->_agentsInQuad[oldQuad]) std::cout << n << " " << std::flush;
+				std::cout << std::endl;
+			}
+			*/
+			
 			_myEnv->_agentsInQuad[this->getQuad()].push_back(this->id());
+			
+			/*
+			if(_id == 20100){
+				for(auto& n : _myEnv->_agentsInQuad[this->getQuad()]) std::cout << n << " " << std::flush;
+				std::cout << std::endl;
+			}
+			*/
 		}
-		
-		
-		/*if(this->_id == 200){
-			this->showPosition();
-			std::cout << oldQuad << "->" << this->getQuad() << std::endl;
-		}*/
 	}
+	auto end = std::chrono::system_clock::now(); //Measure Time
+	auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+	g_timeExecSimQuad += elapsed.count();
 	
 		
 	switch(this->model()) {
@@ -124,12 +173,19 @@ void Agent::update(){
 		case WORKINGDAY: break;
 		case SNITCH: break;
 	}
-	
-	//idQuad = this->determineQuad();
-	
-	//if(this->_id == 100){
-	//	this->showPosition();
-	//}
+
+	//For test only
+	if( ((g_currTimeSim % 10) == 0) && (this->id() == 20100) ) {
+		#pragma omp critical
+		{
+			Neighbors neighbors = _myEnv->getNeighborsOf(this->id());
+			this->showPosition();
+			for(auto& fooAgent : neighbors) {
+				std::cout << fooAgent->id() << " " << std::flush;
+			}
+			std::cout << std::endl;
+		}
+	}
 
 }
 
@@ -138,7 +194,6 @@ void Agent::shortestPath(){
 	//de la simulación. Solo debe seguir dicha ruta.
 	this->followPath();
 }
-
 
 void Agent::randomWalkway() {
 	
@@ -186,7 +241,7 @@ void Agent::followTheCrowd(const Neighbors &_neighbors){
    std::uniform_real_distribution<double> speed(this->_min_speed,this->_max_speed);
 
    for(auto& neighbor : _neighbors)
-      direction+=neighbor.direction();
+      direction+=neighbor->direction();
 
    Transformation scale(CGAL::SCALING,1.0,sqrt(direction.squared_length()));
    this->_direction=scale(direction);
@@ -195,39 +250,3 @@ void Agent::followTheCrowd(const Neighbors &_neighbors){
    this->_position=translate(this->_position);
 }
 
-Vector2D Agent::direction(void) const {
-    return(this->_direction);
-}
-
-Point2D Agent::position(void) const {
-    return(this->_position);
-}
-
-void Agent::showPosition(){
-	std::cout << "t:" << g_currTimeSim << ", id:" << this->_id <<
-		", x:" << this->_position[0] <<
-		", y:" << this->_position[1] <<
-		", Quad:" << getQuad() << std::endl;
-}
-
-uint32_t Agent::determineQuad(){
-	uint32_t idQuad;
-	Environment::grid_t gridData = _myEnv->getGrid();
-
-	idQuad = (int)(this->_position[0] - gridData._xMin)/gridData._quadSize + 
-		(int)((this->_position[1] - gridData._yMin) / gridData._quadSize) * gridData._quadX;
-	
-	return(idQuad);
-}
-
-void Agent::setQuad(){	
-	_quad = this->determineQuad();
-}
-
-uint32_t Agent::getQuad(){	
-	return(this->_quad);
-}
-
-model_t Agent::model(void) const{
-    return(this->_model);
-}

@@ -193,8 +193,19 @@ std::vector<Agent> Environment::getAgents(){
 	return(_vAgents);
 }
 
-Agent::Neighbors Environment::neighbors_of(const Agent &_agent,const double &_max_distance,const model_t &_model) {
+//Agent::Neighbors Environment::neighbors_of(const Agent &_agent,const double &_max_distance,const model_t &_model) {
+Agent::Neighbors Environment::getNeighborsOf(const uint32_t& idAgent) {
 	Agent::Neighbors neighbors;
+	std::vector<uint32_t> idsAgents;
+	
+	Agent* agent = this->getAgent(idAgent);
+	
+	idsAgents = this->_agentsInQuad[agent->getQuad()];
+	
+	for(auto& id : idsAgents) {
+		neighbors.push_back(this->getAgent(id));
+	}
+	
 	/*
 	std::deque<Agent> results;
 	double dist=0.0;
@@ -280,6 +291,15 @@ void Environment::adjustAgentsInitialPosition(const uint32_t& calibrationTime){
 		}
 	}
 	
+	//Actualizar ubicación de agentes en la grilla
+	#pragma omp parallel for
+	for(uint32_t i = 0; i < this->getTotalAgents(); i++){
+		Agent* agent = this->getAgent(i);
+		
+		#pragma omp critical
+		this->_agentsInQuad[agent->getQuad()].push_back(agent->id());
+	}
+	
 }
 
 /**
@@ -351,3 +371,8 @@ void Environment::updateAgents(){
 	}
 		
 }
+
+double Environment::distance(Agent a,Agent b){
+	return(sqrt(CGAL::squared_distance(a.position(),b.position())));
+}
+

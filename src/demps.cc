@@ -11,6 +11,10 @@ float g_randomWalkwayRadius;
 float g_attractionRadius;
 uint32_t g_currTimeSim;
 
+uint32_t g_timeExecCal;
+uint32_t g_timeExecSim;
+uint32_t g_timeExecSimQuad;
+
 int main(int argc,char** argv) {
 	char c;
 	
@@ -106,13 +110,17 @@ int main(int argc,char** argv) {
 	    exit(EXIT_FAILURE);
 	} 
 	
+	//Reset counters
+	g_timeExecCal     = 0;
+	g_timeExecSim     = 0;
+	g_timeExecSimQuad = 0;
 
 	Simulator sim(settings,initial_zones,reference_zones,reference_point,area_zone,map_osrm);
 
 	sim.calibrate();
 	sim.run();
 	
-	//sim.showTimeExec();
+	sim.showTimeExec();
 
 	return(EXIT_SUCCESS);
 }
