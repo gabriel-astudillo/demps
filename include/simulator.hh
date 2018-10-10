@@ -21,9 +21,6 @@ private:
 	std::string _filesimPrefix;
 	std::string _filesimSufix;
 	std::string _filesimPath;
-	
-	uint32_t timeExecCal;
-	uint32_t timeExecSim;
 
 	void save(const uint32_t&);
 

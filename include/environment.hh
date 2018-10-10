@@ -10,30 +10,36 @@ class Router;
 
 class Environment{
 public:
-	std::map<uint32_t,std::list<Point2D>> _routes;
+	std::map<uint32_t,std::vector<uint32_t>> _agentsInQuad; //¿private?
 	
-	//Router _router;
-	//std::vector<Agent> _vAgents;
-
 private:
 	Router _router;
 	
-	LocalCartesian         _projector;
-	json                   _reference_point;
-	std::vector<Zone>      _initial_zones;
-	std::vector<Zone>      _reference_zones;
+	LocalCartesian    _projector;
+	json              _reference_point;
+	std::vector<Zone> _initial_zones;
+	std::vector<Zone> _reference_zones;
 
 	std::vector<Agent> _vAgents;
-	double _xMin, _xMax, _yMin, _yMax;
-	double _mapWidth, _mapHeight;
+	
+	struct grid_s{
+		// Largo del cuadrante (en [m])
+		uint32_t _quadSize;
 
-	// Largo del cuadrante (en [m])
-	uint32_t _quadSize;
+		//Dimensiones del mapa
+		double _xMin, _xMax, _yMin, _yMax;
+		double _mapWidth, _mapHeight;
 
-	//Cantidad de cuadrantes en el eje X e Y
-	uint32_t _quadX, _quadY;
-
+		//Cantidad de cuadrantes en el eje X e Y
+		uint32_t _quadX;
+		uint32_t _quadY;
+	};
+	
+	struct grid_s _grid;
+	
 public:
+	typedef struct grid_s grid_t;
+	
 	Environment(void);
 	Environment(const Environment&);
 	Environment(const std::vector<Agent>&);
@@ -48,6 +54,8 @@ public:
 	void setProjector();
 	
 	void setGrid(const json &_fmap_zone, uint32_t quadSize);
+	grid_t getGrid();
+	void showGrid();
 	
 	Zone getInitialZone(uint32_t id);
 	std::vector<Zone> getInitialZones();
@@ -59,10 +67,14 @@ public:
 	Agent* getAgent(uint32_t id);
 	std::vector<Agent> getAgents();
 
-	Agent::Neighbors neighbors_of(const Agent&,const double&,const model_t&);
+	//Agent::Neighbors neighbors_of(const Agent&,const double&,const model_t&);
+	Agent::Neighbors getNeighborsOf(const uint32_t& idAgent); //Por hacer
 
-	void adjustAgentsRules(); //Por hacer
+	void adjustAgentsInitialPosition(const uint32_t& calibrationTime); 
+	void adjustAgentsRules(); 
 	void updateAgents();
+	
+	double distance(Agent a, Agent b);
 
 };
 #endif
