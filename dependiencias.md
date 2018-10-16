@@ -51,7 +51,7 @@ mkdir build
 cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release (!)
 cmake --build .
-cmake --build . --target intall  (!!)
+cmake --build . --target install  (!!)
 ```
 (!) Este proceso necesita al menos 3GB en RAM.
 
@@ -59,15 +59,5 @@ cmake --build . --target intall  (!!)
 
 En el linker, agregar ```-losrm```.
 
-## kdtree
-1) Instalar. Por omisión, ```--prefix=/usr/local```
-```
-git clone https://github.com/nvmd/libkdtree.git
-./configure
-make install (!)
-```
-(!) Necesita permisos de superusario.
-
-2) Incluir la biblioteca ```#include <kdtree++/kdtree.hpp>```
 
 
