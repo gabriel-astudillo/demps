@@ -1,0 +1,101 @@
+
+Resumen (Valores aproximados, sin validez estadística):
+=======================================================
+
+Porcentaje de Page-Faults entregados por "perf stat -B"
+
+	Simulator sim():		33%
+	sim.calibrate():
+		Posicion inicial	5%
+		Ajuste de Reglas	61%
+	sim.run()			1%
+
+
+======================PRUEBAS==========================
+
+PRUEBA 1)
+Simulator sim(settings,initial_zones,reference_zones,reference_point,area_zone,map_osrm);
+=========================================================================================
+
+       3753.459072      task-clock (msec)         #    0.999 CPUs utilized          
+                63      context-switches          #    0.017 K/sec                  
+                 1      cpu-migrations            #    0.000 K/sec                  
+              3157      page-faults               #    0.841 K/sec                  
+   <not supported>      cycles                                                      
+   <not supported>      instructions                                                
+   <not supported>      branches                                                    
+   <not supported>      branch-misses                                               
+
+       3.756191223 seconds time elapsed
+
+
+PRUEBA 2)
+Simulator sim(settings,initial_zones,reference_zones,reference_point,area_zone,map_osrm);
+sim.calibrate(); //Posicion inicial + ajuste de reglas
+=========================================================================================
+
+      90188.417811      task-clock (msec)         #    1.819 CPUs utilized          
+               565      context-switches          #    0.006 K/sec                  
+                 0      cpu-migrations            #    0.000 K/sec                  
+              9048      page-faults               #    0.100 K/sec                  
+   <not supported>      cycles                                                      
+   <not supported>      instructions                                                
+   <not supported>      branches                                                    
+   <not supported>      branch-misses                                               
+
+      49.569819881 seconds time elapsed
+
+PRUEBA 3)
+Simulator sim(settings,initial_zones,reference_zones,reference_point,area_zone,map_osrm);
+sim.calibrate(); //Posicion inicial + ajuste de reglas
+sim.run();
+=========================================================================================
+
+      92905.995867      task-clock (msec)         #    1.840 CPUs utilized          
+              1437      context-switches          #    0.015 K/sec                  
+                 3      cpu-migrations            #    0.000 K/sec                  
+              9090      page-faults               #    0.098 K/sec                  
+   <not supported>      cycles                                                      
+   <not supported>      instructions                                                
+   <not supported>      branches                                                    
+   <not supported>      branch-misses                                               
+
+      50.495544315 seconds time elapsed
+
+PRUEBA 4)
+Simulator sim(settings,initial_zones,reference_zones,reference_point,area_zone,map_osrm);
+sim.calibrate(); //ajuste de reglas
+=========================================================================================
+
+      71515.425599      task-clock (msec)         #    1.802 CPUs utilized          
+               388      context-switches          #    0.005 K/sec                  
+                 2      cpu-migrations            #    0.000 K/sec                  
+              8907      page-faults               #    0.125 K/sec                  
+   <not supported>      cycles                                                      
+   <not supported>      instructions                                                
+   <not supported>      branches                                                    
+   <not supported>      branch-misses                                               
+
+      39.695574111 seconds time elapsed
+
+PRUEBA 5)
+Simulator sim(settings,initial_zones,reference_zones,reference_point,area_zone,map_osrm);
+sim.calibrate(); //Posicion inicial 
+
+       9363.575744      task-clock (msec)         #    1.405 CPUs utilized          
+               125      context-switches          #    0.013 K/sec                  
+                 1      cpu-migrations            #    0.000 K/sec                  
+              3665      page-faults               #    0.391 K/sec                  
+   <not supported>      cycles                                                      
+   <not supported>      instructions                                                
+   <not supported>      branches                                                    
+   <not supported>      branch-misses                                               
+
+       6.663650905 seconds time elapsed
+
+
+
+
+
+
+
