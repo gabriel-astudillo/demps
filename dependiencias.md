@@ -49,9 +49,9 @@ Open Source Routing Machine: The OpenStreetMap Data Routing Engine, http://proje
 ```
 mkdir build
 cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release (!)
-cmake --build .
-cmake --build . --target install  (!!)
+cmake .. -DCMAKE_BUILD_TYPE=Release 
+cmake --build .                      (!)
+cmake --build . --target install     (!!)
 ```
 (!) Este proceso necesita al menos 3GB en RAM.
 
