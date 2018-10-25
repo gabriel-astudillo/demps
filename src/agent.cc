@@ -262,14 +262,13 @@ void Agent::followPath(){
         Vector2D direction(_position, dst);
 		
 		_direction = scale(direction);
-
+		
 		Vector2D DrivingForce = Vector2D(0.0,0.0);
-
 		double   deltaT       = 1.0;//[s]
-
+		
 		//Eq (2)
-		//Helbing, D., & Molnar, P. (1998). 
-		//Social Force Model for Pedestrian Dynamics. Physical Review E, 51(5), 4282–4286. 
+		//Helbing, D., & Molnar, P. (1998).
+		//Social Force Model for Pedestrian Dynamics. Physical Review E, 51(5), 4282–4286.
 		DrivingForce = (_disiredSpeed * _direction - _currVelocity) / _timeRelax;
 		
         if(dist < g_closeEnough) {
