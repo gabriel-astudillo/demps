@@ -84,7 +84,7 @@ const Point2D Agent::position(void) const {
     return(this->_position);
 }
 
-void Agent::showPosition(){
+void Agent::showPosition(){ 
 	std::cout << "t:" << g_currTimeSim << ", id:" << this->_id <<
 		", x:" << this->_position[0] <<
 		", y:" << this->_position[1] <<
