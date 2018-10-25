@@ -10,6 +10,7 @@ class Router;
 
 class Environment{
 public:
+	//static std::map<uint32_t,std::vector<uint32_t>> _agentsInQuad; //¿private?
 	std::map<uint32_t,std::vector<uint32_t>> _agentsInQuad; //¿private?
 	
 private:
@@ -68,13 +69,14 @@ public:
 	std::vector<Agent> getAgents();
 
 	//Agent::Neighbors neighbors_of(const Agent&,const double&,const model_t&);
-	Agent::Neighbors getNeighborsOf(const uint32_t& idAgent); //Por hacer
+	Agent::Neighbors getNeighborsOf(const uint32_t& idAgent); 
+	Agent::Neighbors getNeighborsOf(const uint32_t& idAgent,const double& distance); 
 
 	void adjustAgentsInitialPosition(const uint32_t& calibrationTime); 
 	void adjustAgentsRules(); 
 	void updateAgents();
 	
-	double distance(Agent a, Agent b);
+	double distance(Agent* a, Agent* b);
 
 };
 #endif
