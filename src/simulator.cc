@@ -46,11 +46,9 @@ Simulator::Simulator(const json &_fsettings,const json &_finitial_zones,const js
 	_env->setGrid(_fmap_zone, quadSize);
 	_env->showGrid();
 	
-	/// Se crea un agente temporal para
 	// inicializar la variable estática _myEnv
 	// de la clase Agent
-	auto fooAgent = Agent();
-	fooAgent.setEnvironment(_env);
+	Agent::_myEnv = _env;
 
 	std::uniform_int_distribution<uint32_t> zone(0, _env->getInitialZones().size()-1);
 
@@ -81,6 +79,7 @@ Simulator::Simulator(const json &_fsettings,const json &_finitial_zones,const js
 	}
 	
 	if(g_showProgressBar){
+		std::cout << std::flush;
 		std::cout << std::endl;
 	}
 	

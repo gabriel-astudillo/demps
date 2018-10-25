@@ -15,6 +15,13 @@ Agent::Agent(const Agent &_agent) {
 	this->_position  = _agent._position;
 	this->_direction = _agent._direction;
 	this->_quad      = _agent._quad;
+	this->_disiredSpeed = _agent._disiredSpeed;
+	this->_maxDisiredSpeed = _agent._maxDisiredSpeed;
+	this->_currVelocity    = _agent._currVelocity; 
+	this->_timeRelax       = _agent._timeRelax; 
+	this->_sigma           = _agent._sigma;
+	this->_strengthSocialRepulsiveForceAgents = _agent._strengthSocialRepulsiveForceAgents;
+	this->_cosPhi                             = _agent._cosPhi;
 }
 
 Agent::Agent(const uint32_t &_id,const Point2D &_position,const double &_min_speed,const double &_max_speed,const model_t &_model) {
@@ -26,6 +33,25 @@ Agent::Agent(const uint32_t &_id,const Point2D &_position,const double &_min_spe
 	this->_direction = Vector2D(0.0,0.0);
 	
 	this->_quad = this->determineQuad(); //AKA setQuad()
+	
+	
+	//Establecer la velocidad del agente
+	static thread_local std::random_device device;
+	static thread_local std::mt19937 rng(device());
+
+	std::uniform_real_distribution<double> speed(this->_min_speed,this->_max_speed);
+
+	this->_disiredSpeed = speed(rng);
+	this->_maxDisiredSpeed = 1.3 * this->_disiredSpeed;
+	
+	this->_currVelocity = Vector2D(0.0,0.0);
+	
+	this->_timeRelax = 0.5; //[s]
+	
+	this->_sigma     = 0.6;//[m]
+	this->_strengthSocialRepulsiveForceAgents = 2.1; //[m^2/s^-2]
+	this->_cosPhi                             = -0.93969 ; //cos(200º)
+	
 }
 
 Agent& Agent::operator=(const Agent &_agent) {
@@ -36,6 +62,13 @@ Agent& Agent::operator=(const Agent &_agent) {
 	this->_position  = _agent._position;
 	this->_direction = _agent._direction;
 	this->_quad      = _agent._quad;
+	this->_disiredSpeed = _agent._disiredSpeed;
+	this->_maxDisiredSpeed = _agent._maxDisiredSpeed;
+	this->_currVelocity    = _agent._currVelocity; 
+	this->_timeRelax       = _agent._timeRelax; 
+	this->_sigma           = _agent._sigma;
+	this->_strengthSocialRepulsiveForceAgents = _agent._strengthSocialRepulsiveForceAgents;
+	this->_cosPhi                             = _agent._cosPhi;
 	return(*this);
 }
 
@@ -47,7 +80,7 @@ void Agent::setEnvironment(std::shared_ptr<Environment> myEnv){
 	this->_myEnv = myEnv;
 }
 
-Point2D Agent::position(void) const {
+const Point2D Agent::position(void) const {
     return(this->_position);
 }
 
@@ -55,7 +88,8 @@ void Agent::showPosition(){
 	std::cout << "t:" << g_currTimeSim << ", id:" << this->_id <<
 		", x:" << this->_position[0] <<
 		", y:" << this->_position[1] <<
-		", Quad:" << getQuad() << std::endl;
+		", Quad:" << this->getQuad() << 
+		", AgentsInQuad:" <<  _myEnv->_agentsInQuad[this->getQuad()].size() << std::endl;
 }
 
 uint32_t Agent::determineQuad(){
@@ -76,6 +110,48 @@ uint32_t Agent::getQuad() const{
 	return(this->_quad);
 }
 
+void Agent::updateQuad() {
+	uint32_t currQuad;
+	
+	currQuad = this->determineQuad();
+	
+	if(currQuad != _quad){ //Cambio de cuadrante
+		uint32_t oldQuad = _quad;
+		if( ! _myEnv->_agentsInQuad.empty() ) {
+			//
+			// Buscar identificador del agente para eliminarlo	
+			//	
+			// Environment::_agentsInQuad es una variable compartida por los agentes
+			// mejorar esto... la variable compartida en sección critica es 
+			// el vector de agentes _agentsInQuad[oldQuad]
+			// No una diferencia significativa en el tiempo de ejecución
+			// entre utilizar un lock a nivel de la estructura completa y
+			// a nivel del vector de un cuadrante. El costo de esta última
+			// solución es alta: inicializar todos los locks de los cuadrantes...
+
+			omp_set_lock(&lock_agentsInQuad); 
+			for (auto it = _myEnv->_agentsInQuad[oldQuad].begin(); it != _myEnv->_agentsInQuad[oldQuad].end();) {					
+				if (*it == _id) {						
+					it = _myEnv->_agentsInQuad[oldQuad].erase(it);						
+					break;
+				} else {
+					++it;
+				}
+			}
+			omp_unset_lock(&lock_agentsInQuad);
+						
+		}
+		
+		//Actualizar ID del cuadrante donde esta el agente
+		this->setQuad();
+		
+		//Agregar Id del agente al vector del cuadrante actual
+		omp_set_lock(&lock_agentsInQuad);	
+		_myEnv->_agentsInQuad[this->getQuad()].push_back(this->id());
+		omp_unset_lock(&lock_agentsInQuad);
+	}
+}
+
 Vector2D Agent::direction(void) const {
     return(this->_direction);
 }
@@ -89,64 +165,14 @@ model_t Agent::model(void) const{
 }
 
 void Agent::update(){
-	uint32_t currQuad;
 	
-	currQuad = this->determineQuad();
+	this->updateQuad();
 	
-	auto start = std::chrono::system_clock::now(); //Measure Time
-	if(currQuad != _quad){ //Cambio de cuadrante
-		uint32_t oldQuad = _quad;
-		if( ! _myEnv->_agentsInQuad.empty() ) {
-			//
-			// Buscar identificador del agente para eliminarlo	
-			//	
-			// Environment::_agentsInQuad es una variable compartida por los agentes
-			// mejorar esto... la variable compartida en sección critica es 
-			// el vector de agentes _agentsInQuad[oldQuad]
-			#pragma omp critical
-			{
-				for (auto it = _myEnv->_agentsInQuad[oldQuad].begin(); it != _myEnv->_agentsInQuad[oldQuad].end();) {
-					if (*it == _id) {
-						it = _myEnv->_agentsInQuad[oldQuad].erase(it);
-						break;
-					} else {
-						++it;
-					}
-				}
-			}			
-		}
-		
-		//Actualizar ID del cuadrante donde esta el agente
-		this->setQuad();
-		
-		//Agregar Id del agente al vector del cuadrante actual
-		#pragma omp critical
-		{
-			/*
-			if(_id == 20100){
-				std::cout << "--------------------" << std::endl;
-				this->showPosition();
-				std::cout << oldQuad << "->" << this->getQuad() << std::endl;
-				for(auto& n : _myEnv->_agentsInQuad[oldQuad]) std::cout << n << " " << std::flush;
-				std::cout << std::endl;
-			}
-			*/
-			
-			_myEnv->_agentsInQuad[this->getQuad()].push_back(this->id());
-			
-			/*
-			if(_id == 20100){
-				for(auto& n : _myEnv->_agentsInQuad[this->getQuad()]) std::cout << n << " " << std::flush;
-				std::cout << std::endl;
-			}
-			*/
-		}
-	}
-	auto end = std::chrono::system_clock::now(); //Measure Time
-	auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-	g_timeExecSimQuad += elapsed.count();
+	double privateAreaRadius = 1.0;
+	_closeNeighbors = _myEnv->getNeighborsOf(this->id(), privateAreaRadius);
 	
-		
+	// El agente debe avanzar según su
+	// modelo de movilidad
 	switch(this->model()) {
 		case SHORTESTPATH: {
 		    this->shortestPath();
@@ -174,18 +200,38 @@ void Agent::update(){
 		case SNITCH: break;
 	}
 
+	/*
 	//For test only
-	if( ((g_currTimeSim % 10) == 0) && (this->id() == 20100) ) {
+	//Vecinos cercanos en un radio de 1[m]
+	if( _myEnv->getNeighborsOf(this->id(), 1.0).size()>=1 ){ //((g_currTimeSim % 10) == 0) &&
+		#pragma omp critical
+		{
+			Neighbors neighbors = _myEnv->getNeighborsOf(this->id(), 1.0);
+			this->showPosition();
+			std::cout << "Nearby Agents:" << neighbors.size() << std::endl;
+			for(auto& fooAgent : neighbors) {
+				std::cout  << "t:" << g_currTimeSim << ": " << this->id() << ", " << fooAgent->id() << " => " << this->distanceTo(fooAgent) <<std::endl;
+			}	
+		}	
+	}
+	*/
+	
+	
+	/*
+	//For test only
+	if(  (this->id() == 10100) ) { //((g_currTimeSim % 10) == 0) &&
 		#pragma omp critical
 		{
 			Neighbors neighbors = _myEnv->getNeighborsOf(this->id());
 			this->showPosition();
 			for(auto& fooAgent : neighbors) {
 				std::cout << fooAgent->id() << " " << std::flush;
-			}
+			}	
 			std::cout << std::endl;
+
 		}
 	}
+	*/
 
 }
 
@@ -198,35 +244,93 @@ void Agent::shortestPath(){
 void Agent::randomWalkway() {
 	
 	if(this->_route.empty()){  
-		auto response = _myEnv->getRouter()->route(this->position(),g_randomWalkwayRadius);
+		auto response = _myEnv->getRouter()->route(this->position(), g_randomWalkwayRadius);
 		this->_route = response.path();
 	}
     this->followPath();
 }
 
 void Agent::followPath(){
-    static thread_local std::random_device device;
-    static thread_local std::mt19937 rng(device());
 	
     if(_route.empty()) return;
-
-    std::uniform_real_distribution<double> speed(this->_min_speed,this->_max_speed);
-
+   
     while(!_route.empty()) {
         Point2D dst = _route.front();
-        double dist = sqrt(CGAL::squared_distance(this->_position,dst));
+        double dist = sqrt(CGAL::squared_distance(_position, dst));
+		
+        Transformation scale(CGAL::SCALING, 1.0, dist);
+        Vector2D direction(_position, dst);
+		
+		_direction = scale(direction);
+		
+		Vector2D DrivingForce = Vector2D(0.0,0.0);
 
+		double   deltaT       = 1.0;//[s]
+		
+		//Eq (2)
+		//Helbing, D., & Molnar, P. (1998). 
+		//Social Force Model for Pedestrian Dynamics. Physical Review E, 51(5), 4282–4286. 
+		DrivingForce = (_disiredSpeed * _direction - _currVelocity) / _timeRelax;
+		
         if(dist < g_closeEnough) {
             _route.pop_front();
             continue;
         }
+		
+		if( _closeNeighbors.size() == 0 ){
+			// No hay agentes cercanos 
+			// Sólo actúa la fuerza DrivingForce    
+			
+			_currVelocity += DrivingForce * deltaT;		
+		}
+		else{
+			
+			Vector2D totalRepulsiveEfect = Vector2D(0.0,0.0);
+			
+			// Determinar el efecto repulsivo por cada
+			// vecino cercano, y agregarlo al total
+			for(auto& fooAgent : _closeNeighbors) {
+				Vector2D repulsiveEfect = Vector2D(0.0,0.0);
+				double   distance = this->distanceTo(fooAgent);
+				
+				Vector2D directionAgents(this->_position, fooAgent->position());
+				//Vector2D directionAgents = Vector2D(1032.0,432.0);
+				directionAgents /= sqrt(CGAL::scalar_product(directionAgents, directionAgents));
+				
+				double strengthRepulsiveEfect = _strengthSocialRepulsiveForceAgents * exp(-distance/_sigma);
+				repulsiveEfect = strengthRepulsiveEfect * directionAgents;
+				
+				// Determinar directionDependentWeight
+				uint8_t directionDependentWeight = 1;
+				
+				if(CGAL::scalar_product(_direction, -repulsiveEfect) >= strengthRepulsiveEfect*_cosPhi){
+					directionDependentWeight = 1;
+				}
+				else{
+					directionDependentWeight = 0.5;
+				}
+				
+				//Eq (8)
+				//Helbing, D., & Molnar, P. (1998). 
+				//Social Force Model for Pedestrian Dynamics. Physical Review E, 51(5), 4282–4286. 
+				totalRepulsiveEfect += repulsiveEfect * directionDependentWeight;
+			}
+			
+			_currVelocity += DrivingForce * deltaT + 	totalRepulsiveEfect * deltaT;	
+		}
+		
+		//Eq (11) y (12)
+		//Helbing, D., & Molnar, P. (1998). 
+		//Social Force Model for Pedestrian Dynamics. Physical Review E, 51(5), 4282–4286. 
+		// REVISAR Y COMPARAR CON
+		//Chen, X., Treiber, M., Kanagaraj, V., & Li, H. (2018). Social force models for pedestrian traffic–state of the art. Transport Reviews.
+		if( sqrt(CGAL::scalar_product(_currVelocity, _currVelocity)) >= _maxDisiredSpeed ){
+			_currVelocity = _maxDisiredSpeed * _currVelocity / sqrt(CGAL::scalar_product(_currVelocity, _currVelocity));
+		}
+		
+		Transformation translate(CGAL::TRANSLATION, this->_currVelocity);
+        _position = translate(_position);
 
-        Transformation scale(CGAL::SCALING,1.0,dist);
-        Vector2D direction(this->_position,dst);
-        direction = scale(direction);
-
-        Transformation translate(CGAL::TRANSLATION,direction*speed(rng));
-        this->_position = translate(this->_position);
         break;
     }
 
@@ -250,3 +354,36 @@ void Agent::followTheCrowd(const Neighbors &_neighbors){
    this->_position=translate(this->_position);
 }
 
+void Agent::randomWalkwayForAdjustInitialPosition(){
+	if(this->_route.empty()){  
+		auto response = _myEnv->getRouter()->route(this->position(), g_randomWalkwayRadius);
+		this->_route = response.path();
+	}
+	
+    if(_route.empty()) return;
+   
+    while(!_route.empty()) {
+        Point2D dst = _route.front();
+        double dist = sqrt(CGAL::squared_distance(this->_position, dst));
+		
+        Transformation scale(CGAL::SCALING, 1.0, dist);
+        Vector2D direction(this->_position, dst);
+		
+		this->_direction = scale(direction);
+
+        if(dist < g_closeEnough) {
+            _route.pop_front();
+            continue;
+        }
+		
+		this->_currVelocity = _disiredSpeed * this->_direction;
+			
+		Transformation translate(CGAL::TRANSLATION, this->_currVelocity);
+	    this->_position = translate(this->_position);
+		
+        break;
+    }
+	
+	
+	
+}

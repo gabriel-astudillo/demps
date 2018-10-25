@@ -1,5 +1,7 @@
 #include <environment.hh>
 
+//std::map<uint32_t,std::vector<uint32_t>> Environment::_agentsInQuad;
+
 Environment::Environment(void) {
     ;
 }
@@ -15,6 +17,7 @@ Environment::Environment(const Environment &_env) {
 Environment::~Environment(void) {
 	this->_initial_zones.clear();
 	this->_reference_zones.clear();
+	//free(locks_agentsInQuad);
 }
 
 /**
@@ -193,33 +196,49 @@ std::vector<Agent> Environment::getAgents(){
 	return(_vAgents);
 }
 
+//Agent::Neighbors Environment::neighbors_of(const Agent &_agent,const double &_max_distance,const model_t &_model) {
 Agent::Neighbors Environment::getNeighborsOf(const uint32_t& idAgent) {
 	Agent::Neighbors neighbors;
 	std::vector<uint32_t> idsAgents;
 	
 	Agent* agent = this->getAgent(idAgent);
 	
+
 	idsAgents = this->_agentsInQuad[agent->getQuad()];
 	
-	for(auto& id : idsAgents) {
-		neighbors.push_back(this->getAgent(id));
-	}
 	
-	/*
-	std::deque<Agent> results;
-	double dist=0.0;
-
-	this->_tree->find_within_range(_agent,_max_distance,std::back_inserter(results));
-
-	for (std::deque<Agent>::iterator it=results.begin(); it!=results.end(); ++it) {
-	    Agent agent=*it;
-	    if(agent.model()==_model){   
-	        dist=_agent.distance(agent);
-	        if(dist<=_max_distance)
-	            neighbors.push_back(agent);
-	    }
+	for(auto& id : idsAgents) {
+		if(id != idAgent){
+			//Agent* neighbor;
+			//neighbor = this->getAgent(id);	
+			//neighbors.push_back(neighbor);
+		
+			neighbors.push_back(this->getAgent(id));
+		}
 	}
-	*/
+	return(neighbors);
+}
+
+Agent::Neighbors Environment::getNeighborsOf(const uint32_t& idAgent,const double& distanceMax){
+	Agent::Neighbors neighbors;
+	std::vector<uint32_t> idsAgents;
+	
+	Agent* agent = this->getAgent(idAgent);
+	
+	omp_set_lock(&lock_agentsInQuad);
+	idsAgents = this->_agentsInQuad[agent->getQuad()];
+	omp_unset_lock(&lock_agentsInQuad);
+	
+	for(auto& id : idsAgents) {
+		if(id != idAgent){
+			Agent* neighbor;
+			neighbor = this->getAgent(id);
+		
+			if( this->distance(agent, neighbor) < distanceMax ) {
+				neighbors.push_back(neighbor);
+			}
+		}	
+	}
 
 	return(neighbors);
 }
@@ -285,19 +304,19 @@ void Environment::adjustAgentsInitialPosition(const uint32_t& calibrationTime){
 				auto response = this->getRouter()->route(agent->position(),g_randomWalkwayRadius);
 				agent->_route = response.path();
 			}
-			agent->randomWalkway();
-			agent->setQuad();
+			agent->randomWalkwayForAdjustInitialPosition();
 		}
 	}
 	
 	//Actualizar ubicación de agentes en la grilla
+	
 	#pragma omp parallel for
 	for(uint32_t i = 0; i < this->getTotalAgents(); i++){
 		Agent* agent = this->getAgent(i);
 		
-		#pragma omp critical
-		this->_agentsInQuad[agent->getQuad()].push_back(agent->id());
+		agent->updateQuad();
 	}
+	
 	
 }
 
@@ -360,18 +379,20 @@ void Environment::adjustAgentsRules(){
 * @return void
 */
 void Environment::updateAgents(){
-		
-#pragma omp parallel for  //schedule(dynamic,8)  firstprivate(_router) shared(_env) 
+
+	
+#pragma omp parallel for schedule(dynamic,8) //firstprivate(_router) shared(_env) 
 	for(uint32_t i = 0; i < this->getTotalAgents(); i++){	
-		
+		//std::cout << i << std::flush << std::endl;
 		Agent* agent = this->getAgent(i);	
 		agent->update();				
 	
 	}
+	
 		
 }
 
-double Environment::distance(Agent a,Agent b){
-	return(sqrt(CGAL::squared_distance(a.position(),b.position())));
+double Environment::distance(Agent* a,Agent* b){
+	return(sqrt(CGAL::squared_distance(a->position(),b->position())));
 }
 
