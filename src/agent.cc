@@ -262,11 +262,11 @@ void Agent::followPath(){
         Vector2D direction(_position, dst);
 		
 		_direction = scale(direction);
-		
+
 		Vector2D DrivingForce = Vector2D(0.0,0.0);
 
 		double   deltaT       = 1.0;//[s]
-		
+
 		//Eq (2)
 		//Helbing, D., & Molnar, P. (1998). 
 		//Social Force Model for Pedestrian Dynamics. Physical Review E, 51(5), 4282–4286. 
@@ -280,42 +280,42 @@ void Agent::followPath(){
 		if( _closeNeighbors.size() == 0 ){
 			// No hay agentes cercanos 
 			// Sólo actúa la fuerza DrivingForce    
-			
+	
 			_currVelocity += DrivingForce * deltaT;		
 		}
 		else{
-			
+	
 			Vector2D totalRepulsiveEfect = Vector2D(0.0,0.0);
-			
+	
 			// Determinar el efecto repulsivo por cada
 			// vecino cercano, y agregarlo al total
 			for(auto& fooAgent : _closeNeighbors) {
 				Vector2D repulsiveEfect = Vector2D(0.0,0.0);
 				double   distance = this->distanceTo(fooAgent);
-				
+		
 				Vector2D directionAgents(this->_position, fooAgent->position());
 				//Vector2D directionAgents = Vector2D(1032.0,432.0);
 				directionAgents /= sqrt(CGAL::scalar_product(directionAgents, directionAgents));
-				
+		
 				double strengthRepulsiveEfect = _strengthSocialRepulsiveForceAgents * exp(-distance/_sigma);
 				repulsiveEfect = strengthRepulsiveEfect * directionAgents;
-				
+		
 				// Determinar directionDependentWeight
 				uint8_t directionDependentWeight = 1;
-				
+		
 				if(CGAL::scalar_product(_direction, -repulsiveEfect) >= strengthRepulsiveEfect*_cosPhi){
 					directionDependentWeight = 1;
 				}
 				else{
 					directionDependentWeight = 0.5;
 				}
-				
+		
 				//Eq (8)
 				//Helbing, D., & Molnar, P. (1998). 
 				//Social Force Model for Pedestrian Dynamics. Physical Review E, 51(5), 4282–4286. 
 				totalRepulsiveEfect += repulsiveEfect * directionDependentWeight;
 			}
-			
+	
 			_currVelocity += DrivingForce * deltaT + 	totalRepulsiveEfect * deltaT;	
 		}
 		
