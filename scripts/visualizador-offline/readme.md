@@ -4,6 +4,7 @@
 Lenguaje: PERL
 Dependencias: 
 * GD
+* Parallel::ForkManager
 * Tk-MultiMediaControls
 * Script ```plot_latlong.pl``` ubicado en el directorio superior
 
