@@ -10,5 +10,6 @@ imagemagick
 gifsicle
 perl-tk
 Tk-MultiMediaControls-1.0
-
+Parallel::ForkManager
+```
 
