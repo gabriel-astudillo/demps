@@ -1,27 +1,6 @@
 #include <environment.hh>
 #include <simulator.hh>
 
-//std::map<uint32_t,std::vector<uint32_t>> Environment::_agentsInQuad;
-
-/*
-omp_lock_t *new_locks(uint32_t totalLocks) {
-   uint32_t i;
-   omp_lock_t *lock = new omp_lock_t[totalLocks];
-   #pragma omp parallel for private(i)
-   for (i = 0 ; i < totalLocks ; i++)
-      omp_init_lock(&lock[i]);
-
-   return lock;
-}
-
-void remove_locks(omp_lock_t *locks, uint32_t totalLocks) {
-   uint32_t i;
-   #pragma omp parallel for private(i)
-   for (i = 0 ; i < totalLocks ; i++)
-      omp_destroy_lock(&locks[i]);
-
-}*/
-
 Environment::Environment(void) {
     ;
 }
@@ -37,8 +16,6 @@ Environment::Environment(const Environment &_env) {
 Environment::~Environment(void) {
 	this->_initial_zones.clear();
 	this->_reference_zones.clear();
-	
-	//remove_locks(locks_agentsInQuad, _grid._quadX * _grid._quadY);
 }
 
 /**
@@ -150,10 +127,7 @@ void Environment::setGrid(const json &_fmap_zone, uint32_t quadSize){
 	
 	//Cantidad de cuadrantes en el eje X e Y
 	_grid._quadX = int(_grid._mapWidth / _grid._quadSize + 1);
-	_grid._quadY = int(_grid._mapHeight / _grid._quadSize + 1);
-	
-	//locks_agentsInQuad = new_locks(_grid._quadX * _grid._quadY);
-
+	_grid._quadY = int(_grid._mapHeight / _grid._quadSize + 1);	
 }
 
 Environment::grid_t Environment::getGrid(){
@@ -218,58 +192,6 @@ Agent* Environment::getAgent(uint32_t id){
 std::vector<Agent> Environment::getAgents(){
 	return(_vAgents);
 }
-
-/*
-//Agent::Neighbors Environment::neighbors_of(const Agent &_agent,const double &_max_distance,const model_t &_model) {
-Agent::Neighbors Environment::getNeighborsOf(const uint32_t& idAgent) {
-	Agent::Neighbors neighbors;
-	std::vector<uint32_t> idsAgents;
-	
-	Agent* agent = this->getAgent(idAgent);
-	
-	omp_set_lock(&lock_agentsInQuad);
-	idsAgents = this->_agentsInQuad[agent->getQuad()];
-	omp_unset_lock(&lock_agentsInQuad);
-	
-	for(auto& id : idsAgents) {
-		if(id != idAgent){
-			//Agent* neighbor;
-			//neighbor = this->getAgent(id);	
-			//neighbors.push_back(neighbor);
-		
-			neighbors.push_back(this->getAgent(id));
-		}
-	}
-
-	return(neighbors);
-}
-
-Agent::Neighbors Environment::getNeighborsOf(const uint32_t& idAgent,const double& distanceMax){
-	Agent::Neighbors neighbors;
-	std::vector<uint32_t> idsAgents;
-	
-	Agent* agent = this->getAgent(idAgent);
-	
-	omp_set_lock(&lock_agentsInQuad);
-	//omp_set_lock(&locks_agentsInQuad[agent->getQuad()]);
-	idsAgents = this->_agentsInQuad[agent->getQuad()];
-	//omp_unset_lock(&locks_agentsInQuad[agent->getQuad()]);
-	omp_unset_lock(&lock_agentsInQuad);
-	
-	for(auto& id : idsAgents) {
-		if(id != idAgent){
-			Agent* neighbor;
-			neighbor = this->getAgent(id);
-		
-			if( this->distance(agent, neighbor) < distanceMax ) {
-				neighbors.push_back(neighbor);
-			}
-		}	
-	}
-	
-	return(neighbors);
-}
-*/
 
 void Environment::setNeighborsOf(const uint32_t& idAgent,const double& distanceMax){
 	std::vector<uint32_t> idsAgents;
@@ -359,21 +281,7 @@ void Environment::adjustAgentsInitialPosition(const uint32_t& calibrationTime){
 			}
 			agent->randomWalkwayForAdjustInitialPosition();
 		}
-	}
-		
-	/*
-	//Actualizar ubicación de agentes en la grilla
-	#pragma omp parallel for
-	for(uint32_t i = 0; i < this->getTotalAgents(); i++){
-		Agent* agent = this->getAgent(i);
-		
-		//agent->updateQuad();
-		agent->setQuad();
-	}
-	*/
-	
-	
-	
+	}	
 }
 
 /**
