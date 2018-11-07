@@ -4,9 +4,14 @@
 
 class Zone {
 private:
+	std::string          _nameID;
+	double               _area; 
 	LocalCartesian       _projector;
 	Polygon2D            _polygon;
 	CDT                  _cdt;
+	
+	std::set<uint32_t> _agentsInZone;
+	double             _agentsDensity;
 
 public:
 	Zone(void);
@@ -16,6 +21,12 @@ public:
 
 	Zone& operator=(const Zone&);
 
+	bool pointIsInside(const Point2D& testPoint);
+	void addAgent(const uint32_t& idAgent);
+	void deleteAgent(const uint32_t& idAgent);
+	void updateAgentsDensity(void);
+	double getAgentDensity(void);
+	std::string getNameID(void);
 	Point2D generate(void);
 	
 private:

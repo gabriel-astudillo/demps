@@ -20,7 +20,6 @@
 #include <cassert>
 
 #include <json.hpp>
-//#include <kdtree++/kdtree.hpp>
 #include <progressBar.hpp>
 
 
@@ -103,14 +102,20 @@ extern float g_attractionRadius;
 extern uint32_t g_currTimeSim;
 
 //Variables globales para medir tiempo
+extern uint32_t g_timeExecMakeAgents;
 extern uint32_t g_timeExecCal;
 extern uint32_t g_timeExecSim;
 extern uint32_t g_timeExecSimQuad;
 
+extern std::vector<std::string> g_logZonesDensity;
+
 extern omp_lock_t lock_agentsInQuad;  
 //extern std::vector<omp_lock_t*> locks_agentsInQuad;  
-//extern omp_lock_t* * locks_agentsInQuad;  
+//extern omp_lock_t* locks_agentsInQuad;  
 
 enum model_t {SHORTESTPATH=9366416273040049814U,FOLLOWTHECROWD=10676684734677566718U,RANDOMWALKWAY=5792789823329120861U,WORKINGDAY, SNITCH=666};
+
+
+
 
 #endif

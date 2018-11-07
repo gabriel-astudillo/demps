@@ -68,6 +68,8 @@ public:
 
     Response route(const Point2D&,const Point2D&);
     Response route(const Point2D&,const double&);
+	
+	double distance(const Point2D&, const Point2D&);
 
 };
 #endif

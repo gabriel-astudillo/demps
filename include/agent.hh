@@ -15,10 +15,11 @@ private:
 	uint32_t _id;
 	double   _min_speed;
 	double   _max_speed;
-	double   _disiredSpeed;
-	double   _maxDisiredSpeed;
-	Vector2D _currVelocity;
+	
 	model_t  _model;
+	
+	// Para los agentes que conocer donde su meta
+	Point2D  _targetPos; 
 	
 	Neighbors _closeNeighbors;
 	uint32_t _quad;
@@ -29,6 +30,10 @@ private:
 	
 	Point2D  _position;
 	Vector2D _direction;
+	
+	double   _disiredSpeed;
+	double   _maxDisiredSpeed;
+	Vector2D _currVelocity;
 	
 	//Driving force of the taget Point
 	double   _timeRelax;
@@ -45,17 +50,21 @@ private:
 public:
 	Agent(void);
 	Agent(const Agent&);
-	Agent(const uint32_t&,const Point2D&,const double&,const double&,const model_t&);
+	Agent(const uint32_t&,const Point2D&,const double&,const double&, const json& SocialForceModel, const model_t&);
  	Agent& operator=(const Agent&);
 	
 	~Agent(void);
 	
 	void setEnvironment(std::shared_ptr<Environment> env);
 
+	void          setTargetPos(const Point2D& tposition);
+	const Point2D getTargetPos(void) const;
+	
 	const Point2D  position(void) const;
 	void     showPosition();
 	uint32_t determineQuad();
 	void     setQuad();
+	void     setQuad(uint32_t idQuad);
 	uint32_t getQuad() const;
 	void     updateQuad();
 	Vector2D direction(void) const;
@@ -63,6 +72,8 @@ public:
 	uint32_t id(void) const;
 	model_t model(void) const;
 	
+	void clearCloseNeighbors();
+	void addCloseNeighbors(Agent* neighbor);
 	
 	void update();
 

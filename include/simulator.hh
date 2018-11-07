@@ -7,6 +7,10 @@
 #include <environment.hh>
 
 class Simulator{
+public:
+	static bool        _statsOut;
+	static uint32_t    _statsInterval;
+
 
 private:
 	static const std::hash<std::string> _hash;
@@ -21,8 +25,10 @@ private:
 	std::string _filesimPrefix;
 	std::string _filesimSufix;
 	std::string _filesimPath;
+	std::string _statsPath;
 
-	void save(const uint32_t&);
+	void save();
+	void stats();
 
 public:
 	Simulator(void);

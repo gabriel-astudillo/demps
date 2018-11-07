@@ -22,6 +22,7 @@ private:
 	std::vector<Zone> _reference_zones;
 
 	std::vector<Agent> _vAgents;
+	Agent::Neighbors   _neighbors;
 	
 	struct grid_s{
 		// Largo del cuadrante (en [m])
@@ -60,7 +61,7 @@ public:
 	
 	Zone getInitialZone(uint32_t id);
 	std::vector<Zone> getInitialZones();
-	std::vector<Zone> getReferenceZones();
+	std::vector<Zone>& getReferenceZones();
 	LocalCartesian getProjector();
 
 	void addAgents(const std::vector<Agent> &_vAgents);
@@ -68,9 +69,9 @@ public:
 	Agent* getAgent(uint32_t id);
 	std::vector<Agent> getAgents();
 
-	//Agent::Neighbors neighbors_of(const Agent&,const double&,const model_t&);
-	Agent::Neighbors getNeighborsOf(const uint32_t& idAgent); 
-	Agent::Neighbors getNeighborsOf(const uint32_t& idAgent,const double& distance); 
+	//Agent::Neighbors getNeighborsOf(const uint32_t& idAgent); 
+	//Agent::Neighbors getNeighborsOf(const uint32_t& idAgent,const double& distance);
+	void setNeighborsOf(const uint32_t& idAgent,const double& distance); 
 
 	void adjustAgentsInitialPosition(const uint32_t& calibrationTime); 
 	void adjustAgentsRules(); 
