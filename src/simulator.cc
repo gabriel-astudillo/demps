@@ -3,6 +3,9 @@
 
 std::shared_ptr<Environment> Simulator::_env;
 
+bool        Simulator::_statsOut;
+uint32_t    Simulator::_statsInterval;
+
 Simulator::Simulator(void) {
 
 }
@@ -22,6 +25,9 @@ Simulator::Simulator(const json &_fsettings,const json &_finitial_zones,const js
 	_filesimPrefix   = this->_fsettings["output"]["filesim-prefix"].get<std::string>();
 	_filesimSufix    = this->_fsettings["output"]["filesim-sufix"].get<std::string>();
 	_filesimPath     = this->_fsettings["output"]["filesim-path"].get<std::string>();
+	_statsOut        = this->_fsettings["output"]["stats-out"].get<bool>();
+	_statsInterval   = this->_fsettings["output"]["stats-interval"].get<uint32_t>();
+	_statsPath       = this->_fsettings["output"]["stats-path"].get<std::string>();
 	
 
 	// Asignación de variables globales del proyecto
@@ -53,6 +59,8 @@ Simulator::Simulator(const json &_fsettings,const json &_finitial_zones,const js
 	std::uniform_int_distribution<uint32_t> zone(0, _env->getInitialZones().size()-1);
 
 	std::cout << "Creando agentes..." << std::endl;	
+	auto start = std::chrono::system_clock::now(); //Measure Time
+	
 	uint32_t id = 0;
 	ProgressBar pg;
 	for(auto& fagent : _fsettings["agents"]) {
@@ -65,11 +73,14 @@ Simulator::Simulator(const json &_fsettings,const json &_finitial_zones,const js
 			}
 			
 			Point2D position = _env->getInitialZone(zone(rng)).generate();
+			
+			json SocialForceModel = fagent["SFM"];
 
 			auto agent = Agent(id,\
 				position,\
 				fagent["speed"]["min"],\
 				fagent["speed"]["max"],\
+				SocialForceModel,
 				model_t(this->_hash(fagent["model"].get<std::string>()))\
 				); 
 
@@ -78,13 +89,18 @@ Simulator::Simulator(const json &_fsettings,const json &_finitial_zones,const js
 		}
 	}
 	
+	//Se agregan al ambiente con los agentes recien creados. 
+	_env->addAgents(_agents);
+	
+	auto end = std::chrono::system_clock::now(); //Measure Time
+	auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+	g_timeExecMakeAgents += elapsed.count();
+	
+	
 	if(g_showProgressBar){
 		std::cout << std::flush;
 		std::cout << std::endl;
 	}
-	
-	//Se agregan al ambiente con los agentes recien creados. 
-	_env->addAgents(_agents);
 }
 
 void Simulator::calibrate(void) {
@@ -131,10 +147,14 @@ void Simulator::run() {
 			pg.update(t);
 		}
 		
-		if(_saveToDisk && ((t%_interval) == 0)) {
-			this->save(t);
+		if(_saveToDisk && ((t % _interval) == 0)) {
+			this->save();
 		} 
 
+		if(_statsOut && ((t % _statsInterval) == 0)) {
+			this->stats();
+		} 
+		
 		auto start = std::chrono::system_clock::now(); //Measure Time
 
 		_env->updateAgents();
@@ -153,10 +173,14 @@ void Simulator::run() {
 Simulator::~Simulator(void) {
 	;
 }
-void Simulator::save(const uint32_t &_t) {
+void Simulator::save() {
 	static std::map<model_t,int> types={{SHORTESTPATH,0},{FOLLOWTHECROWD,1},{RANDOMWALKWAY,2}};//model
 		  
-	std::string nameFile = _filesimPrefix + std::to_string(_t) + _filesimSufix ;
+		  
+	std::ostringstream ss;
+	ss << std::setw( 10 ) << std::setfill( '0' ) << g_currTimeSim;
+		
+	std::string nameFile = _filesimPrefix + ss.str() + _filesimSufix ;
 	std::string pathFile = _filesimPath + "/" + nameFile ;
 	
 	
@@ -168,6 +192,15 @@ void Simulator::save(const uint32_t &_t) {
 		ofs << agent.id() << " " << latitude << " " << longitude << " " << types[agent.model()] <<std::endl;
 	}
 	
+	
+}
+
+void Simulator::stats(){
+	for(auto& reference_zone : _env->getReferenceZones() ) {
+		std::string logString;
+		logString = reference_zone.getNameID() + ":" +  std::to_string(g_currTimeSim) + ":" + std::to_string(reference_zone.getAgentDensity());					
+		g_logZonesDensity.push_back(logString);
+	}
 }
 
 void Simulator::showTimeExec(void){
@@ -177,10 +210,20 @@ void Simulator::showTimeExec(void){
 		<< _fsettings["agents"][0]["number"] << ":"
 		<< _fsettings["agents"][1]["number"] << ":"
 		<< _fsettings["agents"][2]["number"] << ":"
+		<< g_timeExecMakeAgents  << ":"
 		<< g_timeExecCal << ":"
 		<< g_timeExecSim << ":"
 		<< g_timeExecSimQuad
 		<< std::endl;
+	
+	if(_statsOut) {
+		std::string pathFile = _statsPath + "/zonesDensity.txt" ;
+		std::ofstream ofs(pathFile);
+		for(auto& item : g_logZonesDensity){
+			ofs << item << std::endl;
+		}
+	} 
+	
 }
 
 

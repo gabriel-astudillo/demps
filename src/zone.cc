@@ -10,11 +10,16 @@ Zone::Zone(const json &_freference_point,const json &_fpolygon) {
 		std::cerr << "Error::input feature is not a polygon" << std::endl;
 		exit(EXIT_FAILURE);
 	}
+	
+	this->_nameID = _fpolygon["properties"]["nameID"].get<std::string>();	
+	
 	for(auto& fpoint : _fpolygon["geometry"]["coordinates"][0]) {
 		double x,y,z,h;
 		this->_projector.Forward(fpoint[1],fpoint[0],h,x,y,z);
 		this->_polygon.push_back(Point2D(x,y));
 	}
+	
+	_area = this->_polygon.area();
 
 	// Insert the polygons into a constrained triangulation
 	this->_cdt.insert_constraint(this->_polygon.vertices_begin(),this->_polygon.vertices_end(),true);
@@ -26,9 +31,13 @@ Zone::Zone(const json &_freference_point,const json &_fpolygon) {
 }
 
 Zone::Zone(const Zone &_z) {
-	this->_cdt=_z._cdt;
-	this->_polygon=_z._polygon;
-	this->_projector=_z._projector;
+	this->_cdt     = _z._cdt;
+	this->_nameID  = _z._nameID;
+	this->_polygon = _z._polygon;
+	this->_area    = _z._area;
+	this->_projector     = _z._projector;
+	this->_agentsDensity = _z._agentsDensity;
+	this->_agentsInZone  = _z._agentsInZone;
 }
 
 Zone::~Zone(void) {
@@ -36,10 +45,55 @@ Zone::~Zone(void) {
 }
 
 Zone& Zone::operator=(const Zone &_z) {
-	this->_cdt=_z._cdt;
-	this->_polygon=_z._polygon;
-	this->_projector=_z._projector;
+	this->_cdt     = _z._cdt;
+	this->_nameID  = _z._nameID;
+	this->_polygon = _z._polygon;
+	this->_area    = _z._area;
+	this->_projector     = _z._projector;
+	this->_agentsDensity = _z._agentsDensity;
+	this->_agentsInZone  = _z._agentsInZone;
 	return(*this);
+}
+
+bool Zone::pointIsInside(const Point2D& testPoint){
+	
+	CGAL::Bounded_side bside = CGAL::bounded_side_2(this->_polygon.vertices_begin(), this->_polygon.vertices_end(), testPoint, K() );
+	if (bside == CGAL::ON_BOUNDED_SIDE) { 
+	    return(true);
+	} 
+	else{
+		return(false);
+	}
+}
+
+void Zone::addAgent(const uint32_t& idAgent){
+	//#pragma omp critical
+	{
+	_agentsInZone.insert(idAgent);
+	}
+}
+
+void Zone::deleteAgent(const uint32_t& idAgent){
+	//#pragma omp critical
+	{
+	_agentsInZone.erase(idAgent);
+	}
+}
+
+void Zone::updateAgentsDensity(void){
+	//#pragma omp critical
+	{
+		_agentsDensity = _agentsInZone.size() / _area;
+	}
+	
+}
+
+double Zone::getAgentDensity(void){
+	return(_agentsDensity);
+}
+
+std::string Zone::getNameID(void){
+	return(_nameID);
 }
 
 Point2D Zone::generate(void) {

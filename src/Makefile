@@ -8,7 +8,7 @@ INCLUDES=-I/usr/local/include -I/usr/local/include/osrm -I../include
 LDFLAGS=-L/usr/local/lib
 LDLIBS=-lGeographic -lCGAL -losrm -lboost_system -lboost_filesystem -lboost_iostreams -lboost_thread -lrt -ltbb -lpthread -fopenmp -lgmp
 
-CXXFLAGS=-std=c++14 -Wall -O3 -fopenmp -g
+CXXFLAGS=-std=c++14 -Wall -O3 -fopenmp
 
 DIR_OBJ=../obj
 
@@ -26,11 +26,11 @@ $(DIR_OBJ)/%.o: %.cc
 	$(CXX) -c -o $@ $< $(CXXFLAGS) $(INCLUDES)
 
 clean:
-	$(RM) $(OBJS)
-	$(RM) *~
+	@$(RM) $(OBJS)
+	@$(RM) *~ core
 
 distclean: clean
-	$(RM) $(TARGET)
+	@$(RM) $(TARGET)
 
 .PHONY: all clean distclean
 	

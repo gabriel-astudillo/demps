@@ -1,6 +1,26 @@
 #include <environment.hh>
+#include <simulator.hh>
 
 //std::map<uint32_t,std::vector<uint32_t>> Environment::_agentsInQuad;
+
+/*
+omp_lock_t *new_locks(uint32_t totalLocks) {
+   uint32_t i;
+   omp_lock_t *lock = new omp_lock_t[totalLocks];
+   #pragma omp parallel for private(i)
+   for (i = 0 ; i < totalLocks ; i++)
+      omp_init_lock(&lock[i]);
+
+   return lock;
+}
+
+void remove_locks(omp_lock_t *locks, uint32_t totalLocks) {
+   uint32_t i;
+   #pragma omp parallel for private(i)
+   for (i = 0 ; i < totalLocks ; i++)
+      omp_destroy_lock(&locks[i]);
+
+}*/
 
 Environment::Environment(void) {
     ;
@@ -17,7 +37,8 @@ Environment::Environment(const Environment &_env) {
 Environment::~Environment(void) {
 	this->_initial_zones.clear();
 	this->_reference_zones.clear();
-	//free(locks_agentsInQuad);
+	
+	//remove_locks(locks_agentsInQuad, _grid._quadX * _grid._quadY);
 }
 
 /**
@@ -130,6 +151,8 @@ void Environment::setGrid(const json &_fmap_zone, uint32_t quadSize){
 	//Cantidad de cuadrantes en el eje X e Y
 	_grid._quadX = int(_grid._mapWidth / _grid._quadSize + 1);
 	_grid._quadY = int(_grid._mapHeight / _grid._quadSize + 1);
+	
+	//locks_agentsInQuad = new_locks(_grid._quadX * _grid._quadY);
 
 }
 
@@ -154,7 +177,7 @@ std::vector<Zone>  Environment::getInitialZones(){
 	return(this->_initial_zones);
 }
 
-std::vector<Zone> Environment::getReferenceZones(){
+std::vector<Zone>& Environment::getReferenceZones(){
 	return(this->_reference_zones);
 }
 
@@ -196,6 +219,7 @@ std::vector<Agent> Environment::getAgents(){
 	return(_vAgents);
 }
 
+/*
 //Agent::Neighbors Environment::neighbors_of(const Agent &_agent,const double &_max_distance,const model_t &_model) {
 Agent::Neighbors Environment::getNeighborsOf(const uint32_t& idAgent) {
 	Agent::Neighbors neighbors;
@@ -203,9 +227,9 @@ Agent::Neighbors Environment::getNeighborsOf(const uint32_t& idAgent) {
 	
 	Agent* agent = this->getAgent(idAgent);
 	
-
+	omp_set_lock(&lock_agentsInQuad);
 	idsAgents = this->_agentsInQuad[agent->getQuad()];
-	
+	omp_unset_lock(&lock_agentsInQuad);
 	
 	for(auto& id : idsAgents) {
 		if(id != idAgent){
@@ -216,6 +240,7 @@ Agent::Neighbors Environment::getNeighborsOf(const uint32_t& idAgent) {
 			neighbors.push_back(this->getAgent(id));
 		}
 	}
+
 	return(neighbors);
 }
 
@@ -226,7 +251,9 @@ Agent::Neighbors Environment::getNeighborsOf(const uint32_t& idAgent,const doubl
 	Agent* agent = this->getAgent(idAgent);
 	
 	omp_set_lock(&lock_agentsInQuad);
+	//omp_set_lock(&locks_agentsInQuad[agent->getQuad()]);
 	idsAgents = this->_agentsInQuad[agent->getQuad()];
+	//omp_unset_lock(&locks_agentsInQuad[agent->getQuad()]);
 	omp_unset_lock(&lock_agentsInQuad);
 	
 	for(auto& id : idsAgents) {
@@ -239,8 +266,34 @@ Agent::Neighbors Environment::getNeighborsOf(const uint32_t& idAgent,const doubl
 			}
 		}	
 	}
-
+	
 	return(neighbors);
+}
+*/
+
+void Environment::setNeighborsOf(const uint32_t& idAgent,const double& distanceMax){
+	std::vector<uint32_t> idsAgents;
+	
+	Agent* agent = this->getAgent(idAgent);
+	
+	omp_set_lock(&lock_agentsInQuad);
+	//omp_set_lock(&locks_agentsInQuad[agent->getQuad()]);
+	idsAgents = this->_agentsInQuad[agent->getQuad()];
+	//omp_unset_lock(&locks_agentsInQuad[agent->getQuad()]);
+	omp_unset_lock(&lock_agentsInQuad);
+	
+	agent->clearCloseNeighbors(); //test
+	
+	for(auto& id : idsAgents) {
+		if(id != idAgent){
+			Agent* neighbor;
+			neighbor = this->getAgent(id);
+		
+			if( this->distance(agent, neighbor) < distanceMax ) {
+				agent->addCloseNeighbors(neighbor); //test
+			}
+		}	
+	}
 }
 
 /**
@@ -307,15 +360,18 @@ void Environment::adjustAgentsInitialPosition(const uint32_t& calibrationTime){
 			agent->randomWalkwayForAdjustInitialPosition();
 		}
 	}
-	
+		
+	/*
 	//Actualizar ubicación de agentes en la grilla
-	
 	#pragma omp parallel for
 	for(uint32_t i = 0; i < this->getTotalAgents(); i++){
 		Agent* agent = this->getAgent(i);
 		
-		agent->updateQuad();
+		//agent->updateQuad();
+		agent->setQuad();
 	}
+	*/
+	
 	
 	
 }
@@ -345,13 +401,51 @@ void Environment::adjustAgentsRules(){
 		switch(agent->model()) {
 			case SHORTESTPATH: {
 				double distance = DBL_MAX;
+				Point2D  fooTarget;
 				for(auto &reference_zone : this->getReferenceZones()) { 
+					/*
+					//VERSION 1 ORIGINAL
 					auto response = this->getRouter()->route(agent->position(),reference_zone.generate());
 					if(response.distance() < distance) {
 						distance = response.distance();
 						agent->_route = response.path();
+					}*/
+					
+					
+					//VERSION 2
+					// Por cada zona calcula en forma independiente la distancia agente-zona
+					// Una vez que se obtiene la zona más cercana, se calcula la ruta hacia 
+					// ella.
+					// Se logra un SpeedUp de 1.3 comparado con la V1
+					/*
+					fooTarget = reference_zone.generate();
+					double fooDistance = this->getRouter()->distance(agent->position(), fooTarget);
+					if( fooDistance < distance ){
+						distance = fooDistance;
+						agent->setTargetPos(fooTarget);
 					}
+					*/
+					
+					//VERSION 3
+					// Similar a la C2, pero se basa en calcular la distancia 
+					// entre el agente y una zona de referencia
+					// a través de la distancia euclideana. El error cometido es del orden
+					// del 18% para el mapa de Iquique, Q1=12.04, Q3=21.62. 
+					// Se logra un SpeedUp de 2.8 comparado con la V1
+					fooTarget = reference_zone.generate();
+					double fooDistance = sqrt(CGAL::squared_distance(agent->position(), fooTarget));
+								
+					if( fooDistance < distance ){
+						distance = fooDistance;
+						agent->setTargetPos(fooTarget);
+					}
+					
 				}
+				
+				//VERSION 2, 3
+				auto response = this->getRouter()->route(agent->position(),agent->getTargetPos());
+				agent->_route = response.path();
+				
 				break;
 			}
 			case RANDOMWALKWAY:  {					            
@@ -381,11 +475,38 @@ void Environment::adjustAgentsRules(){
 void Environment::updateAgents(){
 
 	
-#pragma omp parallel for schedule(dynamic,8) //firstprivate(_router) shared(_env) 
+#pragma omp parallel for schedule(dynamic,8) shared(Environment::_agentsInQuad) //firstprivate(_router) shared(_env) 
 	for(uint32_t i = 0; i < this->getTotalAgents(); i++){	
 		//std::cout << i << std::flush << std::endl;
 		Agent* agent = this->getAgent(i);	
-		agent->update();				
+		agent->update();	
+		
+		if( (Simulator::_statsOut == true) && ((g_currTimeSim % Simulator::_statsInterval) == 0) ) {
+			for(auto& reference_zone : this->getReferenceZones() ) { 
+				bool isInside;
+				isInside = reference_zone.pointIsInside(agent->position());
+			
+				if(isInside){
+					#pragma omp critical
+					{
+					reference_zone.addAgent(agent->id());				
+					reference_zone.updateAgentsDensity();	
+					}	
+				}
+				else{
+					if(reference_zone.getAgentDensity() > 0){
+						#pragma omp critical
+						{
+						reference_zone.deleteAgent(agent->id());				
+						reference_zone.updateAgentsDensity();	
+						}
+					}	
+				}	
+			}
+		} 
+		
+		
+				
 	
 	}
 	

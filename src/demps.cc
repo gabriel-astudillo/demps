@@ -11,13 +11,16 @@ float g_randomWalkwayRadius;
 float g_attractionRadius;
 uint32_t g_currTimeSim;
 
+uint32_t g_timeExecMakeAgents;
 uint32_t g_timeExecCal;
 uint32_t g_timeExecSim;
 uint32_t g_timeExecSimQuad;
 
+std::vector<std::string> g_logZonesDensity;
+
 omp_lock_t lock_agentsInQuad;
 //std::vector<omp_lock_t*> locks_agentsInQuad;  
-//omp_lock_t* * locks_agentsInQuad; 
+//omp_lock_t* locks_agentsInQuad; 
 
 int main(int argc,char** argv) {
 	char c;
@@ -115,9 +118,10 @@ int main(int argc,char** argv) {
 	} 
 	
 	//Reset counters
-	g_timeExecCal     = 0;
-	g_timeExecSim     = 0;
-	g_timeExecSimQuad = 0;
+	g_timeExecMakeAgents = 0;
+	g_timeExecCal        = 0;
+	g_timeExecSim        = 0;
+	g_timeExecSimQuad    = 0;
 
 	omp_init_lock(&lock_agentsInQuad);
 	
