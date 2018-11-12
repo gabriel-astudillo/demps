@@ -49,13 +49,14 @@ Open Source Routing Machine: The OpenStreetMap Data Routing Engine, http://proje
 ```
 mkdir build
 cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release 
-cmake --build .                      (!)
-cmake --build . --target install     (!!)
+cmake .. -DCMAKE_BUILD_TYPE=Release  (!)
+cmake --build .                      (!!)
+cmake --build . --target install     (!!!)
 ```
-(!) Este proceso necesita al menos 3GB en RAM.
+(!)  cmake .. -DCMAKE_INSTALL_PREFIX=/ruta/instalacion  -DCMAKE_BUILD_TYPE=Release
+(!!) Este proceso necesita al menos 3GB en RAM.
 
-(!!) Necesita permisos de superusario.
+(!!!) Necesita permisos de superusario.
 
 En el linker, agregar ```-losrm```.
 
