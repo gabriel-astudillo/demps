@@ -53,7 +53,8 @@ cmake .. -DCMAKE_BUILD_TYPE=Release  (!)
 cmake --build .                      (!!)
 cmake --build . --target install     (!!!)
 ```
-(!)  cmake .. -DCMAKE_INSTALL_PREFIX=/ruta/instalacion  -DCMAKE_BUILD_TYPE=Release
+(!)  ```cmake .. -DCMAKE_INSTALL_PREFIX=/ruta/instalacion  -DCMAKE_BUILD_TYPE=Release```
+
 (!!) Este proceso necesita al menos 3GB en RAM.
 
 (!!!) Necesita permisos de superusario.
