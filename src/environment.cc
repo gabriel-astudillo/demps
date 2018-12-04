@@ -1,6 +1,27 @@
 #include <environment.hh>
 #include <simulator.hh>
 
+//std::map<uint32_t,std::vector<uint32_t>> Environment::_agentsInQuad;
+
+/*
+omp_lock_t *new_locks(uint32_t totalLocks) {
+   uint32_t i;
+   omp_lock_t *lock = new omp_lock_t[totalLocks];
+   #pragma omp parallel for private(i)
+   for (i = 0 ; i < totalLocks ; i++)
+      omp_init_lock(&lock[i]);
+
+   return lock;
+}
+
+void remove_locks(omp_lock_t *locks, uint32_t totalLocks) {
+   uint32_t i;
+   #pragma omp parallel for private(i)
+   for (i = 0 ; i < totalLocks ; i++)
+      omp_destroy_lock(&locks[i]);
+
+}*/
+
 Environment::Environment(void) {
     ;
 }
@@ -16,6 +37,8 @@ Environment::Environment(const Environment &_env) {
 Environment::~Environment(void) {
 	this->_initial_zones.clear();
 	this->_reference_zones.clear();
+	
+	//remove_locks(locks_agentsInQuad, _grid._quadX * _grid._quadY);
 }
 
 /**
@@ -127,7 +150,10 @@ void Environment::setGrid(const json &_fmap_zone, uint32_t quadSize){
 	
 	//Cantidad de cuadrantes en el eje X e Y
 	_grid._quadX = int(_grid._mapWidth / _grid._quadSize + 1);
-	_grid._quadY = int(_grid._mapHeight / _grid._quadSize + 1);	
+	_grid._quadY = int(_grid._mapHeight / _grid._quadSize + 1);
+	
+	//locks_agentsInQuad = new_locks(_grid._quadX * _grid._quadY);
+
 }
 
 Environment::grid_t Environment::getGrid(){
@@ -163,6 +189,10 @@ void Environment::addAgents(const std::vector<Agent> &_vAgents) {
 	this->_vAgents = _vAgents;
 }
 
+void Environment::addAgent(const Agent& newAgent) {
+	this->_vAgents.push_back(newAgent);
+}
+
 /**
 * @brief Retorna el total de agentes del Environent
 *
@@ -193,27 +223,40 @@ std::vector<Agent> Environment::getAgents(){
 	return(_vAgents);
 }
 
+/**
+* @brief Configura los vecinos de un agente identificado por su id.
+* Al agente identificado se le asignan todos los agentes vecinos que
+* están dentro del radio 'distanceMax'
+*
+* @param idAgent: entero que identifica el agente
+* @param distanceMax: radio de la vecindad
+* @return void
+*/
 void Environment::setNeighborsOf(const uint32_t& idAgent,const double& distanceMax){
 	std::vector<uint32_t> idsAgents;
 	
 	Agent* agent = this->getAgent(idAgent);
 	
-	omp_set_lock(&lock_agentsInQuad);
-	//omp_set_lock(&locks_agentsInQuad[agent->getQuad()]);
 	idsAgents = this->_agentsInQuad[agent->getQuad()];
-	//omp_unset_lock(&locks_agentsInQuad[agent->getQuad()]);
-	omp_unset_lock(&lock_agentsInQuad);
 	
-	agent->clearCloseNeighbors(); //test
+	agent->clearCloseNeighbors(); 
 	
 	for(auto& id : idsAgents) {
 		if(id != idAgent){
 			Agent* neighbor;
 			neighbor = this->getAgent(id);
-		
-			if( this->distance(agent, neighbor) < distanceMax ) {
-				agent->addCloseNeighbors(neighbor); //test
+			
+			//agent->addCloseNeighbors(neighbor); 
+	
+			if( neighbor == NULL ){
+				continue;
 			}
+			
+			double dist = distance(agent, neighbor);
+			if(  dist < distanceMax ) {
+				agent->addCloseNeighbors(neighbor); 
+			}
+
 		}	
 	}
 }
@@ -233,7 +276,7 @@ void Environment::setNeighborsOf(const uint32_t& idAgent,const double& distanceM
 *Este método es llamado por
 *el método Simulator::calibrate()
 *
-* @param void
+* @param calibrationTime: tiempo de calibración
 * @return void
 */
 void Environment::adjustAgentsInitialPosition(const uint32_t& calibrationTime){
@@ -281,7 +324,16 @@ void Environment::adjustAgentsInitialPosition(const uint32_t& calibrationTime){
 			}
 			agent->randomWalkwayForAdjustInitialPosition();
 		}
+	}
+		
+	
+	//Actualizar ubicación de agentes en la grilla
+	#pragma omp parallel for
+	for(uint32_t i = 0; i < this->getTotalAgents(); i++){
+		Agent* agent = this->getAgent(i);
+		agent->updateQuad();
 	}	
+	
 }
 
 /**
@@ -298,7 +350,7 @@ void Environment::adjustAgentsRules(){
 	ProgressBar pg;
 	pg.start(this->getTotalAgents()-1);
 	
-#pragma omp parallel for
+	#pragma omp parallel for
 	for(uint32_t i = 0; i < this->getTotalAgents(); i++){
 		if(g_showProgressBar){
 			pg.update(i);
@@ -307,7 +359,7 @@ void Environment::adjustAgentsRules(){
 		Agent* agent = this->getAgent(i);
 		
 		switch(agent->model()) {
-			case SHORTESTPATH: {
+			case ShortestPath: {
 				double distance = DBL_MAX;
 				Point2D  fooTarget;
 				for(auto &reference_zone : this->getReferenceZones()) { 
@@ -356,11 +408,11 @@ void Environment::adjustAgentsRules(){
 				
 				break;
 			}
-			case RANDOMWALKWAY:  {					            
+			case RandomWalkway:  {					            
 				break;
 			}
-			case FOLLOWTHECROWD: break;
-			case WORKINGDAY: break;
+			case FollowTheCrowd: break;
+			case WorkingDay: break;
 			default: {
 				std::cerr << "error::simulator_constructor::unknown_mobility_model::\"" << agent->model() << "\"" << std::endl;
 				exit(EXIT_FAILURE);
@@ -382,11 +434,13 @@ void Environment::adjustAgentsRules(){
 */
 void Environment::updateAgents(){
 
+	uint32_t totalAgents = this->getTotalAgents();
 	
-#pragma omp parallel for schedule(dynamic,8) shared(Environment::_agentsInQuad) //firstprivate(_router) shared(_env) 
-	for(uint32_t i = 0; i < this->getTotalAgents(); i++){	
+	//Actualizar la posición de los agentes
+	#pragma omp parallel for //schedule (dynamic,8)
+	for(uint32_t i = 0; i < totalAgents; i++){	
 		//std::cout << i << std::flush << std::endl;
-		Agent* agent = this->getAgent(i);	
+		Agent* agent = this->getAgent(i);
 		agent->update();	
 		
 		if( (Simulator::_statsOut == true) && ((g_currTimeSim % Simulator::_statsInterval) == 0) ) {
@@ -394,34 +448,32 @@ void Environment::updateAgents(){
 				bool isInside;
 				isInside = reference_zone.pointIsInside(agent->position());
 			
-				if(isInside){
-					#pragma omp critical
-					{
+				//#pragma omp critical
+				if(isInside){	
 					reference_zone.addAgent(agent->id());				
 					reference_zone.updateAgentsDensity();	
-					}	
 				}
 				else{
-					if(reference_zone.getAgentDensity() > 0){
-						#pragma omp critical
-						{
+					if(reference_zone.getAgentsDensity() > 0){
 						reference_zone.deleteAgent(agent->id());				
 						reference_zone.updateAgentsDensity();	
-						}
 					}	
 				}	
 			}
 		} 
-		
-		
-				
+	}
 	
+	//Actualizar la grilla
+	#pragma omp parallel for //schedule (dynamic,8) 
+	for(uint32_t i = 0; i < totalAgents; i++){	
+		Agent* agent = this->getAgent(i);	
+		agent->updateQuad();		
 	}
 	
 		
 }
 
-double Environment::distance(Agent* a,Agent* b){
+double Environment::distance(Agent* a,Agent* b){	
 	return(sqrt(CGAL::squared_distance(a->position(),b->position())));
 }
 

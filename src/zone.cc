@@ -19,7 +19,8 @@ Zone::Zone(const json &_freference_point,const json &_fpolygon) {
 		this->_polygon.push_back(Point2D(x,y));
 	}
 	
-	_area = this->_polygon.area();
+	_area          = this->_polygon.area();
+	_agentsDensity = 0.0;
 
 	// Insert the polygons into a constrained triangulation
 	this->_cdt.insert_constraint(this->_polygon.vertices_begin(),this->_polygon.vertices_end(),true);
@@ -88,7 +89,11 @@ void Zone::updateAgentsDensity(void){
 	
 }
 
-double Zone::getAgentDensity(void){
+uint32_t Zone::getTotalAgents(void){
+	return(_agentsInZone.size());
+}
+
+double Zone::getAgentsDensity(void){
 	return(_agentsDensity);
 }
 

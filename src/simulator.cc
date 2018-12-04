@@ -75,22 +75,25 @@ Simulator::Simulator(const json &_fsettings,const json &_finitial_zones,const js
 			Point2D position = _env->getInitialZone(zone(rng)).generate();
 			
 			json SocialForceModel = fagent["SFM"];
-
-			auto agent = Agent(id,\
-				position,\
-				fagent["speed"]["min"],\
-				fagent["speed"]["max"],\
-				SocialForceModel,
-				model_t(this->_hash(fagent["model"].get<std::string>()))\
-				); 
-
-			_agents.push_back(agent);
+			
+			std::string modelName = fagent["model"].get<std::string>();
+			model_t modelID       = model_map[modelName];
+			
+			_env->addAgent(\
+				Agent(id,\
+					position,\
+					fagent["speed"]["min"],\
+					fagent["speed"]["max"],\
+					SocialForceModel,\
+					modelID\
+				)\
+			);
 					
 		}
 	}
 	
 	//Se agregan al ambiente con los agentes recien creados. 
-	_env->addAgents(_agents);
+	//_env->addAgents(_agents);
 	
 	auto end = std::chrono::system_clock::now(); //Measure Time
 	auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
@@ -155,13 +158,14 @@ void Simulator::run() {
 			this->stats();
 		} 
 		
-		auto start = std::chrono::system_clock::now(); //Measure Time
+		auto start = std::chrono::high_resolution_clock::now(); //Measure Time
 
 		_env->updateAgents();
 		
-		auto end = std::chrono::system_clock::now(); //Measure Time
+		auto end = std::chrono::high_resolution_clock::now(); //Measure Time
 		auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
 		g_timeExecSim += elapsed.count();
+		//std::cout << " ==> " << elapsed.count() << std::endl;
 	}
 	
 	if(g_showProgressBar){
@@ -174,31 +178,28 @@ Simulator::~Simulator(void) {
 	;
 }
 void Simulator::save() {
-	static std::map<model_t,int> types={{SHORTESTPATH,0},{FOLLOWTHECROWD,1},{RANDOMWALKWAY,2}};//model
-		  
-		  
 	std::ostringstream ss;
 	ss << std::setw( 10 ) << std::setfill( '0' ) << g_currTimeSim;
 		
 	std::string nameFile = _filesimPrefix + ss.str() + _filesimSufix ;
 	std::string pathFile = _filesimPath + "/" + nameFile ;
 	
-	
 	std::ofstream ofs(pathFile);
 		
 	for( auto& agent : _env->getAgents() ) {
 		double latitude,longitude,h;
 		_env->getProjector().Reverse(agent.position()[0],agent.position()[1],0,latitude,longitude,h); 
-		ofs << agent.id() << " " << latitude << " " << longitude << " " << types[agent.model()] <<std::endl;
-	}
-	
-	
+		ofs << agent.id() << " " << latitude << " " << longitude << " " << agent.model() <<std::endl;
+	}	
 }
 
 void Simulator::stats(){
 	for(auto& reference_zone : _env->getReferenceZones() ) {
 		std::string logString;
-		logString = reference_zone.getNameID() + ":" +  std::to_string(g_currTimeSim) + ":" + std::to_string(reference_zone.getAgentDensity());					
+		logString = reference_zone.getNameID() + ":" +  \
+			std::to_string(g_currTimeSim) + ":" + \
+			std::to_string(reference_zone.getTotalAgents()) + ":" + \
+			std::to_string(reference_zone.getAgentsDensity());					
 		g_logZonesDensity.push_back(logString);
 	}
 }

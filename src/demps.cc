@@ -19,8 +19,32 @@ uint32_t g_timeExecSimQuad;
 std::vector<std::string> g_logZonesDensity;
 
 omp_lock_t lock_agentsInQuad;
-//std::vector<omp_lock_t*> locks_agentsInQuad;  
-//omp_lock_t* locks_agentsInQuad; 
+
+std::map<std::string, model_t> model_map = {
+	{"ShortestPath",   ShortestPath},
+	{"FollowTheCrowd", FollowTheCrowd},
+	{"RandomWalkway",  RandomWalkway}
+};
+
+void loadDataFrom(std::string fileIn, json& dataOut){
+	
+	std::ifstream ifs;
+	
+	ifs.open(fileIn,std::ifstream::in);
+	if(ifs.fail()) {
+	    std::cerr << "Open error in file:"<<  fileIn << std::endl;
+	    exit(EXIT_FAILURE);
+	}
+
+	ifs >> dataOut;
+	ifs.close();
+	
+	if(dataOut.empty()){
+	    std::cerr << "Can't load data from:"<<  fileIn << std::endl;
+	    exit(EXIT_FAILURE);
+	}
+}
+
 
 int main(int argc,char** argv) {
 	char c;
@@ -54,8 +78,8 @@ int main(int argc,char** argv) {
 	std::string reference_zones_file;
 	std::string reference_point_file;
 	
-	map_osrm                  = settings["input"]["map"].get<std::string>();
 	try {
+		map_osrm             = settings["input"]["map"].get<std::string>();
 		area_zone_file       = settings["input"]["area"].get<std::string>();
 		initial_zones_file   = settings["input"]["initial_zones"].get<std::string>();
 		reference_zones_file = settings["input"]["reference_zones"].get<std::string>();
@@ -66,56 +90,18 @@ int main(int argc,char** argv) {
 		exit(EXIT_FAILURE);
 	}
 		
-	
-	
 	std::ifstream ifs;
-	
 	ifs.open(map_osrm,std::ifstream::in);
 	if(ifs.fail()) {
 	    std::cerr << "Error in file:"<<  map_osrm << std::endl;
 	    exit(EXIT_FAILURE);
 	}
 	ifs.close();
-
-	ifs.open(area_zone_file,std::ifstream::in);
-	if(ifs.fail()) {
-	    std::cerr << "Error in file:"<<  area_zone_file << std::endl;
-	    exit(EXIT_FAILURE);
-	}
-
-	ifs >> area_zone;
-	ifs.close();
-
-	ifs.open(initial_zones_file,std::ifstream::in);
-	if(ifs.fail()) {
-	    std::cerr << "Error in file:"<<  initial_zones_file << std::endl;
-	    exit(EXIT_FAILURE);
-	}
-
-	ifs >> initial_zones;
-	ifs.close();
-
-	ifs.open(reference_zones_file,std::ifstream::in);
-	if(ifs.fail()) {
-	    std::cerr << "Error in file:"<<  reference_zones_file << std::endl;
-	    exit(EXIT_FAILURE);
-	}
-	ifs >> reference_zones;
-	ifs.close();
-
-	ifs.open(reference_point_file,std::ifstream::in);
-	if(ifs.fail()) {
-	    std::cerr << "Error in file:"<<  reference_point_file << std::endl;
-	    exit(EXIT_FAILURE);
-	}
-	ifs >> reference_point;
-	ifs.close();
-
-
-	if(map_osrm.empty() || area_zone.empty() || initial_zones.empty() || reference_zones.empty() || reference_point.empty()) {
-	    std::cerr << "Check file path in input section" << std::endl;
-	    exit(EXIT_FAILURE);
-	} 
+	
+	loadDataFrom(area_zone_file      , area_zone);
+	loadDataFrom(initial_zones_file  , initial_zones);
+	loadDataFrom(reference_zones_file, reference_zones);	
+	loadDataFrom(reference_point_file, reference_point);
 	
 	//Reset counters
 	g_timeExecMakeAgents = 0;
@@ -125,7 +111,7 @@ int main(int argc,char** argv) {
 
 	omp_init_lock(&lock_agentsInQuad);
 	
-	Simulator sim(settings,initial_zones,reference_zones,reference_point,area_zone,map_osrm);
+	Simulator sim(settings, initial_zones, reference_zones, reference_point, area_zone, map_osrm);
 
 	sim.calibrate();
 	sim.run();	

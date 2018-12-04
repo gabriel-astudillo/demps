@@ -91,7 +91,7 @@ const Point2D Agent::getTargetPos(void) const {
 }
 
 const Point2D Agent::position(void) const {
-    return(this->_position);
+	return(this->_position);
 }
 
 void Agent::showPosition(){
@@ -136,6 +136,7 @@ void Agent::updateQuad() {
 		//
 		// Buscar identificador del agente en el cuadrante actual y eliminarlo	
 		//	
+
 		for (auto it = _myEnv->_agentsInQuad[currQuad].begin(); it != _myEnv->_agentsInQuad[currQuad].end();) {					
 			if (*it == _id) {						
 				it = _myEnv->_agentsInQuad[currQuad].erase(it);						
@@ -144,16 +145,17 @@ void Agent::updateQuad() {
 				++it;
 			}
 		}
-
 		//Actualizar ID del cuadrante del agente actual
 		this->setQuad(newQuad);
 		
+
 		//Agregar Id del agente al vector del cuadrante actual
 		_myEnv->_agentsInQuad[newQuad].push_back(this->id());
-	
+
 		omp_unset_lock(&lock_agentsInQuad);
 	}
 }
+
 
 Vector2D Agent::direction(void) const {
     return(this->_direction);
@@ -177,36 +179,19 @@ void Agent::addCloseNeighbors(Agent* neighbor){
 
 void Agent::update(){
 	
-	this->updateQuad();
-	
-	double privateAreaRadius = 1.0;
-	//_closeNeighbors = _myEnv->getNeighborsOf(this->id(), privateAreaRadius);
-	_myEnv->setNeighborsOf(this->id(), privateAreaRadius);
-	
-	
-	// Prueba para determinar si el agente está
-	// dentro de una zona de referencia o no
-	
-	/*
-	for(auto &reference_zone : _myEnv->getReferenceZones()) { 
-		bool isInside;
-		
-		//isInside = reference_zone.pointIsInside(_position);
-	}
-	*/
 	
 	// El agente debe avanzar según su
 	// modelo de movilidad
 	switch(this->model()) {
-		case SHORTESTPATH: {
+		case ShortestPath: {
 		    this->shortestPath();
 		    break;
 		}
-		case RANDOMWALKWAY: {
+		case RandomWalkway: {
 			this->randomWalkway();
 		    break;
 		}
-		case FOLLOWTHECROWD: {
+		case FollowTheCrowd: {
 		    //Agent::Neighbors neighbors = _env.neighbors_of(this->_agents[i],g_attractionRadius,SHORTESTPATH);
 			//
 		    //if(neighbors.empty()){
@@ -220,42 +205,9 @@ void Agent::update(){
 		    //   this->_agents[i].follow_the_crowd(neighbors);  
 			break;
 		}
-		case WORKINGDAY: break;
+		case WorkingDay: break;
 		case SNITCH: break;
 	}
-
-	/*
-	//For test only
-	//Vecinos cercanos en un radio de 1[m]
-	if( _myEnv->getNeighborsOf(this->id(), 1.0).size()>=1 ){ //((g_currTimeSim % 10) == 0) &&
-		#pragma omp critical
-		{
-			Neighbors neighbors = _myEnv->getNeighborsOf(this->id(), 1.0);
-			this->showPosition();
-			std::cout << "Nearby Agents:" << neighbors.size() << std::endl;
-			for(auto& fooAgent : neighbors) {
-				std::cout  << "t:" << g_currTimeSim << ": " << this->id() << ", " << fooAgent->id() << " => " << this->distanceTo(fooAgent) <<std::endl;
-			}	
-		}	
-	}
-	*/
-	
-	
-	/*
-	//For test only
-	if(  (this->id() == 10100) ) { //((g_currTimeSim % 10) == 0) &&
-		#pragma omp critical
-		{
-			Neighbors neighbors = _myEnv->getNeighborsOf(this->id());
-			this->showPosition();
-			for(auto& fooAgent : neighbors) {
-				std::cout << fooAgent->id() << " " << std::flush;
-			}	
-			std::cout << std::endl;
-
-		}
-	}
-	*/
 
 }
 
@@ -329,6 +281,10 @@ void Agent::followPath(){
             continue;
         }
 		
+		_currVelocity += agentFactor * DrivingForce * deltaT;	
+		
+		_myEnv->setNeighborsOf(this->id(), g_attractionRadius);	
+		
 		if( _closeNeighbors.size() == 0 ){
 			// No hay agentes cercanos 
 			// Sólo actúa la fuerza DrivingForce    
@@ -342,15 +298,20 @@ void Agent::followPath(){
 			// Determinar el efecto repulsivo por cada
 			// vecino cercano, y agregarlo al total
 			for(auto& fooAgent : _closeNeighbors) {
-				Vector2D repulsiveEfect = Vector2D(0.0,0.0);
-				double   distance = this->distanceTo(fooAgent);
-		
-				//Vector2D directionAgents(this->_position, fooAgent->position());
-				Vector2D directionAgents(fooAgent->position(), this->_position);
+				
+				if( fooAgent == NULL || fooAgent == this ){
+					continue;
+				}
+				
+				Vector2D repulsiveEfect = Vector2D(0.0,0.0);			
+				double   distance = distanceTo(fooAgent);
+
+				Vector2D directionAgents(fooAgent->position(), _position);
 				
 				directionAgents /= sqrt(CGAL::scalar_product(directionAgents, directionAgents));
 		
-				double strengthRepulsiveEfect = _strengthSocialRepulsiveForceAgents * exp(-distance/_sigma);
+				double strengthRepulsiveEfect = _strengthSocialRepulsiveForceAgents * exp(-distance/_sigma);				
+				
 				repulsiveEfect = strengthRepulsiveEfect * directionAgents;
 		
 				// Determinar directionDependentWeight
