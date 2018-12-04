@@ -369,12 +369,12 @@ void Agent::followTheCrowd(const Neighbors &_neighbors){
 }
 
 void Agent::randomWalkwayForAdjustInitialPosition(){
-	if(this->_route.empty()){  
+	if(this->_route.empty()){
 		auto response = _myEnv->getRouter()->route(this->position(), g_randomWalkwayRadius);
 		this->_route = response.path();
 	}
 	
-    if(_route.empty()) return;
+	if(_route.empty()) return;
    
     while(!_route.empty()) {
         Point2D dst = _route.front();
@@ -391,13 +391,10 @@ void Agent::randomWalkwayForAdjustInitialPosition(){
         }
 		
 		this->_currVelocity = _disiredSpeed * this->_direction;
-			
+
 		Transformation translate(CGAL::TRANSLATION, this->_currVelocity);
-	    this->_position = translate(this->_position);
-		
-        break;
-    }
-	
-	
-	
+		this->_position = translate(this->_position);
+
+		break;
+	}
 }
