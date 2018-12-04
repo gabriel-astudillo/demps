@@ -43,10 +43,6 @@ private:
 	double   _strengthSocialRepulsiveForceAgents;
 	double   _cosPhi; //cos(200º)
 
-
-	
-	
-
 public:
 	Agent(void);
 	Agent(const Agent&);

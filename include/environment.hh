@@ -21,6 +21,7 @@ private:
 	std::vector<Zone> _reference_zones;
 
 	std::vector<Agent> _vAgents;
+	
 	Agent::Neighbors   _neighbors;
 	
 	struct grid_s{
@@ -64,6 +65,8 @@ public:
 	LocalCartesian getProjector();
 
 	void addAgents(const std::vector<Agent> &_vAgents);
+	void addAgent(const Agent& newAgent);
+	
 	uint32_t getTotalAgents();
 	Agent* getAgent(uint32_t id);
 	std::vector<Agent> getAgents();

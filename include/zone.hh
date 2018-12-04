@@ -25,7 +25,8 @@ public:
 	void addAgent(const uint32_t& idAgent);
 	void deleteAgent(const uint32_t& idAgent);
 	void updateAgentsDensity(void);
-	double getAgentDensity(void);
+	uint32_t getTotalAgents(void);
+	double getAgentsDensity(void);
 	std::string getNameID(void);
 	Point2D generate(void);
 	

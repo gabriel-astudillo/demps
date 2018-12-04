@@ -13,7 +13,7 @@ public:
 
 
 private:
-	static const std::hash<std::string> _hash;
+	//static const std::hash<std::string> _hash;
 	json                                _fsettings;
 
 	static std::shared_ptr<Environment> _env;

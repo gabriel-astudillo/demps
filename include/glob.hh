@@ -113,9 +113,10 @@ extern omp_lock_t lock_agentsInQuad;
 //extern std::vector<omp_lock_t*> locks_agentsInQuad;  
 //extern omp_lock_t* locks_agentsInQuad;  
 
-enum model_t {SHORTESTPATH=9366416273040049814U,FOLLOWTHECROWD=10676684734677566718U,RANDOMWALKWAY=5792789823329120861U,WORKINGDAY, SNITCH=666};
+//enum model_t {SHORTESTPATH=9366416273040049814U,FOLLOWTHECROWD=10676684734677566718U,RANDOMWALKWAY=5792789823329120861U,WORKINGDAY, SNITCH=666};
+enum model_t {ShortestPath=0, FollowTheCrowd=1, RandomWalkway=2, WorkingDay, SNITCH=666};
 
-
+extern std::map<std::string, model_t> model_map;
 
 
 #endif
