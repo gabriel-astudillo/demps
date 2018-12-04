@@ -37,10 +37,10 @@ fi
 
 # command-line JSON processor
 # https://stedolan.github.io/jq/
-JQ_PATH=/usr/bin/jq
+JQ_PATH=$(which jq)
 
 if [[ ! -e $JQ_PATH ]]; then
-	echo "JQ no está instalado en $JQ_PATH."
+	echo "JQ no está instalado en $PATH."
 	echo "https://stedolan.github.io/jq/"
 	exit
 fi
@@ -76,12 +76,13 @@ $RM_CMD $RESULTS_FILES
 
 echo "Ejecutando DEMPS..."
 export OMP_NUM_THREADS=$THREADS
+#export OMP_SCHEDULE='schedule(guided,8)'
 $DEMPS_PATH $DEMPS_OPTS
 
 #SI FILESIM_OUT==true AND CREATE_GIF==true ==> crear gif animado
 # $BASEDIR/scripts/visualizador-offline/run-make_maps.sh
 
-if [[ $? -eq 0 && $FILESIM_OUT == "true" &&  $CREATE_GIF == "true" && !$MAKE_MAPS_DISABLE ]]; then
+if [[ $? -eq 0 && $FILESIM_OUT == "true" &&  $CREATE_GIF == "true" && ($MAKE_MAPS_DISABLE -eq 0) ]]; then
 	echo "Creando gif animado de la simulación..."
 	$MAKE_MAPS_SCRIPT_PATH $RESULTS_DIR_PATH
 fi
