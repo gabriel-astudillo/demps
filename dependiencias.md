@@ -42,7 +42,7 @@ En el linker, agregar ```-lCGAL```.
 
 ## OSRM backend
 
-Open Source Routing Machine: The OpenStreetMap Data Routing Engine, http://project-osrm.org. Dependencias: ```libtbb-dev```, ```libbz2-dev```, ```liblua5.3-dev```. Sitio original https://github.com/Project-OSRM/osrm-backend/wiki/Building-OSRM
+Open Source Routing Machine: The OpenStreetMap Data Routing Engine, http://project-osrm.org. Dependencias: ```libtbb-dev```, ```libbz2-dev```, ```liblua5.3-dev```, ```libexpat1-dev```. Sitio original https://github.com/Project-OSRM/osrm-backend/wiki/Building-OSRM
 
 1) Bajar de https://github.com/Project-OSRM/osrm-backend/releases, descomprimir y entrar al directorio respectivo.
 2) Compilar e instalar. Por omisión, ```--prefix=/usr/local```:
