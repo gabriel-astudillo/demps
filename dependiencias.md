@@ -1,5 +1,10 @@
 # Dependencias
 
+
+## JQ
+
+Utilitario de línea de comando para procesar archivos JSON. Ver https://stedolan.github.io/jq/.
+
 ## JSON
 
 JSON for Modern C++: https://github.com/nlohmann/json
