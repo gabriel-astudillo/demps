@@ -13,14 +13,14 @@ MAKE_MAPS_SCRIPT="./scripts/visualizador-offline/run-make_maps.sh"
 DEMPS_PATH=$BASEDIR/$DEMPS_BIN 
 
 if [[ ! -e $DEMPS_PATH  ]]; then
-	echo "Eror: $DEMPS_PATH no existe"
+	echo "Error: $DEMPS_PATH no existe"
 	exit 1
 fi
 
 MAKE_MAPS_SCRIPT_PATH=$BASEDIR/$MAKE_MAPS_SCRIPT
 
 if [[ ! -e $MAKE_MAPS_SCRIPT_PATH  ]]; then
-	echo "Eror: Script $MAKE_MAPS_SCRIPT_PATH no existe. DISABILITADO."
+	echo "Error: Script $MAKE_MAPS_SCRIPT_PATH no existe. DISABILITADO."
 	MAKE_MAPS_DISABLE=1
 else
 	MAKE_MAPS_DISABLE=0
@@ -45,7 +45,14 @@ if [[ ! -e $JQ_PATH ]]; then
 	exit
 fi
 
-DEMPS_OPTS="-s $DEMPS_CONFIG_FILE"
+TEST_CONFIG_OK=$(cat $DEMPS_CONFIG_FILE | $JQ_PATH -r '.output."filesim-path"' )
+if [[  $? -ne 0  ]]; then
+	echo "El archivo $DEMPS_CONFIG_FILE tiene errores."
+	exit
+fi
+
+
+DEMPS_OPTS="-s $DEMPS_CONFIG_FILE $*"
 RESULTS_DIR=$(cat $DEMPS_CONFIG_FILE | $JQ_PATH -r '.output."filesim-path"')
 RESULTS_DIR_PATH=$BASEDIR/$RESULTS_DIR
 
@@ -66,6 +73,7 @@ FILESIM_OUT=$(cat $DEMPS_CONFIG_FILE | $JQ_PATH -r '.output."filesim-out"')
 CREATE_GIF=$(cat $DEMPS_CONFIG_FILE | $JQ_PATH -r '.output."create-gif"')
 THREADS=$(cat $DEMPS_CONFIG_FILE | $JQ_PATH -r '.threads')
 
+
 RM_CMD="$(which rm) -f"
 
 #### MAIN ####
@@ -75,7 +83,7 @@ echo "Eliminando resultados anteriores..."
 $RM_CMD $RESULTS_FILES
 
 echo "Ejecutando DEMPS..."
-export OMP_NUM_THREADS=$THREADS
+#export OMP_NUM_THREADS=$THREADS
 #export OMP_SCHEDULE='schedule(guided,8)'
 $DEMPS_PATH $DEMPS_OPTS
 
