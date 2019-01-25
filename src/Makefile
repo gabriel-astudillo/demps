@@ -4,11 +4,17 @@ RM=rm -f
 
 TARGET=../demps
 
-INCLUDES=-I/usr/local/include -I/usr/local/include/osrm -I../include
-LDFLAGS=-L/usr/local/lib -L/home/gabriel/demps/dependencias/tbb/build/linux_intel64_gcc_cc7_libc2.27_kernel4.15.0_release
-LDLIBS=-lGeographic -lCGAL -losrm -lboost_system -lboost_filesystem -lboost_iostreams -lboost_thread -lrt -ltbb -lpthread -fopenmp -lgmp
+INCLUDES_CLUST=-I/home/mmarin/gastudil/local/include -I/home/mmarin/gastudil/local/include/osrm
+LDFLAGS_CLUST=-L/home/mmarin/gastudil/local/lib -Wl,-rpath,/home/mmarin/gastudil/local/lib -L/home/mmarin/gastudil/local/lib64 -Wl,-rpath,/home/mmarin/gastudil/local/lib64
+#CXXFLAGS_CLUST=-ftree-vectorize -march=athlon64 -ffast-math 
 
-CXXFLAGS=-std=c++14 -Wall -O2 -fopenmp
+INCLUDES=-I/usr/local/include -I/usr/local/include/osrm -I../include $(INCLUDES_CLUST)
+LDFLAGS=-L/usr/local/lib $(LDFLAGS_CLUST)
+#-L/home/gabriel/demps/dependencias/tbb/build/linux_intel64_gcc_cc7_libc2.27_kernel4.15.0_release
+LDLIBS=-lGeographic -lCGAL -losrm -lboost_system -lboost_filesystem -lboost_iostreams -lboost_thread -lrt -ltbb -lpthread -fopenmp -lgmp
+LDLIBS=-lGeographic -lCGAL -losrm -lboost_system -lboost_filesystem -lboost_iostreams -lboost_thread -lrt -lpthread -fopenmp -lgmp
+
+CXXFLAGS=-std=c++14 -Wall -O3 -fopenmp $(CXXFLAGS_CLUST)
 
 DIR_OBJ=objs
 

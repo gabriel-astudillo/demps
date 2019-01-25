@@ -26,7 +26,7 @@ Environment::Environment(void) {
     ;
 }
 
-Environment::Environment(const std::vector<Agent> &_vAgents) {
+Environment::Environment(std::vector<Agent*> _vAgents) {
 	this->_vAgents = _vAgents;
 }
 
@@ -66,12 +66,40 @@ Router* Environment::getRouter(){
 *entre coordenadas WGS84 y ENU. Marca el origen en este 
 *último sistema
 *
-* @param _freference_point: GeoJson con los datos latitud y longitud del punto de referencia
+* @param _fmap_zone: GeoJson de los datos del mapa
 * @return void
 */
-void Environment::setReferencePoint(const json &_freference_point){
-	this->_reference_point = _freference_point;
+
+void Environment::setReferencePoint(const json &_fmap_zone){
+	std::list<double> map_x;
+	std::list<double> map_y;
+	
+	double xMin,yMin;
+	
+	for(auto& point : _fmap_zone["features"][0]["geometry"]["coordinates"][0]){
+		map_x.push_back( point[1] );
+		map_y.push_back( point[0] );
+	}
+	map_x.sort(); map_y.sort();
+	
+	//Coordenadas min  x e y.
+	xMin = map_x.front(); 
+	yMin = map_y.front(); 
+	
+	json geomData = {
+		{"type", "Point"},
+		{"coordinates", json::array({ yMin, xMin } ) }
+	};
+	
+	this->_reference_point = {
+		{"type", "FeatureCollection"},
+		{"features", json::array({ json({{"type", "Feature"}, {"properties", {} }, {"geometry", geomData } }) }) }
+	};
+
 }
+/*void Environment::setReferencePoint(const json &_freference_point){
+	this->_reference_point = _freference_point;
+}*/
 
 /**
 * @brief Crea el proyector para las coordenadas
@@ -185,11 +213,11 @@ LocalCartesian Environment::getProjector(){
 	return(this->_projector);
 }
 
-void Environment::addAgents(const std::vector<Agent> &_vAgents) {
+/*void Environment::addAgents(std::vector<Agent*> _vAgents) {
 	this->_vAgents = _vAgents;
-}
+}*/
 
-void Environment::addAgent(const Agent& newAgent) {
+void Environment::addAgent(Agent* newAgent) {
 	this->_vAgents.push_back(newAgent);
 }
 
@@ -210,7 +238,7 @@ uint32_t Environment::getTotalAgents(){
 * @return Agent*
 */
 Agent* Environment::getAgent(uint32_t id){
-	return(&_vAgents[id]);
+	return(_vAgents[id]);
 }
 
 /**
@@ -219,7 +247,7 @@ Agent* Environment::getAgent(uint32_t id){
 * @param void
 * @return std::vector<Agent>
 */
-std::vector<Agent> Environment::getAgents(){
+std::vector<Agent*>& Environment::getAgents(){
 	return(_vAgents);
 }
 
@@ -325,15 +353,6 @@ void Environment::adjustAgentsInitialPosition(const uint32_t& calibrationTime){
 			agent->randomWalkwayForAdjustInitialPosition();
 		}
 	}
-		
-	
-	//Actualizar ubicación de agentes en la grilla
-	#pragma omp parallel for
-	for(uint32_t i = 0; i < this->getTotalAgents(); i++){
-		Agent* agent = this->getAgent(i);
-		agent->updateQuad();
-	}	
-	
 }
 
 /**
@@ -462,16 +481,30 @@ void Environment::updateAgents(){
 			}
 		} 
 	}
+}
+
+/**
+* @brief Actualiza el estado de la grilla
+*
+*Cada agente que pertenezca al Environment, 
+*actualiza los datos del cuadrante respectivo,
+*avisando a los patchAgents correspondientes.
+*Este método se llama después de updateAgents().
+*
+* @param void
+* @return void
+*/
+
+void Environment::updateQuads(){
+	uint32_t totalAgents = this->getTotalAgents();
 	
-	//Actualizar la grilla
 	#pragma omp parallel for //schedule (dynamic,8) 
 	for(uint32_t i = 0; i < totalAgents; i++){	
 		Agent* agent = this->getAgent(i);	
 		agent->updateQuad();		
-	}
-	
-		
+	}	
 }
+
 
 double Environment::distance(Agent* a,Agent* b){	
 	return(sqrt(CGAL::squared_distance(a->position(),b->position())));

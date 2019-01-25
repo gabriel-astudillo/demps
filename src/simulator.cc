@@ -6,11 +6,20 @@ std::shared_ptr<Environment> Simulator::_env;
 bool        Simulator::_statsOut;
 uint32_t    Simulator::_statsInterval;
 
+uint32_t getMaxMemory(){
+	struct rusage r_usage;
+	getrusage(RUSAGE_SELF,&r_usage);
+	//https://www.gnu.org/software/libc/manual/html_node/Resource-Usage.html
+	uint32_t maxMemory = r_usage.ru_maxrss;//KB
+	
+	return(maxMemory);
+}
+
 Simulator::Simulator(void) {
 
 }
 
-Simulator::Simulator(const json &_fsettings,const json &_finitial_zones,const json &_freference_zones,const json &_freference_point,const json &_fmap_zone,const std::string &_map_osrm) {
+Simulator::Simulator(const json &_fsettings,const json &_finitial_zones,const json &_freference_zones, const json &_fmap_zone,const std::string &_map_osrm) {
 	static thread_local std::random_device device;
 	static thread_local std::mt19937 rng(device());
 
@@ -24,10 +33,10 @@ Simulator::Simulator(const json &_fsettings,const json &_finitial_zones,const js
 	_interval        = this->_fsettings["output"]["interval"].get<uint32_t>();
 	_filesimPrefix   = this->_fsettings["output"]["filesim-prefix"].get<std::string>();
 	_filesimSufix    = this->_fsettings["output"]["filesim-sufix"].get<std::string>();
-	_filesimPath     = this->_fsettings["output"]["filesim-path"].get<std::string>();
+	_filesimPath     = g_baseDir + this->_fsettings["output"]["filesim-path"].get<std::string>();
 	_statsOut        = this->_fsettings["output"]["stats-out"].get<bool>();
 	_statsInterval   = this->_fsettings["output"]["stats-interval"].get<uint32_t>();
-	_statsPath       = this->_fsettings["output"]["stats-path"].get<std::string>();
+	_statsPath       = g_baseDir + this->_fsettings["output"]["stats-path"].get<std::string>();
 	
 
 	// Asignación de variables globales del proyecto
@@ -43,7 +52,7 @@ Simulator::Simulator(const json &_fsettings,const json &_finitial_zones,const js
 	//Se crea el ambiente vacío. 
 	_env = std::make_shared<Environment>();
 
-	_env->setReferencePoint(_freference_point);
+	_env->setReferencePoint(_fmap_zone);
 	_env->setRouter(_map_osrm);
 	_env->setProjector();
 	_env->setReferenceZones(_freference_zones);
@@ -56,9 +65,11 @@ Simulator::Simulator(const json &_fsettings,const json &_finitial_zones,const js
 	// de la clase Agent
 	Agent::_myEnv = _env;
 
-	std::uniform_int_distribution<uint32_t> zone(0, _env->getInitialZones().size()-1);
+	std::uniform_int_distribution<uint32_t> zone(0, _env->getInitialZones().size() - 1);
 
 	std::cout << "Creando agentes..." << std::endl;	
+	g_AgentsMem = getMaxMemory();
+	
 	auto start = std::chrono::system_clock::now(); //Measure Time
 	
 	uint32_t id = 0;
@@ -67,7 +78,7 @@ Simulator::Simulator(const json &_fsettings,const json &_finitial_zones,const js
 		uint32_t totalAgents = uint32_t(fagent["number"]);
 		pg.start(totalAgents);
 		 
-		for(uint32_t i = 0; i < totalAgents; i++, id++) {
+		for(uint32_t i = 0; i < totalAgents; i++) {
 			if(g_showProgressBar){
 				pg.update(i);
 			}
@@ -80,7 +91,7 @@ Simulator::Simulator(const json &_fsettings,const json &_finitial_zones,const js
 			model_t modelID       = model_map[modelName];
 			
 			_env->addAgent(\
-				Agent(id,\
+				new Agent(id++,\
 					position,\
 					fagent["speed"]["min"],\
 					fagent["speed"]["max"],\
@@ -92,13 +103,11 @@ Simulator::Simulator(const json &_fsettings,const json &_finitial_zones,const js
 		}
 	}
 	
-	//Se agregan al ambiente con los agentes recien creados. 
-	//_env->addAgents(_agents);
-	
 	auto end = std::chrono::system_clock::now(); //Measure Time
 	auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
 	g_timeExecMakeAgents += elapsed.count();
-	
+		
+	g_AgentsMem = getMaxMemory() - g_AgentsMem;
 	
 	if(g_showProgressBar){
 		std::cout << std::flush;
@@ -116,7 +125,8 @@ void Simulator::calibrate(void) {
 	
 	auto start = std::chrono::system_clock::now(); //Measure Time
 	_env->adjustAgentsInitialPosition(_calibrationTime);
-
+	_env->updateQuads();
+	
 	if(g_showProgressBar){
 		std::cout << std::endl;
 	}
@@ -161,6 +171,7 @@ void Simulator::run() {
 		auto start = std::chrono::high_resolution_clock::now(); //Measure Time
 
 		_env->updateAgents();
+		_env->updateQuads();
 		
 		auto end = std::chrono::high_resolution_clock::now(); //Measure Time
 		auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
@@ -188,8 +199,8 @@ void Simulator::save() {
 		
 	for( auto& agent : _env->getAgents() ) {
 		double latitude,longitude,h;
-		_env->getProjector().Reverse(agent.position()[0],agent.position()[1],0,latitude,longitude,h); 
-		ofs << agent.id() << " " << latitude << " " << longitude << " " << agent.model() <<std::endl;
+		_env->getProjector().Reverse(agent->position()[0],agent->position()[1],0,latitude,longitude,h); 
+		ofs << agent->id() << " " << latitude << " " << longitude << " " << agent->model() <<std::endl;
 	}	
 }
 
@@ -206,6 +217,8 @@ void Simulator::stats(){
 
 void Simulator::showTimeExec(void){
 	
+	uint32_t maxMemory = getMaxMemory();
+	
 	std::cout << _duration << ":"
 		<< _calibrationTime << ":"
 		<< _fsettings["agents"][0]["number"] << ":"
@@ -214,7 +227,9 @@ void Simulator::showTimeExec(void){
 		<< g_timeExecMakeAgents  << ":"
 		<< g_timeExecCal << ":"
 		<< g_timeExecSim << ":"
-		<< g_timeExecSimQuad
+		<< g_timeExecSimQuad << ":"
+		<< maxMemory << ":"
+		<< g_AgentsMem 
 		<< std::endl;
 	
 	if(_statsOut) {

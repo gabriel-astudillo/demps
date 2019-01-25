@@ -7,25 +7,6 @@ Agent::Agent(void) {
 	this->_quad = 0;
 }
 
-Agent::Agent(const Agent &_agent) {
-	this->_id        = _agent._id;
-	this->_min_speed = _agent._min_speed;
-	this->_max_speed = _agent._max_speed;
-	this->_model     = _agent._model;
-	this->_targetPos = _agent._targetPos;
-	this->_closeNeighbors = _agent._closeNeighbors;
-	this->_position  = _agent._position;
-	this->_direction = _agent._direction;
-	this->_quad      = _agent._quad;
-	this->_disiredSpeed = _agent._disiredSpeed;
-	this->_maxDisiredSpeed = _agent._maxDisiredSpeed;
-	this->_currVelocity    = _agent._currVelocity; 
-	this->_timeRelax       = _agent._timeRelax; 
-	this->_sigma           = _agent._sigma;
-	this->_strengthSocialRepulsiveForceAgents = _agent._strengthSocialRepulsiveForceAgents;
-	this->_cosPhi                             = _agent._cosPhi;
-}
-
 Agent::Agent(const uint32_t &_id, const Point2D &_position, const double &_min_speed, const double &_max_speed, const json& SocialForceModel, const model_t &_model) {
 	this->_id        = _id;
 	this->_min_speed = _min_speed;

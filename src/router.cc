@@ -58,6 +58,8 @@ Router::Response Router::route(const Point2D &_src,const Point2D &_dst) {
             for(auto &intersection : intersections.values) {
                 auto &location=intersection.get<osrm::json::Object>().values["location"].get<osrm::json::Array>();
                 double x,y,z,h;
+				
+				h = 0.0;
                 this->_projector.Forward(location.values.at(1).get<osrm::json::Number>().value,location.values.at(0).get<osrm::json::Number>().value,h,x,y,z);
                 path.push_back(Point2D(x,y));
             }

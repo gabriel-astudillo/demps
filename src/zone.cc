@@ -15,6 +15,8 @@ Zone::Zone(const json &_freference_point,const json &_fpolygon) {
 	
 	for(auto& fpoint : _fpolygon["geometry"]["coordinates"][0]) {
 		double x,y,z,h;
+		
+		h = 0.0;
 		this->_projector.Forward(fpoint[1],fpoint[0],h,x,y,z);
 		this->_polygon.push_back(Point2D(x,y));
 	}
