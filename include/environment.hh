@@ -20,7 +20,8 @@ private:
 	std::vector<Zone> _initial_zones;
 	std::vector<Zone> _reference_zones;
 
-	std::vector<Agent> _vAgents;
+	//std::vector<Agent> _vAgents;
+	std::vector<Agent*> _vAgents;
 	
 	Agent::Neighbors   _neighbors;
 	
@@ -44,7 +45,7 @@ public:
 	
 	Environment(void);
 	Environment(const Environment&);
-	Environment(const std::vector<Agent>&);
+	Environment(std::vector<Agent*>);
 	~Environment(void);
 	
 	void setRouter(const std::string &_map_osrm);
@@ -64,18 +65,20 @@ public:
 	std::vector<Zone>& getReferenceZones();
 	LocalCartesian getProjector();
 
-	void addAgents(const std::vector<Agent> &_vAgents);
-	void addAgent(const Agent& newAgent);
+	//void addAgents(std::vector<Agent*> _vAgents);
+	//void addAgent(const Agent& newAgent);
+	void addAgent(Agent* newAgent);
 	
 	uint32_t getTotalAgents();
 	Agent* getAgent(uint32_t id);
-	std::vector<Agent> getAgents();
+	std::vector<Agent*>& getAgents();
 
 	void setNeighborsOf(const uint32_t& idAgent,const double& distance); 
 
 	void adjustAgentsInitialPosition(const uint32_t& calibrationTime); 
 	void adjustAgentsRules(); 
 	void updateAgents();
+	void updateQuads();
 	
 	double distance(Agent* a, Agent* b);
 

@@ -45,8 +45,7 @@ private:
 
 public:
 	Agent(void);
-	Agent(const Agent&);
-	Agent(const uint32_t&,const Point2D&,const double&,const double&, const json& SocialForceModel, const model_t&);
+	Agent(const uint32_t&, const Point2D&, const double&, const double&, const json& SocialForceModel, const model_t&);
  	Agent& operator=(const Agent&);
 	
 	~Agent(void);

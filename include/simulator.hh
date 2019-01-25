@@ -32,7 +32,7 @@ private:
 
 public:
 	Simulator(void);
-	Simulator(const json&,const json&,const json&,const json&,const json&, const std::string&);
+	Simulator(const json&,const json&,const json&,const json&, const std::string&);
 
 	void calibrate(void);
 	void run(void);

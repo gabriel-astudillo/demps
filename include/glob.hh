@@ -1,6 +1,7 @@
 #ifndef _GLOB_H_
 #define _GLOB_H_
 
+#include <sys/resource.h>
 
 #include <exception>
 #include <iostream>
@@ -21,6 +22,9 @@
 
 #include <json.hpp>
 #include <progressBar.hpp>
+
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
 
 
 #include <CGAL/Line_2.h>
@@ -100,6 +104,8 @@ extern float g_closeEnough;
 extern float g_randomWalkwayRadius;
 extern float g_attractionRadius;
 extern uint32_t g_currTimeSim;
+extern std::string g_baseDir;
+extern uint32_t g_AgentsMem;
 
 //Variables globales para medir tiempo
 extern uint32_t g_timeExecMakeAgents;
