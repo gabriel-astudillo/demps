@@ -62,7 +62,7 @@ int main(int argc,char** argv) {
 	uint32_t duration = 0;
 	uint32_t agentsNumber = 0;
 	uint32_t numThreads = 0;
-	while((c=getopt(argc,argv,"s:d:n:t:"))!=-1) {
+	while((c=getopt(argc,argv,"s:d:n:t:h"))!=-1) {
 	        switch(c) {
 		        case 's': {
 		            std::ifstream ifs;
@@ -84,6 +84,19 @@ int main(int argc,char** argv) {
 		        case 't': 
 					numThreads = atoi(optarg);
 		            break;
+				case 'h':
+				default:
+				std::cout << "Uso:\n\t" << argv[0] << "-s <config.json> " << std::endl;
+				
+				std::cout << "\nParámetros opcionales. Sobreescriben la configuración JSON.\n" 
+					"\t[-d] <tiempo simulación>\n"
+					"\t[-n] <agentes shortest path>\n"
+					"\t[-t] <nro threads>" << 
+					std::endl;
+
+				
+				exit(EXIT_SUCCESS);
+				break;
 		}
 	}
 
