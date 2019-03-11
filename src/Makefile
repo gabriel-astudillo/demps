@@ -10,6 +10,7 @@ CXXFLAGS_CLUST=
 
 INCLUDES=-I/usr/local/include -I/usr/local/include/osrm -I../include $(INCLUDES_CLUST)
 LDFLAGS=-L/usr/local/lib $(LDFLAGS_CLUST)
+#-L/home/gabriel/demps/dependencias/tbb/build/linux_intel64_gcc_cc7_libc2.27_kernel4.15.0_release
 LDLIBS=-lGeographic -lCGAL -losrm -lboost_system -lboost_filesystem -lboost_iostreams -lboost_thread -lrt -lpthread -fopenmp -lgmp
 
 CXXFLAGS=-std=c++14 -Wall -O2 -fopenmp $(CXXFLAGS_CLUST)
