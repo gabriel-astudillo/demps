@@ -1,9 +1,7 @@
-#include <iostream>
-#include <fstream>
-#include <unistd.h>
 #include <json.hpp>
 #include <glob.hh>
 #include <simulator.hh>
+#include <checkArgs.hpp>
 
 bool  g_showProgressBar;
 float g_closeEnough;
@@ -50,63 +48,32 @@ void loadDataFrom(std::string fileIn, json& dataOut){
 
 
 int main(int argc,char** argv) {
-	char c;
 	
 	json settings;
 	json area_zone;
 	json initial_zones;
 	json reference_zones;
-	json reference_point;
-
-
-	uint32_t duration = 0;
-	uint32_t agentsNumber = 0;
-	uint32_t numThreads = 0;
-	while((c=getopt(argc,argv,"s:d:n:t:h"))!=-1) {
-	        switch(c) {
-		        case 's': {
-		            std::ifstream ifs;
-		            ifs.open(optarg,std::ifstream::in);
-		            ifs >> settings;
-		            ifs.close();
-		            break;
-		        }
-				//Opcionalmente, carga parámetros desde la linea de comandos. 
-				//  -d : duracion de la simulación
-				//  -n : nro de agentes shortest path
-				//  -t : nro de threads
-		        case 'd': 
-					duration = atoi(optarg);
-		            break;
-		        case 'n': 
-					agentsNumber = atoi(optarg);
-		            break;
-		        case 't': 
-					numThreads = atoi(optarg);
-		            break;
-				case 'h':
-				default:
-				std::cout << "Uso:\n\t" << argv[0] << "-s <config.json> " << std::endl;
-				
-				std::cout << "\nParámetros opcionales. Sobreescriben la configuración JSON.\n" 
-					"\t[-d] <tiempo simulación>\n"
-					"\t[-n] <agentes shortest path>\n"
-					"\t[-t] <nro threads>" << 
-					std::endl;
-
-				
-				exit(EXIT_SUCCESS);
-				break;
-		}
+	
+	// Adquirir parámetros de entrada
+	std::shared_ptr<checkArgs> argumentos = (std::shared_ptr<checkArgs>) new checkArgs(argc, argv);
+	
+	// Carga el archivo de configuración JSON en settings.
+    std::ifstream ifs;
+    ifs.open(argumentos->getArgs().fileConfig, std::ifstream::in);
+	if( ifs.fail() ){
+		std::cerr << "Error in open file: "<< argumentos->getArgs().fileConfig << std::endl;
+		ifs.close();
+		exit(EXIT_FAILURE);
 	}
-
-	if(settings.empty()) {
-	    std::cerr << "Mandatory parameter -s <config.json> needed" << std::endl;
-	    exit(EXIT_FAILURE);
-	}
+    ifs >> settings;
+    ifs.close();
 	
 	//En el caso que existan paramentros de entrada,
 	//sobreescribe los valores del json settings
+	uint32_t duration     = argumentos->getArgs().duration;
+	uint32_t agentsNumber = argumentos->getArgs().agentsNumber;
+	uint32_t numThreads   = argumentos->getArgs().numThreads ;
+	
 	if(duration > 0){
 		settings["duration"] = duration;
 	}
@@ -117,12 +84,18 @@ int main(int argc,char** argv) {
 		settings["threads"] = numThreads;
 	}
 
+
+	// En base a los datos de la sección "input" del archivo
+	// de configuración, carga las rutas de los archivos 
+	// que utiliza el simulador.
+	// Debido a que están declarados con rutas relativas al ejecutable,
+	// se le agrega la ruta completa.
+	
 	std::string map_osrm;
 	std::string area_zone_file;
 	std::string initial_zones_file;
 	std::string reference_zones_file;
-	
-	
+
 	boost::filesystem::path full_path( boost::filesystem::initial_path<boost::filesystem::path>() );
 	full_path = boost::filesystem::system_complete( boost::filesystem::path( argv[0] ) );
 	
@@ -140,14 +113,18 @@ int main(int argc,char** argv) {
 		exit(EXIT_FAILURE);
 	}
 		
-	std::ifstream ifs;
+	// El nombre archivo osrm es utilizado por la
+	// clase Router. Se revisa que efectivamente exista y
+	// se pueda leer.
 	ifs.open(map_osrm,std::ifstream::in);
 	if(ifs.fail()) {
-	    std::cerr << "Error in file:"<<  map_osrm << std::endl;
+	    std::cerr << "Error in open file: "<<  map_osrm << std::endl;
+		ifs.close();
 	    exit(EXIT_FAILURE);
 	}
 	ifs.close();
 	
+	// Carga los datos geográficos de los archivos respectivos
 	loadDataFrom(area_zone_file      , area_zone);
 	loadDataFrom(initial_zones_file  , initial_zones);
 	loadDataFrom(reference_zones_file, reference_zones);	
