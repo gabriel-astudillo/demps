@@ -66,11 +66,18 @@ if (! -e $img_results_directory) {
 
 my @files;
 opendir(DIR, $sim_data_results_directory);
-@files = grep { $_ ne '.' && $_ ne '..' } readdir(DIR);
+@files = grep { $_ ne '.' && $_ ne '..' && $_ eq '*.txt'} readdir(DIR);
 closedir(DIR);
 @files = sort {$a <=> $b}  @files;
 
 my $totalFiles = $#files;
+
+if ($totalFiles <= 0) {
+	print "No hay archivos validos para convertir\n";
+	exit 1;
+}
+
+
 my $delta      = int($totalFiles/$numProc);
 
 my $pm = Parallel::ForkManager->new($numProc);
