@@ -31,7 +31,7 @@ Simulator::Simulator(const json &_fsettings,const json &_finitial_zones,const js
 	_calibrationTime = this->_fsettings["calibration"].get<uint32_t>();
 	_saveToDisk      = this->_fsettings["output"]["filesim-out"].get<bool>();
 	_interval        = this->_fsettings["output"]["interval"].get<uint32_t>();
-	_filesimPrefix   = this->_fsettings["output"]["filesim-prefix"].get<std::string>();
+	_filesimPrecision = this->_fsettings["output"]["filesim-precision"].get<uint32_t>();
 	_filesimSufix    = this->_fsettings["output"]["filesim-sufix"].get<std::string>();
 	_filesimPath     = g_baseDir + this->_fsettings["output"]["filesim-path"].get<std::string>();
 	_statsOut        = this->_fsettings["output"]["stats-out"].get<bool>();
@@ -150,6 +150,9 @@ void Simulator::calibrate(void) {
 void Simulator::run() {
 	std::cout << "Simulando..." << std::endl;
 	
+	g_epochInitSim = std::chrono::duration_cast<std::chrono::seconds> 
+		(std::chrono::system_clock::now().time_since_epoch()).count();
+	
 	ProgressBar pg;
 	pg.start(_duration-1);
 	
@@ -192,16 +195,52 @@ void Simulator::save() {
 	std::ostringstream ss;
 	ss << std::setw( 10 ) << std::setfill( '0' ) << g_currTimeSim;
 		
-	std::string nameFile = _filesimPrefix + ss.str() + _filesimSufix ;
+	std::string nameFile = ss.str() + "." + _filesimSufix ;
 	std::string pathFile = _filesimPath + "/" + nameFile ;
 	
 	std::ofstream ofs(pathFile);
 		
+	/*
 	for( auto& agent : _env->getAgents() ) {
 		double latitude,longitude,h;
 		_env->getProjector().Reverse(agent->position()[0],agent->position()[1],0,latitude,longitude,h); 
 		ofs << agent->id() << " " << latitude << " " << longitude << " " << agent->model() <<std::endl;
-	}	
+	}	*/
+		
+	
+
+		
+	if(_filesimSufix == "txt"){
+		for( auto& agent : _env->getAgents() ) {
+			double latitude,longitude,h;
+			_env->getProjector().Reverse(agent->position()[0],agent->position()[1],0,latitude,longitude,h); 
+			ofs << agent->id() << " " 
+				<< std::fixed << std::setprecision(_filesimPrecision) << latitude << " " << longitude 
+				<< " " << agent->model()
+				<< std::endl;
+		}
+	}
+	else if(_filesimSufix == "geojson"){
+		uint32_t currEpoch = g_epochInitSim + g_currTimeSim * 1000;
+		ofs << "[";
+		for( auto& agent : _env->getAgents() ) {
+			double latitude,longitude,h;
+			_env->getProjector().Reverse(agent->position()[0],agent->position()[1],0,latitude,longitude,h); 
+			ofs << "{"
+				<< "\"time\": " <<  currEpoch << ", "
+				<< "\"id\": "   << agent->id() << ", "
+				<< "\"coordinates\": [" << std::fixed << std::setprecision(_filesimPrecision) << longitude << ", " << latitude << "]"
+				<< "},";
+		}
+
+		ofs << "{ \"time\": " << currEpoch << ", " 
+			<< "\"id\": "   << -1 << ", "
+			<< "\"coordinates\": [0, 0]}]"
+			<< std::endl;
+	}
+		
+		
+	
 }
 
 void Simulator::stats(){
