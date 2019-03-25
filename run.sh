@@ -7,6 +7,7 @@ ulimit -c unlimited
 rm -f core
 
 DEMPS_BIN="./demps"
+DEMPS_CONFIG="./iquique.config"
 MAKE_MAPS_SCRIPT="./scripts/visualizador-offline/run-make_maps.sh"
 
 #### CONFIGURACION ####
@@ -26,12 +27,10 @@ else
 	MAKE_MAPS_DISABLE=0
 fi
 
-DEMPS_CONFIG_FILE="$BASEDIR/demps-iquique.config"
-#DEMPS_CONFIG_FILE="$BASEDIR/demps-curaumaPUCV.config"
-#DEMPS_CONFIG_FILE="$BASEDIR/demps-vdm.config"
+DEMPS_CONFIG_PATH="$BASEDIR/$DEMPS_CONFIG"
 
-if [[ ! -e $DEMPS_CONFIG_FILE ]]; then
-	echo "El archivo de configuración $DEMPS_CONFIG_FILE no exite."
+if [[ ! -e $DEMPS_CONFIG_PATH ]]; then
+	echo "El archivo de configuración $DEMPS_CONFIG_PATH no exite."
 	exit
 fi
 
@@ -45,18 +44,18 @@ if [[ ! -e $JQ_PATH ]]; then
 	exit
 fi
 
-TEST_CONFIG_OK=$(cat $DEMPS_CONFIG_FILE | $JQ_PATH -r '.output."filesim-path"' )
+TEST_CONFIG_OK=$(cat $DEMPS_CONFIG_PATH | $JQ_PATH -r '.output."filesim-path"' )
 if [[  $? -ne 0  ]]; then
-	echo "El archivo $DEMPS_CONFIG_FILE tiene errores."
+	echo "El archivo $DEMPS_CONFIG_PATH tiene errores."
 	exit
 fi
 
 
-DEMPS_OPTS="-s $DEMPS_CONFIG_FILE $*"
-RESULTS_DIR=$(cat $DEMPS_CONFIG_FILE | $JQ_PATH -r '.output."filesim-path"')
+DEMPS_OPTS="-s $DEMPS_CONFIG_PATH $*"
+RESULTS_DIR=$(cat $DEMPS_CONFIG_PATH | $JQ_PATH -r '.output."filesim-path"')
 RESULTS_DIR_PATH=$BASEDIR/$RESULTS_DIR
 
-STATS_DIR=$(cat $DEMPS_CONFIG_FILE | $JQ_PATH -r '.output."stats-path"')
+STATS_DIR=$(cat $DEMPS_CONFIG_PATH | $JQ_PATH -r '.output."stats-path"')
 STATS_DIR_PATH=$BASEDIR/$STATS_DIR
 
 if [[ ! -e $RESULTS_DIR_PATH ]]; then
@@ -69,15 +68,15 @@ fi
 
 RESULTS_FILES="$RESULTS_DIR_PATH/* $STATS_DIR_PATH/*"
 
-FILESIM_OUT=$(cat $DEMPS_CONFIG_FILE | $JQ_PATH -r '.output."filesim-out"')
-CREATE_GIF=$(cat $DEMPS_CONFIG_FILE | $JQ_PATH -r '.output."create-gif"')
-THREADS=$(cat $DEMPS_CONFIG_FILE | $JQ_PATH -r '.threads')
+FILESIM_OUT=$(cat $DEMPS_CONFIG_PATH | $JQ_PATH -r '.output."filesim-out"')
+CREATE_GIF=$(cat $DEMPS_CONFIG_PATH | $JQ_PATH -r '.output."create-gif"')
+THREADS=$(cat $DEMPS_CONFIG_PATH | $JQ_PATH -r '.threads')
 
 
 RM_CMD="$(which rm) -f"
 
 #### MAIN ####
-printf "DEMPS_CONFIG_FILE=%s\n" "$DEMPS_CONFIG_FILE"
+printf "DEMPS_CONFIG_PATH=%s\n" "$DEMPS_CONFIG_PATH"
 
 echo "Eliminando resultados anteriores..."
 $RM_CMD $RESULTS_FILES
