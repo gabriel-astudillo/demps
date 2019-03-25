@@ -66,7 +66,8 @@ if (! -e $img_results_directory) {
 
 my @files;
 opendir(DIR, $sim_data_results_directory);
-@files = grep { $_ ne '.' && $_ ne '..' && $_ eq '*.txt'} readdir(DIR);
+#@files = grep { $_ ne '.' && $_ ne '..' } readdir(DIR);
+@files = grep { /^\d+\.txt$/ }  readdir(DIR);
 closedir(DIR);
 @files = sort {$a <=> $b}  @files;
 
