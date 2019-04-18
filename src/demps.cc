@@ -59,8 +59,8 @@ int main(int argc,char** argv)
 	json initial_zones;
 	json reference_zones;
 
-	// Adquirir parámetros de entrada
-	std::shared_ptr<checkArgs> argumentos = (std::shared_ptr<checkArgs>) new checkArgs(argc, argv);
+	// Adquirir parámetros de entrada	
+	std::shared_ptr<checkArgs> argumentos = std::make_shared<checkArgs>(argc, argv);
 
 	// Carga el archivo de configuración JSON en settings.
 	std::ifstream ifs;
