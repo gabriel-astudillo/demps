@@ -1,9 +1,6 @@
 #include <simulator.hh>
 #include <environment.hh>
 
-//bool        Simulator::_statsOut;
-//uint32_t    Simulator::_statsInterval;
-
 uint32_t getMaxMemory()
 {
 	struct rusage r_usage;
