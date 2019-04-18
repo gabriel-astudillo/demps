@@ -8,27 +8,29 @@
 
 class Simulator{
 public:
-	static bool        _statsOut;
-	static uint32_t    _statsInterval;
+	//static bool        _statsOut;
+	//static uint32_t    _statsInterval;
 
 
 private:
-	//static const std::hash<std::string> _hash;
-	json                                _fsettings;
-
-	static std::shared_ptr<Environment> _env;
+	json _fsettings;
+	std::shared_ptr<Environment> _env;
+	
+	bool        _statsOut;
+	uint32_t    _statsInterval;
 	
 	uint32_t    _duration;
 	uint32_t    _calibrationTime;
 	bool        _saveToDisk;
 	uint32_t    _interval;
-	std::string _filesimPrefix;
+	uint32_t    _filesimPrecision; //Precision ENU->WSG84
 	std::string _filesimSufix;
 	std::string _filesimPath;
 	std::string _statsPath;
 
-	void save();
-	void stats();
+	void savePositionAgents();
+	void saveStats();
+	void showTimeExec(void);
 
 public:
 	Simulator(void);
@@ -38,6 +40,6 @@ public:
 	void run(void);
 
 	~Simulator(void);
-	void showTimeExec(void);
+	
 };
 #endif

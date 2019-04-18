@@ -77,10 +77,13 @@ public:
 
 	void adjustAgentsInitialPosition(const uint32_t& calibrationTime); 
 	void adjustAgentsRules(); 
+	
 	void updateAgents();
 	void updateQuads();
+	void updateStats();
 	
 	double distance(Agent* a, Agent* b);
+	bool isClose(Agent* a, Agent* b, const double& distanceMax);
 
 };
 #endif

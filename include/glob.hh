@@ -100,9 +100,11 @@ using json=nlohmann::json;
 using namespace GeographicLib;
 
 extern bool  g_showProgressBar;
+extern bool  g_showTimeExec;
 extern float g_closeEnough;
 extern float g_randomWalkwayRadius;
 extern float g_attractionRadius;
+extern uint32_t g_epochInitSim;
 extern uint32_t g_currTimeSim;
 extern std::string g_baseDir;
 extern uint32_t g_AgentsMem;
