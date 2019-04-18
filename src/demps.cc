@@ -4,6 +4,7 @@
 #include <checkArgs.hpp>
 
 bool  g_showProgressBar;
+bool  g_showTimeExec;
 float g_closeEnough;
 float g_randomWalkwayRadius;
 float g_attractionRadius;
@@ -29,70 +30,72 @@ std::map<std::string, model_t> model_map = {
 	{"RandomWalkway",  RandomWalkway}
 };
 
-void loadDataFrom(std::string fileIn, json& dataOut){
-	
+void loadDataFrom(std::string fileIn, json& dataOut)
+{
+
 	std::ifstream ifs;
-	
+
 	ifs.open(fileIn,std::ifstream::in);
 	if(ifs.fail()) {
-	    std::cerr << "Open error in file:"<<  fileIn << std::endl;
-	    exit(EXIT_FAILURE);
+		std::cerr << "Open error in file:"<<  fileIn << std::endl;
+		exit(EXIT_FAILURE);
 	}
 
 	ifs >> dataOut;
 	ifs.close();
-	
-	if(dataOut.empty()){
-	    std::cerr << "Can't load data from:"<<  fileIn << std::endl;
-	    exit(EXIT_FAILURE);
+
+	if(dataOut.empty()) {
+		std::cerr << "Can't load data from:"<<  fileIn << std::endl;
+		exit(EXIT_FAILURE);
 	}
 }
 
 
-int main(int argc,char** argv) {
-	
+int main(int argc,char** argv)
+{
+
 	json settings;
 	json area_zone;
 	json initial_zones;
 	json reference_zones;
-	
+
 	// Adquirir parámetros de entrada
 	std::shared_ptr<checkArgs> argumentos = (std::shared_ptr<checkArgs>) new checkArgs(argc, argv);
-	
+
 	// Carga el archivo de configuración JSON en settings.
-    std::ifstream ifs;
-    ifs.open(argumentos->getArgs().fileConfig, std::ifstream::in);
-	if( ifs.fail() ){
+	std::ifstream ifs;
+	ifs.open(argumentos->getArgs().fileConfig, std::ifstream::in);
+	if( ifs.fail() ) {
 		std::cerr << "Error in open file: "<< argumentos->getArgs().fileConfig << std::endl;
 		ifs.close();
 		exit(EXIT_FAILURE);
 	}
-    ifs >> settings;
-    ifs.close();
-	
+	ifs >> settings;
+	ifs.close();
+
 	//En el caso que existan paramentros de entrada,
 	//sobreescribe los valores del json settings
 	uint32_t duration     = argumentos->getArgs().duration;
 	uint32_t agentsNumber = argumentos->getArgs().agentsNumber;
 	uint32_t numThreads   = argumentos->getArgs().numThreads ;
-	
-	if(duration > 0){
+
+	if(duration > 0) {
 		settings["duration"] = duration;
 	}
-	if(agentsNumber > 0){
+	if(agentsNumber > 0) {
 		settings["agents"][0]["number"] = agentsNumber;
 	}
-	if(numThreads > 0){
+	if(numThreads > 0) {
 		settings["threads"] = numThreads;
 	}
 
 
 	// En base a los datos de la sección "input" del archivo
-	// de configuración, carga las rutas de los archivos 
+	// de configuración, carga las rutas de los archivos
 	// que utiliza el simulador.
 	// Debido a que están declarados con rutas relativas al ejecutable,
 	// se le agrega la ruta completa.
-	
+
 	std::string map_osrm;
 	std::string area_zone_file;
 	std::string initial_zones_file;
@@ -100,37 +103,37 @@ int main(int argc,char** argv) {
 
 	boost::filesystem::path full_path( boost::filesystem::initial_path<boost::filesystem::path>() );
 	full_path = boost::filesystem::system_complete( boost::filesystem::path( argv[0] ) );
-	
+
 	g_baseDir = full_path.parent_path().string() + "/" ;
 
-	
+
 	try {
 		map_osrm             = g_baseDir + settings["input"]["map"].get<std::string>();
 		area_zone_file       = g_baseDir + settings["input"]["area"].get<std::string>();
 		initial_zones_file   = g_baseDir + settings["input"]["initial_zones"].get<std::string>();
 		reference_zones_file = g_baseDir + settings["input"]["reference_zones"].get<std::string>();
-	}catch (json::exception &e){
+	} catch (json::exception &e) {
 		std::cerr << "Error in get action from 'input' section in <config.json>:" << std::endl;
 		std::cerr << e.what() << std::endl;
 		exit(EXIT_FAILURE);
 	}
-		
+
 	// El nombre archivo osrm es utilizado por la
 	// clase Router. Se revisa que efectivamente exista y
 	// se pueda leer.
 	ifs.open(map_osrm,std::ifstream::in);
 	if(ifs.fail()) {
-	    std::cerr << "Error in open file: "<<  map_osrm << std::endl;
+		std::cerr << "Error in open file: "<<  map_osrm << std::endl;
 		ifs.close();
-	    exit(EXIT_FAILURE);
+		exit(EXIT_FAILURE);
 	}
 	ifs.close();
-	
+
 	// Carga los datos geográficos de los archivos respectivos
-	loadDataFrom(area_zone_file      , area_zone);
-	loadDataFrom(initial_zones_file  , initial_zones);
-	loadDataFrom(reference_zones_file, reference_zones);	
-	
+	loadDataFrom(area_zone_file, area_zone);
+	loadDataFrom(initial_zones_file, initial_zones);
+	loadDataFrom(reference_zones_file, reference_zones);
+
 	//Reset counters
 	g_timeExecMakeAgents = 0;
 	g_timeExecCal        = 0;
@@ -138,16 +141,15 @@ int main(int argc,char** argv) {
 	g_timeExecSimQuad    = 0;
 
 	omp_init_lock(&lock_agentsInQuad);
-	
+
 	Simulator sim(settings, initial_zones, reference_zones, area_zone, map_osrm);
-	
+
 	omp_set_num_threads( settings["threads"].get<uint32_t>() );
 
 	sim.calibrate();
-	sim.run();	
-	sim.showTimeExec();
-	
-	omp_destroy_lock(&lock_agentsInQuad);  
+	sim.run();
+
+	omp_destroy_lock(&lock_agentsInQuad);
 
 	return(EXIT_SUCCESS);
 }
