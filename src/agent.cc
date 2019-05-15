@@ -89,7 +89,7 @@ void Agent::showPosition()
 	          ", x:" << this->_position[0] <<
 	          ", y:" << this->_position[1] <<
 	          ", Quad:" << this->getQuad() <<
-	          ", AgentsInQuad:" <<  _myEnv->_agentsInQuad[this->getQuad()].size() << std::endl;
+	          ", AgentsInQuad:" <<  _myEnv->getPatchAgent(this->getQuad())->getAgents().size() << std::endl;
 }
 
 uint32_t Agent::determineQuad()
@@ -126,28 +126,11 @@ void Agent::updateQuad()
 	newQuad = this->determineQuad();
 
 	if(currQuad != newQuad) { //Cambio de cuadrante
-		omp_set_lock(&lock_agentsInQuad);
+		_myEnv->getPatchAgent(currQuad)->delAgent( this->id() );
 
-		//
-		// Buscar identificador del agente en el cuadrante actual y eliminarlo
-		//
-
-		for (auto it = _myEnv->_agentsInQuad[currQuad].begin(); it != _myEnv->_agentsInQuad[currQuad].end();) {
-			if (*it == _id) {
-				it = _myEnv->_agentsInQuad[currQuad].erase(it);
-				break;
-			} else {
-				++it;
-			}
-		}
-		//Actualizar ID del cuadrante del agente actual
 		this->setQuad(newQuad);
 
-
-		//Agregar Id del agente al vector del cuadrante actual
-		_myEnv->_agentsInQuad[newQuad].push_back(this->id());
-
-		omp_unset_lock(&lock_agentsInQuad);
+		_myEnv->getPatchAgent(newQuad)->addAgent( this->id() );
 	}
 }
 

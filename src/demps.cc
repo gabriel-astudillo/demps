@@ -17,12 +17,10 @@ uint32_t g_AgentsMem;
 uint32_t g_timeExecMakeAgents;
 uint32_t g_timeExecCal;
 uint32_t g_timeExecSim;
-uint32_t g_timeExecSimQuad;
+
 std::string g_baseDir;
 
 std::vector<std::string> g_logZonesDensity;
-
-omp_lock_t lock_agentsInQuad;
 
 std::map<std::string, model_t> model_map = {
 	{"ShortestPath",   ShortestPath},
@@ -59,7 +57,7 @@ int main(int argc,char** argv)
 	json initial_zones;
 	json reference_zones;
 
-	// Adquirir parámetros de entrada	
+	// Adquirir parámetros de entrada
 	std::shared_ptr<checkArgs> argumentos = std::make_shared<checkArgs>(argc, argv);
 
 	// Carga el archivo de configuración JSON en settings.
@@ -138,9 +136,7 @@ int main(int argc,char** argv)
 	g_timeExecMakeAgents = 0;
 	g_timeExecCal        = 0;
 	g_timeExecSim        = 0;
-	g_timeExecSimQuad    = 0;
 
-	omp_init_lock(&lock_agentsInQuad);
 
 	Simulator sim(settings, initial_zones, reference_zones, area_zone, map_osrm);
 
@@ -149,7 +145,6 @@ int main(int argc,char** argv)
 	sim.calibrate();
 	sim.run();
 
-	omp_destroy_lock(&lock_agentsInQuad);
 
 	return(EXIT_SUCCESS);
 }

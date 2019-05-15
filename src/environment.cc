@@ -1,26 +1,6 @@
 #include <environment.hh>
 #include <simulator.hh>
 
-//std::map<uint32_t,std::vector<uint32_t>> Environment::_agentsInQuad;
-
-/*
-omp_lock_t *new_locks(uint32_t totalLocks) {
-   uint32_t i;
-   omp_lock_t *lock = new omp_lock_t[totalLocks];
-   #pragma omp parallel for private(i)
-   for (i = 0 ; i < totalLocks ; i++)
-      omp_init_lock(&lock[i]);
-
-   return lock;
-}
-
-void remove_locks(omp_lock_t *locks, uint32_t totalLocks) {
-   uint32_t i;
-   #pragma omp parallel for private(i)
-   for (i = 0 ; i < totalLocks ; i++)
-      omp_destroy_lock(&locks[i]);
-
-}*/
 
 Environment::Environment(void)
 {
@@ -42,7 +22,6 @@ Environment::~Environment(void)
 	this->_initial_zones.clear();
 	this->_reference_zones.clear();
 
-	//remove_locks(locks_agentsInQuad, _grid._quadX * _grid._quadY);
 }
 
 /**
@@ -195,8 +174,6 @@ void Environment::setGrid(const json &_fmap_zone, uint32_t quadSize)
 	_grid._quadX = int(_grid._mapWidth / _grid._quadSize + 1);
 	_grid._quadY = int(_grid._mapHeight / _grid._quadSize + 1);
 
-	//locks_agentsInQuad = new_locks(_grid._quadX * _grid._quadY);
-
 }
 
 Environment::grid_t Environment::getGrid()
@@ -234,13 +211,14 @@ LocalCartesian Environment::getProjector()
 	return(this->_projector);
 }
 
-/*void Environment::addAgents(std::vector<Agent*> _vAgents) {
-	this->_vAgents = _vAgents;
-}*/
-
 void Environment::addAgent(Agent* newAgent)
 {
 	this->_vAgents.push_back(newAgent);
+}
+
+void Environment::addPatchAgent(PatchAgent* newAgent) //NEW
+{
+	this->_pAgents.push_back(newAgent);
 }
 
 /**
@@ -264,6 +242,18 @@ Agent* Environment::getAgent(uint32_t id)
 {
 	return(_vAgents[id]);
 }
+
+/**
+* @brief Retorna un puntero a un patch agente determinado
+*
+* @param uint32_t id: identificador del patch agente
+* @return PatchAgent*
+*/
+PatchAgent* Environment::getPatchAgent(uint32_t id)
+{
+	return(_pAgents[id]);
+}
+
 
 /**
 * @brief Retorna un vector con los agentes el Environment
@@ -291,7 +281,7 @@ void Environment::setNeighborsOf(const uint32_t& idAgent,const double& distanceM
 
 	Agent* agent = this->getAgent(idAgent);
 
-	idsAgents = this->_agentsInQuad[agent->getQuad()];
+	idsAgents = this->getPatchAgent( agent->getQuad() )->getAgents();
 
 	agent->clearCloseNeighbors();
 
@@ -539,7 +529,7 @@ void Environment::updateStats()
 	#pragma omp parallel for //schedule (dynamic,8)
 	for(uint32_t i = 0; i < totalAgents; i++) {
 		Agent* agent = this->getAgent(i);
-		
+
 		for(auto& reference_zone : this->getReferenceZones() ) {
 			bool isInside;
 			isInside = reference_zone.pointIsInside(agent->position());

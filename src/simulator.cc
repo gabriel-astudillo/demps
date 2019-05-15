@@ -61,8 +61,20 @@ Simulator::Simulator(const json &_fsettings,const json &_finitial_zones,const js
 	_env->showGrid();
 
 	// inicializar la variable estática _myEnv
-	// de la clase Agent
+	// de la clase Agent y PatchAgent
 	Agent::_myEnv = _env;
+	PatchAgent::_myEnv = _env; //NEW
+
+	std::cout << "Creando patch agentes..." << std::endl; //NEW
+	Environment::grid_t gridData = _env->getGrid();
+	for(size_t y = 0; y < gridData._quadY; y++) {
+		for(size_t x = 0; x < gridData._quadX; x++) {
+			uint32_t idPatch = x + y * gridData._quadX;
+			//std::cout << idPatch << std::endl;
+			_env->addPatchAgent( new PatchAgent(idPatch) );
+		}
+	}
+
 
 	std::uniform_int_distribution<uint32_t> zone(0, _env->getInitialZones().size() - 1);
 
@@ -175,19 +187,19 @@ void Simulator::run()
 		auto end = std::chrono::high_resolution_clock::now(); //Measure Time
 		auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
 		g_timeExecSim += elapsed.count();
-		
+
 		if(_statsOut && ((g_currTimeSim % _statsInterval) == 0)) {
 			_env->updateStats();
 			this->saveStats();
 		}
 		//std::cout << " ==> " << elapsed.count() << std::endl;
 	}
-	
+
 	if(g_showProgressBar) {
 		std::cout << std::endl;
 	}
-	
-	if( g_showTimeExec ){
+
+	if( g_showTimeExec ) {
 		this->showTimeExec();
 	}
 
@@ -271,7 +283,6 @@ void Simulator::showTimeExec(void)
 	          << g_timeExecMakeAgents  << ":"
 	          << g_timeExecCal << ":"
 	          << g_timeExecSim << ":"
-	          << g_timeExecSimQuad << ":"
 	          << maxMemory << ":"
 	          << g_AgentsMem
 	          << std::endl;
