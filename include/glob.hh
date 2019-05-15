@@ -63,16 +63,16 @@
 
 
 
-struct FaceInfo2
-{
-  FaceInfo2(){}
-  int nesting_level;
-  bool in_domain(){ 
-    return nesting_level%2 == 1;
-  }
+struct FaceInfo2 {
+	FaceInfo2() {}
+	int nesting_level;
+	bool in_domain()
+	{
+		return nesting_level%2 == 1;
+	}
 };
 
-typedef CGAL::Exact_predicates_inexact_constructions_kernel      K;//new 
+typedef CGAL::Exact_predicates_inexact_constructions_kernel      K;//new
 //typedef CGAL::Simple_cartesian<double> K;
 
 typedef CGAL::Aff_transformation_2<K> Transformation;
@@ -84,7 +84,7 @@ typedef CGAL::Vector_2<K>   Vector2D;
 typedef CGAL::Polygon_2<K>  Polygon2D;
 
 typedef CGAL::Triangulation_vertex_base_2<K>                      Vb;
-typedef CGAL::Triangulation_face_base_with_info_2<FaceInfo2,K>    Fbb;//new 
+typedef CGAL::Triangulation_face_base_with_info_2<FaceInfo2,K>    Fbb;//new
 //typedef CGAL::Delaunay_mesh_face_base_2<K>                        Fb;
 typedef CGAL::Constrained_triangulation_face_base_2<K,Fbb>        Fb;//new
 typedef CGAL::Triangulation_data_structure_2<Vb, Fb>              Tds;
@@ -113,13 +113,8 @@ extern uint32_t g_AgentsMem;
 extern uint32_t g_timeExecMakeAgents;
 extern uint32_t g_timeExecCal;
 extern uint32_t g_timeExecSim;
-extern uint32_t g_timeExecSimQuad;
 
 extern std::vector<std::string> g_logZonesDensity;
-
-extern omp_lock_t lock_agentsInQuad;  
-//extern std::vector<omp_lock_t*> locks_agentsInQuad;  
-//extern omp_lock_t* locks_agentsInQuad;  
 
 //enum model_t {SHORTESTPATH=9366416273040049814U,FOLLOWTHECROWD=10676684734677566718U,RANDOMWALKWAY=5792789823329120861U,WORKINGDAY, SNITCH=666};
 enum model_t {ShortestPath=0, FollowTheCrowd=1, RandomWalkway=2, WorkingDay, SNITCH=666};

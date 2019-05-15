@@ -6,7 +6,7 @@
 #include <router.hh>
 #include <environment.hh>
 
-class Simulator{
+class Simulator {
 public:
 	//static bool        _statsOut;
 	//static uint32_t    _statsInterval;
@@ -15,10 +15,10 @@ public:
 private:
 	json _fsettings;
 	std::shared_ptr<Environment> _env;
-	
+
 	bool        _statsOut;
 	uint32_t    _statsInterval;
-	
+
 	uint32_t    _duration;
 	uint32_t    _calibrationTime;
 	bool        _saveToDisk;
@@ -40,6 +40,6 @@ public:
 	void run(void);
 
 	~Simulator(void);
-	
+
 };
 #endif

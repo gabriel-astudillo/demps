@@ -1,7 +1,7 @@
 #ifndef _PROGRESSBAR_H_
 #define _PROGRESSBAR_H_
 
-class Timer{
+class Timer {
 private:
 	typedef std::chrono::high_resolution_clock clock;
 	typedef std::chrono::duration<double, std::ratio<1> > second;
@@ -11,15 +11,18 @@ private:
 	bool running;                              ///< True when the timer is running
 
 public:
-	Timer(){
+	Timer()
+	{
 		accumulated_time = 0;
 		running          = false;
 	}
 
 	///Start the timer. Throws an exception if timer was already running.
-	void start(){
-		if(running)
+	void start()
+	{
+		if(running) {
 			throw std::runtime_error("Timer was already started!");
+		}
 		running=true;
 		start_time = clock::now();
 	}
@@ -27,9 +30,11 @@ public:
 	///Stop the timer. Throws an exception if timer was already stopped.
 	///Calling this adds to the timer's accumulated time.
 	///@return The accumulated time in seconds.
-	double stop(){
-		if(!running)
+	double stop()
+	{
+		if(!running) {
 			throw std::runtime_error("Timer was already stopped!");
+		}
 
 		accumulated_time += lap();
 		running           = false;
@@ -39,23 +44,28 @@ public:
 
 	///Returns the timer's accumulated time. Throws an exception if the timer is
 	///running.
-	double accumulated(){
-		if(running)
+	double accumulated()
+	{
+		if(running) {
 			throw std::runtime_error("Timer is still running!");
+		}
 		return accumulated_time;
 	}
 
 	///Returns the time between when the timer was started and the current
 	///moment. Throws an exception if the timer is not running.
-	double lap(){
-		if(!running)
+	double lap()
+	{
+		if(!running) {
 			throw std::runtime_error("Timer was not started!");
+		}
 		return std::chrono::duration_cast<second> (clock::now() - start_time).count();
 	}
 
 	///Stops the timer and resets its accumulated time. No exceptions are thrown
 	///ever.
-	void reset(){
+	void reset()
+	{
 		accumulated_time = 0;
 		running          = false;
 	}
@@ -67,7 +77,7 @@ public:
 ///Defining the global `NOPROGRESS` will
 ///disable all progress operations, potentially speeding up a program. The look
 ///of the progress bar is shown in ProgressBar.hpp.
-class ProgressBar{
+class ProgressBar {
 private:
 	uint32_t total_work;    ///< Total work to be accomplished
 	uint32_t next_update;   ///< Next point to update the visible progress bar
@@ -77,14 +87,16 @@ private:
 	Timer    timer;         ///< Used for generating ETA
 
 	///Clear current line on console so a new progress bar can be written
-	void clearConsoleLine() const {
+	void clearConsoleLine() const
+	{
 		std::cerr<<"\r\033[2K"<<std::flush;
 	}
 
 public:
 	///@brief Start/reset the progress bar.
 	///@param total_work  The amount of work to be completed, usually specified in cells.
-	void start(uint32_t total_work){
+	void start(uint32_t total_work)
+	{
 		timer = Timer();
 		timer.start();
 		this->total_work = total_work;
@@ -99,22 +111,25 @@ public:
 	///
 	///Define the global `NOPROGRESS` flag to prevent this from having an
 	///effect. Doing so may speed up the program's execution.
-	void update(uint32_t work_done0){
+	void update(uint32_t work_done0)
+	{
 		//Provide simple way of optimizing out progress updates
-		#ifdef NOPROGRESS
+#ifdef NOPROGRESS
 		return;
-		#endif
+#endif
 
 		//Quick return if this isn't the main thread
-		if(omp_get_thread_num()!=0)
+		if(omp_get_thread_num()!=0) {
 			return;
+		}
 
 		//Update the amount of work done
 		work_done = work_done0;
 
 		//Quick return if insufficient progress has occurred
-		if(work_done<next_update)
+		if(work_done<next_update) {
 			return;
+		}
 
 		//Update the next time at which we'll do the expensive update stuff
 		next_update += call_diff;
@@ -124,13 +139,15 @@ public:
 		uint16_t percent = (uint8_t)(work_done*omp_get_num_threads()*100/total_work);
 
 		//Handle overflows
-		if(percent>100)
+		if(percent>100) {
 			percent=100;
+		}
 
 		//In the case that there has been no update (which should never be the case,
 		//actually), skip the expensive screen print
-		if(percent==old_percent)
+		if(percent==old_percent) {
 			return;
+		}
 
 		//Update old_percent accordingly
 		old_percent=percent;
@@ -138,20 +155,22 @@ public:
 		//Print an update string which looks like this:
 		//  [================================================  ] (96% - 1.0s - 4 threads)
 		std::cerr<<"\r\033[2K["
-			<<std::string(percent/2, '=')<<std::string(50-percent/2, ' ')
-			<<"] ("
-			<<percent<<"% - "
-			<<std::fixed<<std::setprecision(1)<<timer.lap()/percent*(100-percent)
-			<< "s" <<std::flush;
-			// <<"s - "
-			// <<omp_get_num_threads()<< " threads)"<<std::flush;
+		         <<std::string(percent/2, '=')<<std::string(50-percent/2, ' ')
+		         <<"] ("
+		         <<percent<<"% - "
+		         <<std::fixed<<std::setprecision(1)<<timer.lap()/percent*(100-percent)
+		         << "s" <<std::flush;
+		// <<"s - "
+		// <<omp_get_num_threads()<< " threads)"<<std::flush;
 	}
 
 	///Increment by one the work done and update the progress bar
-	ProgressBar& operator++(){
+	ProgressBar& operator++()
+	{
 		//Quick return if this isn't the main thread
-		if(omp_get_thread_num()!=0)
+		if(omp_get_thread_num()!=0) {
 			return *this;
+		}
 
 		work_done++;
 		update(work_done);
@@ -160,7 +179,8 @@ public:
 
 	///Stop the progress bar. Throws an exception if it wasn't started.
 	///@return The number of seconds the progress bar was running.
-	double stop(){
+	double stop()
+	{
 		clearConsoleLine();
 
 		timer.stop();
@@ -168,11 +188,13 @@ public:
 	}
 
 	///@return Return the time the progress bar ran for.
-	double time_it_took(){
+	double time_it_took()
+	{
 		return timer.accumulated();
 	}
 
-	uint32_t cellsProcessed() const {
+	uint32_t cellsProcessed() const
+	{
 		return work_done;
 	}
 };
