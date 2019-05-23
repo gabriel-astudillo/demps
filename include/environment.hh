@@ -69,7 +69,7 @@ public:
 	PatchAgent* getPatchAgent(uint32_t id); //NEW
 	std::vector<Agent*>& getAgents();
 
-	void setNeighborsOf(const uint32_t& idAgent,const double& distance);
+	void setNeighborsOf(const uint32_t& idAgent,const double& distance, Agent::Neighbors& agentNeighbors);
 
 	void adjustAgentsInitialPosition(const uint32_t& calibrationTime);
 	void adjustAgentsRules();

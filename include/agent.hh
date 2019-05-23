@@ -21,7 +21,6 @@ private:
 	// Para los agentes que conocer donde su meta
 	Point2D  _targetPos;
 
-	Neighbors _closeNeighbors;
 	uint32_t _quad;
 
 	//Variables para el modelo de Fuerza social
@@ -50,8 +49,6 @@ public:
 
 	~Agent(void);
 
-	void setEnvironment(std::shared_ptr<Environment> env);
-
 	void          setTargetPos(const Point2D& tposition);
 	const Point2D getTargetPos(void) const;
 
@@ -67,9 +64,6 @@ public:
 	uint32_t id(void) const;
 	model_t model(void) const;
 
-	void clearCloseNeighbors();
-	void addCloseNeighbors(Agent* neighbor);
-
 	void update();
 
 	void shortestPath();
@@ -78,10 +72,7 @@ public:
 	void followTheCrowd(const Neighbors&);
 	void randomWalkwayForAdjustInitialPosition();
 
-	double distanceTo(Agent* _agent) const
-	{
-		return(sqrt(CGAL::squared_distance(this->_position,_agent->_position)));
-	}
+	double distanceTo(Agent* _agent) const;
 };
 
 #endif
