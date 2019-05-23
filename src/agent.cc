@@ -63,11 +63,6 @@ Agent::~Agent(void)
 	;
 }
 
-void Agent::setEnvironment(std::shared_ptr<Environment> myEnv)
-{
-	this->_myEnv = myEnv;
-}
-
 void Agent::setTargetPos(const Point2D& tposition)
 {
 	this->_targetPos = tposition;
@@ -148,16 +143,6 @@ uint32_t Agent::id(void) const
 model_t Agent::model(void) const
 {
 	return(this->_model);
-}
-
-void Agent::clearCloseNeighbors()
-{
-	_closeNeighbors.clear();
-}
-
-void Agent::addCloseNeighbors(Agent* neighbor)
-{
-	_closeNeighbors.push_back(neighbor);
 }
 
 void Agent::update()
@@ -272,24 +257,20 @@ void Agent::followPath()
 			continue;
 		}
 
+		// Por omisión, sólo actúa la fuerza DrivingForce
 		_currVelocity += agentFactor * DrivingForce * deltaT;
 
-		_myEnv->setNeighborsOf(this->id(), g_attractionRadius);
-
+		Agent::Neighbors agentNeighbors;
+		_myEnv->setNeighborsOf(this->id(), g_attractionRadius, agentNeighbors);
 		//std::cout << g_currTimeSim << ": " <<  this->id() << "=>" << _closeNeighbors.size() << std::endl;
 
-		if( _closeNeighbors.size() == 0 ) {
-			// No hay agentes cercanos
-			// Sólo actúa la fuerza DrivingForce
-
-			_currVelocity += agentFactor * DrivingForce * deltaT;
-		} else {
-
+		if( agentNeighbors.size() > 0 ){
+			// Si hay vecinos, se debe considerar la SocialForce
 			Vector2D totalRepulsiveEfect = Vector2D(0.0,0.0);
 
 			// Determinar el efecto repulsivo por cada
 			// vecino cercano, y agregarlo al total
-			for(auto& fooAgent : _closeNeighbors) {
+			for(auto& fooAgent : agentNeighbors) {
 
 				if( fooAgent == NULL || fooAgent == this ) {
 					continue;
@@ -330,7 +311,8 @@ void Agent::followPath()
 		//Helbing, D., & Molnar, P. (1998).
 		//Social Force Model for Pedestrian Dynamics. Physical Review E, 51(5), 4282–4286.
 		// REVISAR Y COMPARAR CON
-		//Chen, X., Treiber, M., Kanagaraj, V., & Li, H. (2018). Social force models for pedestrian traffic–state of the art. Transport Reviews.
+		// Chen, X., Treiber, M., Kanagaraj, V., & Li, H. (2018). Social force models for pedestrian traffic–state of the art. 
+		// Transport Reviews.
 		if( sqrt(CGAL::scalar_product(_currVelocity, _currVelocity)) >= _maxDisiredSpeed ) {
 			_currVelocity = _maxDisiredSpeed * _currVelocity / sqrt(CGAL::scalar_product(_currVelocity, _currVelocity));
 		}
@@ -396,3 +378,11 @@ void Agent::randomWalkwayForAdjustInitialPosition()
 		break;
 	}
 }
+
+double Agent::distanceTo(Agent* _agent) const
+{
+	return(sqrt(CGAL::squared_distance(this->_position,_agent->_position)));
+}
+
+
+

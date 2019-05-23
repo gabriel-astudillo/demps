@@ -70,7 +70,6 @@ Simulator::Simulator(const json &_fsettings,const json &_finitial_zones,const js
 	for(size_t y = 0; y < gridData._quadY; y++) {
 		for(size_t x = 0; x < gridData._quadX; x++) {
 			uint32_t idPatch = x + y * gridData._quadX;
-			//std::cout << idPatch << std::endl;
 			_env->addPatchAgent( new PatchAgent(idPatch) );
 		}
 	}

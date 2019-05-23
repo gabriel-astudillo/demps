@@ -273,9 +273,9 @@ std::vector<Agent*>& Environment::getAgents()
 *
 * @param idAgent: entero que identifica el agente
 * @param distanceMax: radio de la vecindad
-* @return void
+* @param agentNeighbors: Vector con los agentes vecinos [out]
 */
-void Environment::setNeighborsOf(const uint32_t& idAgent,const double& distanceMax)
+void Environment::setNeighborsOf(const uint32_t& idAgent,const double& distanceMax, Agent::Neighbors& agentNeighbors)
 {
 	std::vector<uint32_t> idsAgents;
 
@@ -283,7 +283,8 @@ void Environment::setNeighborsOf(const uint32_t& idAgent,const double& distanceM
 
 	idsAgents = this->getPatchAgent( agent->getQuad() )->getAgents();
 
-	agent->clearCloseNeighbors();
+	//agent->clearCloseNeighbors();
+	agentNeighbors.clear();
 
 	for(auto& id : idsAgents) {
 		if(id != idAgent) {
@@ -299,7 +300,8 @@ void Environment::setNeighborsOf(const uint32_t& idAgent,const double& distanceM
 
 			double dist = distance(agent, neighbor);
 			if(  dist < distanceMax ) {
-				agent->addCloseNeighbors(neighbor);
+				//agent->addCloseNeighbors(neighbor);
+				agentNeighbors.push_back(neighbor);
 			}
 
 
