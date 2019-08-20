@@ -299,7 +299,7 @@ void Environment::setNeighborsOf(const uint32_t& idAgent,const double& distanceM
 
 
 			double dist = distance(agent, neighbor);
-			if(  dist < distanceMax ) {
+			if(  dist < distanceMax && dist > 0 ) {
 				//agent->addCloseNeighbors(neighbor);
 				agentNeighbors.push_back(neighbor);
 			}
@@ -556,6 +556,7 @@ double Environment::distance(Agent* a, Agent* b)
 	return(sqrt(CGAL::squared_distance(a->position(),b->position())));
 }
 
+/*
 bool Environment::isClose(Agent* a, Agent* b, const double& distanceMax)
 {
 	uint32_t dx, dy;
@@ -566,3 +567,4 @@ bool Environment::isClose(Agent* a, Agent* b, const double& distanceMax)
 
 	return( (dx+dy) <=  (distanceMax + (dx*dy/distanceMax)) );
 }
+*/

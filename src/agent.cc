@@ -17,6 +17,7 @@ Agent::Agent(const uint32_t &_id, const Point2D &_position, const double &_min_s
 	this->_position  = _position;
 	this->_direction = Vector2D(0.0,0.0);
 
+	this->_targetPos = Point2D(-666.6,-666.6);
 	this->_quad = this->determineQuad(); //AKA setQuad()
 
 
@@ -39,6 +40,7 @@ Agent::Agent(const uint32_t &_id, const Point2D &_position, const double &_min_s
 
 }
 
+/*
 Agent& Agent::operator=(const Agent &_agent)
 {
 	this->_id        = _agent._id;
@@ -56,7 +58,7 @@ Agent& Agent::operator=(const Agent &_agent)
 	this->_strengthSocialRepulsiveForceAgents = _agent._strengthSocialRepulsiveForceAgents;
 	this->_cosPhi                             = _agent._cosPhi;
 	return(*this);
-}
+}*/
 
 Agent::~Agent(void)
 {
@@ -76,6 +78,16 @@ const Point2D Agent::getTargetPos(void) const
 const Point2D Agent::position(void) const
 {
 	return(this->_position);
+}
+
+const Vector2D Agent::currVelocity(void)
+{
+	return(this->_currVelocity);
+}
+
+void Agent::currVelocity(const Vector2D& velocity)
+{
+	this->_currVelocity = velocity;
 }
 
 void Agent::showPosition()
@@ -121,9 +133,29 @@ void Agent::updateQuad()
 	newQuad = this->determineQuad();
 
 	if(currQuad != newQuad) { //Cambio de cuadrante
+		
+		/*
+		#pragma omp critical
+		{
+		std::cout << g_currTimeSim << ": " << this->id() <<  
+			" => currQuad=" << currQuad   << std::endl;
+		}*/
+		
+		
 		_myEnv->getPatchAgent(currQuad)->delAgent( this->id() );
 
 		this->setQuad(newQuad);
+		
+		/*
+		#pragma omp critical
+		{
+		std::cout << g_currTimeSim << ": " <<  this->id() <<  ", x:" << this->_position[0] <<
+			", y:" << this->_position[1] <<
+			" => newQuad=" << newQuad   << std::endl;
+		}
+		*/
+		
+		
 
 		_myEnv->getPatchAgent(newQuad)->addAgent( this->id() );
 	}
@@ -133,6 +165,11 @@ void Agent::updateQuad()
 Vector2D Agent::direction(void) const
 {
 	return(this->_direction);
+}
+
+void Agent::direction(const Vector2D& direction)
+{
+	this->_direction = direction;
 }
 
 uint32_t Agent::id(void) const
@@ -172,6 +209,7 @@ void Agent::update()
 		//}
 		//else
 		//   this->_agents[i].follow_the_crowd(neighbors);
+		this->followTheCrowd();
 		break;
 	}
 	case WorkingDay:
@@ -222,8 +260,47 @@ void Agent::randomWalkway()
 	if(this->_route.empty()) {
 		auto response = _myEnv->getRouter()->route(this->position(), g_randomWalkwayRadius);
 		this->_route = response.path();
+		this->followPath();
+		return;
 	}
+	
+	//Lo del target 666.6 es algo cochino, pero la idea es
+	//que si el agente copia la ruta de otro, yo no
+	//entra en el ciclo de más abajo
+	if(this->getTargetPos() != Point2D(-666.6,-666.6) ){
+		this->followPath();
+		return;
+	}
+	
+	Agent::Neighbors agentNeighbors;
+	_myEnv->setNeighborsOf(this->id(), g_attractionRadius, agentNeighbors);
+	
+	std::vector<Agent*> neighborsTofollow; // vecinos que se pueden seguir
+	
+	for(auto& fooAgent : agentNeighbors) {
+		// Por el momento, los vecinos a seguir son del tipo "ShortestPath" o "FollowTheCrowd" RandomWalkway
+		if( fooAgent->model() == ShortestPath || fooAgent->model() == FollowTheCrowd ){
+			neighborsTofollow.push_back(fooAgent);
+		}
+	}
+	
+	// Si hay suficientes vecinos (p.e. 5), el agente pasa a ser "FollowTheCrowd" 
+	if(neighborsTofollow.size() >= 5){
+		//this->_model = FollowTheCrowd; //ShortestPath; //FollowTheCrowd;
+		this->_route.clear();
+		
+		
+		this->setTargetPos( neighborsTofollow[1]->getTargetPos() );
+		this->currVelocity( neighborsTofollow[1]->currVelocity() );
+		this->direction( neighborsTofollow[1]->direction() );
+		
+		//this->randomWalkwayForAdjustInitialPosition();
+		auto response = _myEnv->getRouter()->route(this->position(), this->getTargetPos() );
+		this->_route = response.path();	
+	}
+	
 	this->followPath();
+	
 }
 
 void Agent::followPath()
@@ -251,18 +328,29 @@ void Agent::followPath()
 		//Helbing, D., & Molnar, P. (1998).
 		//Social Force Model for Pedestrian Dynamics. Physical Review E, 51(5), 4282–4286.
 		DrivingForce = (_disiredSpeed * _direction - _currVelocity) / _timeRelax;
-
-		if(dist < g_closeEnough) {
-			_route.pop_front();
-			continue;
-		}
-
+		
 		// Por omisión, sólo actúa la fuerza DrivingForce
 		_currVelocity += agentFactor * DrivingForce * deltaT;
 
+		// Si a la actual velocidad, el agente va llegar al destino del tramo en menos
+		// de deltaT tiempo, entonces se descarta el destino del tramo y se continua con el siguiente
+		// destino de la ruta.
+		if( dist / sqrt(_currVelocity.squared_length()) < deltaT ){
+			_route.pop_front();
+			continue;
+		}
+		
+		
+		/*if(dist < g_closeEnough) {
+			_route.pop_front();
+			continue;
+		}*/
+
+		
+
 		Agent::Neighbors agentNeighbors;
 		_myEnv->setNeighborsOf(this->id(), g_attractionRadius, agentNeighbors);
-		//std::cout << g_currTimeSim << ": " <<  this->id() << "=>" << _closeNeighbors.size() << std::endl;
+		//std::cout << g_currTimeSim << ": " <<  this->id() << ", Neighbors=>" << agentNeighbors.size() << std::endl;
 
 		if( agentNeighbors.size() > 0 ){
 			// Si hay vecinos, se debe considerar la SocialForce
@@ -292,7 +380,8 @@ void Agent::followPath()
 				double strengthRepulsiveEfect = _strengthSocialRepulsiveForceAgents * exp(-distance/_sigma);
 
 				repulsiveEfect = -strengthRepulsiveEfect * directionAgentsUnit;
-
+				
+				
 				// Determinar directionDependentWeight
 				uint8_t directionDependentWeight = 1;
 
@@ -303,6 +392,8 @@ void Agent::followPath()
 				}
 				totalRepulsiveEfect += repulsiveEfect * directionDependentWeight;
 			}
+			
+			//std::cout << g_currTimeSim << ": " <<  this->id() << ", totalRepulsiveEfect=>" << totalRepulsiveEfect << std::endl;
 
 			_currVelocity += agentFactor * (DrivingForce + totalRepulsiveEfect) * deltaT;
 		}
@@ -313,12 +404,46 @@ void Agent::followPath()
 		// REVISAR Y COMPARAR CON
 		// Chen, X., Treiber, M., Kanagaraj, V., & Li, H. (2018). Social force models for pedestrian traffic–state of the art. 
 		// Transport Reviews.
-		if( sqrt(CGAL::scalar_product(_currVelocity, _currVelocity)) >= _maxDisiredSpeed ) {
-			_currVelocity = _maxDisiredSpeed * _currVelocity / sqrt(CGAL::scalar_product(_currVelocity, _currVelocity));
+		//if( sqrt(CGAL::scalar_product(_currVelocity, _currVelocity)) >= _maxDisiredSpeed ) {
+		//	_currVelocity = _maxDisiredSpeed * _currVelocity / sqrt(CGAL::scalar_product(_currVelocity, _currVelocity));
+		//}
+		if( sqrt( _currVelocity.squared_length() ) >= _maxDisiredSpeed ) {
+			_currVelocity = _maxDisiredSpeed * _currVelocity / sqrt( _currVelocity.squared_length() );
 		}
 
 		//Finalmente, se actualiza la posición del agente
 		_position += _currVelocity * deltaT;
+		
+		//Actualizar el vector _direction
+		dist = sqrt(CGAL::squared_distance(_position, dst));
+
+		Transformation scaleNew(CGAL::SCALING, 1.0, dist);
+		Vector2D directionNew(_position, dst);
+
+		_direction = scaleNew(directionNew);
+		
+		// Si el agente se sale del área de simulación, dejarlo en el borde con velocidad 0.
+		Environment::grid_t gridData = _myEnv->getGrid();
+		if(_position[1] >= gridData._yMax || _position[1] <= gridData._yMin || _position[0] >= gridData._xMax || _position[0] <= gridData._xMin){
+			_currVelocity = Vector2D(0.0,0.0);
+			//_direction    = Vector2D(0.0,0.0);
+			
+			if(_position[1] >= gridData._yMax ){
+				_position = Point2D(_position[0], gridData._yMax);
+			}
+			if(_position[1] <= gridData._yMin ){
+				_position = Point2D(_position[0], gridData._yMin);
+			}
+			if(_position[0] >= gridData._xMax ){
+				_position = Point2D(gridData._xMax, _position[1]);
+			}
+			if(_position[0] <= gridData._xMin){
+				_position = Point2D(gridData._xMin, _position[1]);
+			}
+		}
+		
+		
+
 
 		break;
 	}
@@ -345,6 +470,11 @@ void Agent::followTheCrowd(const Neighbors &_neighbors)
 	this->_position=translate(this->_position);
 }
 
+void Agent::followTheCrowd()
+{	
+	this->followPath();
+}
+
 void Agent::randomWalkwayForAdjustInitialPosition()
 {
 	if(this->_route.empty()) {
@@ -364,16 +494,38 @@ void Agent::randomWalkwayForAdjustInitialPosition()
 		Vector2D direction(this->_position, dst);
 
 		this->_direction = scale(direction);
+		double deltaT = 1.0;//[s]
 
 		if(dist < g_closeEnough) {
 			_route.pop_front();
 			continue;
 		}
 
-		this->_currVelocity = _disiredSpeed * this->_direction;
+		this->_currVelocity = _disiredSpeed * this->_direction * deltaT;
 
-		Transformation translate(CGAL::TRANSLATION, this->_currVelocity);
-		this->_position = translate(this->_position);
+		//Transformation translate(CGAL::TRANSLATION, this->_currVelocity);
+		//this->_position = translate(this->_position);
+		
+		_position += _currVelocity * deltaT;
+		
+		// Si el agente se sale del área de simulación, dejarlo en el borde con velocidad 0.
+		Environment::grid_t gridData = _myEnv->getGrid();
+		/*if(_position[1] >= gridData._yMax || _position[1] <= gridData._yMin || _position[0] >= gridData._xMax || _position[0] <= gridData._xMin){
+			_currVelocity = Vector2D(0.0,0.0);
+		}*/
+		
+		if(_position[1] >= gridData._yMax ){
+			_position = Point2D(_position[0], gridData._yMax);
+		}
+		if(_position[1] <= gridData._yMin ){
+			_position = Point2D(_position[0], gridData._yMin);
+		}
+		if(_position[0] >= gridData._xMax ){
+			_position = Point2D(gridData._xMax, _position[1]);
+		}
+		if(_position[0] <= gridData._xMin){
+			_position = Point2D(gridData._xMin, _position[1]);
+		}
 
 		break;
 	}
