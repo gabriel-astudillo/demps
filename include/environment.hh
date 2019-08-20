@@ -79,7 +79,7 @@ public:
 	void updateStats();
 
 	double distance(Agent* a, Agent* b);
-	bool isClose(Agent* a, Agent* b, const double& distanceMax);
+	//bool isClose(Agent* a, Agent* b, const double& distanceMax);
 
 };
 

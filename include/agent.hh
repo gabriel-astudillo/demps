@@ -45,7 +45,7 @@ private:
 public:
 	Agent(void);
 	Agent(const uint32_t&, const Point2D&, const double&, const double&, const json& SocialForceModel, const model_t&);
-	Agent& operator=(const Agent&);
+	//Agent& operator=(const Agent&);
 
 	~Agent(void);
 
@@ -53,6 +53,9 @@ public:
 	const Point2D getTargetPos(void) const;
 
 	const Point2D  position(void) const;
+	const Vector2D currVelocity(void);
+	void           currVelocity(const Vector2D& velocity);
+
 	void     showPosition();
 	uint32_t determineQuad();
 	void     setQuad();
@@ -60,6 +63,7 @@ public:
 	uint32_t getQuad() const;
 	void     updateQuad();
 	Vector2D direction(void) const;
+	void     direction(const Vector2D& direction);
 
 	uint32_t id(void) const;
 	model_t model(void) const;
@@ -70,6 +74,7 @@ public:
 	void followPath();
 	void randomWalkway();
 	void followTheCrowd(const Neighbors&);
+	void followTheCrowd();
 	void randomWalkwayForAdjustInitialPosition();
 
 	double distanceTo(Agent* _agent) const;
