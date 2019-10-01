@@ -8,7 +8,6 @@ rm -f core
 
 DEMPS_BIN="./demps"
 DEMPS_CONFIG="./iquique.config"
-#DEMPS_CONFIG="./iquique_peq.config"
 MAKE_MAPS_SCRIPT="./scripts/visualizador-offline/run-make_maps.sh"
 
 #### CONFIGURACION ####
