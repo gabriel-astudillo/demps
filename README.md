@@ -1,7 +1,11 @@
 # DEMPS
 **D**isaster **E**vacuation and **M**obility **P**atterns **S**imulator
 
-Este simulador implementa movimientos de personas dentro de una ciudad costera, en el caso de una evacuación de los habitantes hacia las zonas seguras que pueda tener dicho lugar.
+Este simulador implementa movimientos de personas dentro de una ciudad costera, en el caso de una evacuación de los habitantes hacia las zonas seguras que pueda tener dicho lugar. 
+
+**Modelo de movilidad implementado**
+
+El modelo de movilidad implmentado se basa en el MOdelo de Fuerza Social propuesto por Helbing, D., & Molnar, P. (1998). Social Force Model for Pedestrian Dynamics. 
 
 **Estructura de directorios**
 
