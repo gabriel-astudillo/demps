@@ -2,8 +2,9 @@
 Disaster Evacuation and Mobility Patterns Simulator
 
 # Install
+1) Verificar que su sistema tiene las dependencias necesarias para la compilación. Ver https://github.com/gabriel-astudillo/demps/blob/master/dependiencias.md
 
-Clonar este repositorio 
+2) Clonar este repositorio 
 
 ```
 git clone https://github.com/gabriel-astudillo/demps.git
