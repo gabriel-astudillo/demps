@@ -18,7 +18,7 @@ chmod +x run.sh
 Otra forma es proceder a compilarlo. Para esto, hay que realizar los pasos de la siguiente sección.
 
 # Compilación e instalación
-1) Verificar que su sistema tiene las dependencias necesarias para la compilación. Ver ![aqui]https://github.com/gabriel-astudillo/demps/blob/master/dependiencias.md
+1) Verificar que su sistema tiene las dependencias necesarias para la compilación. Ver [aqui](https://github.com/gabriel-astudillo/demps/blob/master/dependiencias.md)
 
 2) Clonar este repositorio 
 
