@@ -10,9 +10,9 @@ Este simulador implementa movimientos de personas dentro de una ciudad costera, 
 * ```sim/ejemplos/``` : ejemplo de archivos de visualización de una simulación.
 * ```sim/input/``` : Directorio que contiene los archivos de mapas de las ciudades a simular. Cada ciudad es un subdirectorio, que contiene los archivos:
 * ```sim/input/ciudadX/``` : Directorio de los archivos de mapas (GeoJSON) de la *ciudadX*. 
-* ```sim/input/ciudadX/area.geojson ``` : zona geográfica a simular
-* ```sim/input/ciudadX/initial_zones.geojson ``` : zonas iniciales donde los habitantes se crean
-* ```sim/input/ciudadX/reference_zones.geojson ``` : zonas de encuentro. Son los lugares donde las personas deben llegar en caso de evacuación.
+* ```sim/input/ciudadX/area.geojson``` : zona geográfica a simular
+* ```sim/input/ciudadX/initial_zones.geojson``` : zonas iniciales donde los habitantes se crean
+* ```sim/input/ciudadX/reference_zones.geojson``` : zonas de encuentro. Son los lugares donde las personas deben llegar en caso de evacuación.
 
 # Cómo usar
 
