@@ -5,18 +5,6 @@
 
 Utilitario de línea de comando para procesar archivos JSON. Ver https://stedolan.github.io/jq/.
 
-## JSON
-
-JSON for Modern C++: https://github.com/nlohmann/json
-
-1) Bajar la biblioteca desde https://github.com/nlohmann/json/blob/develop/single_include/nlohmann/json.hpp
-2) Incluirla como:
-```
-#include "json.hpp"
-using json = nlohmann::json;
-```
-
-
 ## Geographic lib
 
 "GeographicLib is a small set of C++ classes for performing conversions between geographic, UTM, UPS, MGRS, geocentric, and local cartesian coordinates", https://geographiclib.sourceforge.io
@@ -32,18 +20,12 @@ make install (!)
 ```
 (!) Necesita permisos de superusario.
 
-3) Incluir la biblioteca ```<GeographicLib/LocalCartesian.hpp>```. En el linker, agregar ```-lGeographic```
-
 ## CGAL
 
-The Computational Geometry Algorithms Library, https://www.cgal.org
-
-Versión: ≥ 4.10
+The Computational Geometry Algorithms Library, https://www.cgal.org. Utilizar versión ≥ 4.10
 
 * Linux: ```apt-get install libcgal-dev```
-* Mac: ```port install cgal```
 
-En el linker, agregar ```-lCGAL```.
 
 ## OSRM backend
 
@@ -64,7 +46,6 @@ cmake --build . --target install     (!!!)
 
 (!!!) Necesita permisos de superusario.
 
-En el linker, agregar ```-losrm```.
 
 
 
