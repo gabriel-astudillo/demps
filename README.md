@@ -7,7 +7,7 @@ Este simulador implementa movimientos de personas dentro de una ciudad costera, 
 
 * ```sim/```: directorio donde se realiza la simulación.
 * ```sim/ejemplos/``` : ejemplo de archivos de visualización de una simulación.
-* ```sim/ejemplos/``` : ejemplo de archivos de visualización de una simulación.
+* ```sim/ciudadX.config``` : Archivo JSON de configuración para la simulación de la *ciudadX*.
 * ```sim/input/``` : Directorio que contiene los archivos de mapas de las ciudades a simular. Cada ciudad es un subdirectorio, que contiene los archivos:
 * ```sim/input/ciudadX/``` : Directorio de los mapas de la *ciudadX*.
 * ```sim/input/ciudadX/area.geojson ``` : zona geográfica a simular
