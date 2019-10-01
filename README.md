@@ -6,7 +6,7 @@ Disaster Evacuation and Mobility Patterns Simulator
 Clonar este repositorio 
 
 ```
-clone git https://github.com/gabriel-astudillo/demps.git
+git clone https://github.com/gabriel-astudillo/demps.git
 cd demps
 make
 ```
