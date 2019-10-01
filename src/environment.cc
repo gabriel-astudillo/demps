@@ -1,20 +1,27 @@
 #include <environment.hh>
+#include <simulator.hh>
 
-Environment::Environment(void) {
-    ;
+
+Environment::Environment(void)
+{
+	;
 }
 
-Environment::Environment(const std::vector<Agent> &_vAgents) {
+Environment::Environment(std::vector<Agent*> _vAgents)
+{
 	this->_vAgents = _vAgents;
 }
 
-Environment::Environment(const Environment &_env) {
+Environment::Environment(const Environment &_env)
+{
 	//this->_tree=std::make_shared<kdtree>(*_env._tree);
 }
 
-Environment::~Environment(void) {
+Environment::~Environment(void)
+{
 	this->_initial_zones.clear();
 	this->_reference_zones.clear();
+
 }
 
 /**
@@ -27,11 +34,13 @@ Environment::~Environment(void) {
 * @param _map_osrm        : string que representa el archivo con la base de datos OSRM del mapa.
 * @return void
 */
-void Environment::setRouter(const std::string &_map_osrm){
+void Environment::setRouter(const std::string &_map_osrm)
+{
 	_router =  Router(_reference_point,_map_osrm);
 }
 
-Router* Environment::getRouter(){
+Router* Environment::getRouter()
+{
 	return(&_router);
 }
 
@@ -39,15 +48,45 @@ Router* Environment::getRouter(){
 * @brief Inicializa el punto de referencia del mapa
 *
 *El Punto de Referencia sirva para realizar la conversión
-*entre coordenadas WGS84 y ENU. Marca el origen en este 
+*entre coordenadas WGS84 y ENU. Marca el origen en este
 *último sistema
 *
-* @param _freference_point: GeoJson con los datos latitud y longitud del punto de referencia
+* @param _fmap_zone: GeoJson de los datos del mapa
 * @return void
 */
-void Environment::setReferencePoint(const json &_freference_point){
-	this->_reference_point = _freference_point;
+
+void Environment::setReferencePoint(const json &_fmap_zone)
+{
+	std::list<double> map_x;
+	std::list<double> map_y;
+
+	double xMin,yMin;
+
+	for(auto& point : _fmap_zone["features"][0]["geometry"]["coordinates"][0]) {
+		map_x.push_back( point[1] );
+		map_y.push_back( point[0] );
+	}
+	map_x.sort();
+	map_y.sort();
+
+	//Coordenadas min  x e y.
+	xMin = map_x.front();
+	yMin = map_y.front();
+
+	json geomData = {
+		{"type", "Point"},
+		{"coordinates", json::array({ yMin, xMin } ) }
+	};
+
+	this->_reference_point = {
+		{"type", "FeatureCollection"},
+		{"features", json::array({ json({{"type", "Feature"}, {"properties", {} }, {"geometry", geomData } }) }) }
+	};
+
 }
+/*void Environment::setReferencePoint(const json &_freference_point){
+	this->_reference_point = _freference_point;
+}*/
 
 /**
 * @brief Crea el proyector para las coordenadas
@@ -59,7 +98,8 @@ void Environment::setReferencePoint(const json &_freference_point){
 * @param void
 * @return void
 */
-void Environment::setProjector(){
+void Environment::setProjector()
+{
 	this->_projector = LocalCartesian(_reference_point["features"][0]["geometry"]["coordinates"][1],_reference_point["features"][0]["geometry"]["coordinates"][0],0,Geocentric::WGS84());
 }
 
@@ -72,8 +112,9 @@ void Environment::setProjector(){
 * @param _freference_zones: GeoJson que representa las zonas de referencia.
 * @return void
 */
-void Environment::setReferenceZones(const json &_freference_zones){
-	for(auto& feature : _freference_zones["features"]){
+void Environment::setReferenceZones(const json &_freference_zones)
+{
+	for(auto& feature : _freference_zones["features"]) {
 		this->_reference_zones.push_back(Zone(_reference_point, feature));
 	}
 }
@@ -87,8 +128,9 @@ void Environment::setReferenceZones(const json &_freference_zones){
 * @param _finitial_zones: GeoJson que representa las zonas iniciales.
 * @return void
 */
-void Environment::setInitialZones(const json &_finitial_zones){
-	for(auto& feature : _finitial_zones["features"]){
+void Environment::setInitialZones(const json &_finitial_zones)
+{
+	for(auto& feature : _finitial_zones["features"]) {
 		this->_initial_zones.push_back(Zone(_reference_point, feature));
 	}
 }
@@ -100,67 +142,83 @@ void Environment::setInitialZones(const json &_finitial_zones){
 * @param quadSize  : tamaño de un lado del cuadrante, en metros.
 * @return void
 */
-void Environment::setGrid(const json &_fmap_zone, uint32_t quadSize){
+void Environment::setGrid(const json &_fmap_zone, uint32_t quadSize)
+{
 	std::list<double> map_x;
 	std::list<double> map_y;
-	
-	for(auto& point : _fmap_zone["features"][0]["geometry"]["coordinates"][0]){
+
+	for(auto& point : _fmap_zone["features"][0]["geometry"]["coordinates"][0]) {
 		double x,y,z;
 		this->getProjector().Forward(point[1],point[0],0,x,y,z);
-	
+
 		map_x.push_back( x );
 		map_y.push_back( y );
 	}
-	map_x.sort(); map_y.sort();
-	
+	map_x.sort();
+	map_y.sort();
+
 	//Coordenadas min y max para x e y.
-	_grid._xMin = map_x.front(); _grid._xMax = map_x.back();	
-	_grid._yMin = map_y.front(); _grid._yMax = map_y.back();
+	_grid._xMin = map_x.front();
+	_grid._xMax = map_x.back();
+	_grid._yMin = map_y.front();
+	_grid._yMax = map_y.back();
 
 	//Ancho y alto del mapa
 	_grid._mapWidth  = std::abs(_grid._xMax - _grid._xMin);
 	_grid._mapHeight = std::abs(_grid._yMax - _grid._yMin);
-	
+
 	//Tamaño del cuadrante
 	_grid._quadSize  = quadSize;
-	
+
 	//Cantidad de cuadrantes en el eje X e Y
 	_grid._quadX = int(_grid._mapWidth / _grid._quadSize + 1);
 	_grid._quadY = int(_grid._mapHeight / _grid._quadSize + 1);
 
 }
 
-Environment::grid_t Environment::getGrid(){
+Environment::grid_t Environment::getGrid()
+{
 	return(_grid);
 }
 
-void Environment::showGrid(){
+void Environment::showGrid()
+{
 	std::cout <<
-		"quadSize:" << _grid._quadSize << "\n" <<
-		"xMin:" << _grid._xMin  << ", xMax:" << _grid._xMax << "\n" <<
-		"yMin:" << _grid._yMin  << ", yMax:" << _grid._yMax << "\n" <<
-		"mapWidth: " << _grid._mapWidth << ", mapHeight:" << _grid._mapHeight << "\n" <<
-		"quadX:" << _grid._quadX << ", quadY:"  << _grid._quadY << std::endl;
+	          "quadSize:" << _grid._quadSize << "\n" <<
+	          "xMin:" << _grid._xMin  << ", xMax:" << _grid._xMax << "\n" <<
+	          "yMin:" << _grid._yMin  << ", yMax:" << _grid._yMax << "\n" <<
+	          "mapWidth: " << _grid._mapWidth << ", mapHeight:" << _grid._mapHeight << "\n" <<
+	          "quadX:" << _grid._quadX << ", quadY:"  << _grid._quadY << std::endl;
 }
 
-Zone Environment::getInitialZone(uint32_t id){
+Zone Environment::getInitialZone(uint32_t id)
+{
 	return(this->_initial_zones[id]);
 }
 
-std::vector<Zone>  Environment::getInitialZones(){
+std::vector<Zone>  Environment::getInitialZones()
+{
 	return(this->_initial_zones);
 }
 
-std::vector<Zone> Environment::getReferenceZones(){
+std::vector<Zone>& Environment::getReferenceZones()
+{
 	return(this->_reference_zones);
 }
 
-LocalCartesian Environment::getProjector(){
+LocalCartesian Environment::getProjector()
+{
 	return(this->_projector);
 }
 
-void Environment::addAgents(const std::vector<Agent> &_vAgents) {
-	this->_vAgents = _vAgents;
+void Environment::addAgent(Agent* newAgent)
+{
+	this->_vAgents.push_back(newAgent);
+}
+
+void Environment::addPatchAgent(PatchAgent* newAgent) //NEW
+{
+	this->_pAgents.push_back(newAgent);
 }
 
 /**
@@ -169,7 +227,8 @@ void Environment::addAgents(const std::vector<Agent> &_vAgents) {
 * @param void
 * @return uint32_t
 */
-uint32_t Environment::getTotalAgents(){
+uint32_t Environment::getTotalAgents()
+{
 	return(_vAgents.size());
 }
 
@@ -179,9 +238,22 @@ uint32_t Environment::getTotalAgents(){
 * @param uint32_t id: identificador del agente
 * @return Agent*
 */
-Agent* Environment::getAgent(uint32_t id){
-	return(&_vAgents[id]);
+Agent* Environment::getAgent(uint32_t id)
+{
+	return(_vAgents[id]);
 }
+
+/**
+* @brief Retorna un puntero a un patch agente determinado
+*
+* @param uint32_t id: identificador del patch agente
+* @return PatchAgent*
+*/
+PatchAgent* Environment::getPatchAgent(uint32_t id)
+{
+	return(_pAgents[id]);
+}
+
 
 /**
 * @brief Retorna un vector con los agentes el Environment
@@ -189,40 +261,56 @@ Agent* Environment::getAgent(uint32_t id){
 * @param void
 * @return std::vector<Agent>
 */
-std::vector<Agent> Environment::getAgents(){
+std::vector<Agent*>& Environment::getAgents()
+{
 	return(_vAgents);
 }
 
-//Agent::Neighbors Environment::neighbors_of(const Agent &_agent,const double &_max_distance,const model_t &_model) {
-Agent::Neighbors Environment::getNeighborsOf(const uint32_t& idAgent) {
-	Agent::Neighbors neighbors;
+/**
+* @brief Configura los vecinos de un agente identificado por su id.
+* Al agente identificado se le asignan todos los agentes vecinos que
+* están dentro del radio 'distanceMax'
+*
+* @param idAgent: entero que identifica el agente
+* @param distanceMax: radio de la vecindad
+* @param agentNeighbors: Vector con los agentes vecinos [out]
+*/
+void Environment::setNeighborsOf(const uint32_t& idAgent,const double& distanceMax, Agent::Neighbors& agentNeighbors)
+{
 	std::vector<uint32_t> idsAgents;
-	
+
 	Agent* agent = this->getAgent(idAgent);
-	
-	idsAgents = this->_agentsInQuad[agent->getQuad()];
-	
+
+	idsAgents = this->getPatchAgent( agent->getQuad() )->getAgents();
+
+	//agent->clearCloseNeighbors();
+	agentNeighbors.clear();
+
 	for(auto& id : idsAgents) {
-		neighbors.push_back(this->getAgent(id));
+		if(id != idAgent) {
+			Agent* neighbor;
+			neighbor = this->getAgent(id);
+
+			//agent->addCloseNeighbors(neighbor);
+
+			if( neighbor == NULL ) {
+				continue;
+			}
+
+
+			double dist = distance(agent, neighbor);
+			if(  dist < distanceMax && dist > 0 ) {
+				//agent->addCloseNeighbors(neighbor);
+				agentNeighbors.push_back(neighbor);
+			}
+
+
+			//if( isClose(agent, neighbor, distanceMax) ){
+			//	agent->addCloseNeighbors(neighbor);
+			//}
+
+		}
 	}
-	
-	/*
-	std::deque<Agent> results;
-	double dist=0.0;
-
-	this->_tree->find_within_range(_agent,_max_distance,std::back_inserter(results));
-
-	for (std::deque<Agent>::iterator it=results.begin(); it!=results.end(); ++it) {
-	    Agent agent=*it;
-	    if(agent.model()==_model){   
-	        dist=_agent.distance(agent);
-	        if(dist<=_max_distance)
-	            neighbors.push_back(agent);
-	    }
-	}
-	*/
-
-	return(neighbors);
 }
 
 /**
@@ -240,66 +328,56 @@ Agent::Neighbors Environment::getNeighborsOf(const uint32_t& idAgent) {
 *Este método es llamado por
 *el método Simulator::calibrate()
 *
-* @param void
+* @param calibrationTime: tiempo de calibración
 * @return void
 */
-void Environment::adjustAgentsInitialPosition(const uint32_t& calibrationTime){
+void Environment::adjustAgentsInitialPosition(const uint32_t& calibrationTime)
+{
 	//
 	// AJUSTE: PASO 1
 	//
 	std::cout << "...(1/2)" << std::endl;
-	
+
 	ProgressBar pg;
 	pg.start(this->getTotalAgents()-1);
-	
-	#pragma omp parallel for 
-	for(uint32_t i = 0; i < this->getTotalAgents(); i++){
-		if(g_showProgressBar){
+
+	#pragma omp parallel for
+	for(uint32_t i = 0; i < this->getTotalAgents(); i++) {
+		if(g_showProgressBar) {
 			pg.update(i);
 		}
-		
+
 		Agent* agent = this->getAgent(i);
-	
+
 		auto response = this->getRouter()->route(agent->position(),g_randomWalkwayRadius);
 		agent->_route = response.path();
 	}
 
-	if(g_showProgressBar){
+	if(g_showProgressBar) {
 		std::cout << std::endl;
 	}
-	
+
 	//
 	// AJUSTE: PASO 2
 	//
 	std::cout << "...(2/2)" << std::endl;
 	pg.start(calibrationTime-1);
 	for(uint32_t t = 0; t < calibrationTime; t++) {
-		if(g_showProgressBar){
+		if(g_showProgressBar) {
 			pg.update(t);
-		}	
+		}
 
-		#pragma omp parallel for 
-		for(uint32_t i = 0; i < this->getTotalAgents(); i++){
+		#pragma omp parallel for
+		for(uint32_t i = 0; i < this->getTotalAgents(); i++) {
 			Agent* agent = this->getAgent(i);
-			
-			if(agent->_route.empty()){
+
+			if(agent->_route.empty()) {
 				auto response = this->getRouter()->route(agent->position(),g_randomWalkwayRadius);
 				agent->_route = response.path();
 			}
-			agent->randomWalkway();
-			agent->setQuad();
+			agent->randomWalkwayForAdjustInitialPosition();
 		}
 	}
-	
-	//Actualizar ubicación de agentes en la grilla
-	#pragma omp parallel for
-	for(uint32_t i = 0; i < this->getTotalAgents(); i++){
-		Agent* agent = this->getAgent(i);
-		
-		#pragma omp critical
-		this->_agentsInQuad[agent->getQuad()].push_back(agent->id());
-	}
-	
 }
 
 /**
@@ -312,41 +390,82 @@ void Environment::adjustAgentsInitialPosition(const uint32_t& calibrationTime){
 * @param void
 * @return void
 */
-void Environment::adjustAgentsRules(){
+void Environment::adjustAgentsRules()
+{
 	ProgressBar pg;
 	pg.start(this->getTotalAgents()-1);
-	
-#pragma omp parallel for
-	for(uint32_t i = 0; i < this->getTotalAgents(); i++){
-		if(g_showProgressBar){
+
+	#pragma omp parallel for
+	for(uint32_t i = 0; i < this->getTotalAgents(); i++) {
+		if(g_showProgressBar) {
 			pg.update(i);
 		}
-			
+
 		Agent* agent = this->getAgent(i);
-		
+
 		switch(agent->model()) {
-			case SHORTESTPATH: {
-				double distance = DBL_MAX;
-				for(auto &reference_zone : this->getReferenceZones()) { 
-					auto response = this->getRouter()->route(agent->position(),reference_zone.generate());
-					if(response.distance() < distance) {
-						distance = response.distance();
-						agent->_route = response.path();
-					}
+		case ShortestPath: {
+			double distance = DBL_MAX;
+			Point2D  fooTarget;
+			for(auto &reference_zone : this->getReferenceZones()) {
+				/*
+				//VERSION 1 ORIGINAL
+				auto response = this->getRouter()->route(agent->position(),reference_zone.generate());
+				if(response.distance() < distance) {
+					distance = response.distance();
+					agent->_route = response.path();
+				}*/
+
+
+				//VERSION 2
+				// Por cada zona calcula en forma independiente la distancia agente-zona
+				// Una vez que se obtiene la zona más cercana, se calcula la ruta hacia
+				// ella.
+				// Se logra un SpeedUp de 1.3 comparado con la V1
+				/*
+				fooTarget = reference_zone.generate();
+				double fooDistance = this->getRouter()->distance(agent->position(), fooTarget);
+				if( fooDistance < distance ){
+					distance = fooDistance;
+					agent->setTargetPos(fooTarget);
 				}
-				break;
+				*/
+
+				//VERSION 3
+				// Similar a la C2, pero se basa en calcular la distancia
+				// entre el agente y una zona de referencia
+				// a través de la distancia euclideana. El error cometido es del orden
+				// del 18% para el mapa de Iquique, Q1=12.04, Q3=21.62.
+				// Se logra un SpeedUp de 2.8 comparado con la V1
+				fooTarget = reference_zone.generate();
+				double fooDistance = sqrt(CGAL::squared_distance(agent->position(), fooTarget));
+
+				if( fooDistance < distance ) {
+					distance = fooDistance;
+					agent->setTargetPos(fooTarget);
+				}
+
 			}
-			case RANDOMWALKWAY:  {					            
-				break;
-			}
-			case FOLLOWTHECROWD: break;
-			case WORKINGDAY: break;
-			default: {
-				std::cerr << "error::simulator_constructor::unknown_mobility_model::\"" << agent->model() << "\"" << std::endl;
-				exit(EXIT_FAILURE);
-			}
+
+			//VERSION 2, 3
+			auto response = this->getRouter()->route(agent->position(),agent->getTargetPos());
+			agent->_route = response.path();
+
+			break;
 		}
-						
+		case RandomWalkway:  {
+			break;
+		}
+		case FollowTheCrowd:
+			break;
+		case WorkingDay:
+			break;
+		default: {
+			std::cerr << "error::simulator_constructor::unknown_mobility_model::\"" << agent->model() << "\"" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+		}
+
 	}
 }
 
@@ -360,19 +479,92 @@ void Environment::adjustAgentsRules(){
 * @param void
 * @return void
 */
-void Environment::updateAgents(){
-		
-#pragma omp parallel for  //schedule(dynamic,8)  firstprivate(_router) shared(_env) 
-	for(uint32_t i = 0; i < this->getTotalAgents(); i++){	
-		
-		Agent* agent = this->getAgent(i);	
-		agent->update();				
-	
+void Environment::updateAgents()
+{
+
+	uint32_t totalAgents = this->getTotalAgents();
+
+	//Actualizar la posición de los agentes
+	#pragma omp parallel for //schedule (dynamic,8)
+	for(uint32_t i = 0; i < totalAgents; i++) {
+		//std::cout << i << std::flush << std::endl;
+		Agent* agent = this->getAgent(i);
+		agent->update();
 	}
-		
 }
 
-double Environment::distance(Agent a,Agent b){
-	return(sqrt(CGAL::squared_distance(a.position(),b.position())));
+/**
+* @brief Actualiza el estado de la grilla
+*
+*Cada agente que pertenezca al Environment,
+*actualiza los datos del cuadrante respectivo,
+*avisando a los patchAgents correspondientes.
+*Este método se llama después de updateAgents().
+*
+* @param void
+* @return void
+*/
+
+void Environment::updateQuads()
+{
+	uint32_t totalAgents = this->getTotalAgents();
+
+	#pragma omp parallel for //schedule (dynamic,8)
+	for(uint32_t i = 0; i < totalAgents; i++) {
+		Agent* agent = this->getAgent(i);
+		agent->updateQuad();
+	}
 }
 
+/**
+* @brief Actualiza las estadisticas de la simulacion
+*
+*Este método se llama después de updateQuads().
+*
+* @param void
+* @return void
+*/
+void Environment::updateStats()
+{
+	uint32_t totalAgents = this->getTotalAgents();
+
+	#pragma omp parallel for //schedule (dynamic,8)
+	for(uint32_t i = 0; i < totalAgents; i++) {
+		Agent* agent = this->getAgent(i);
+
+		for(auto& reference_zone : this->getReferenceZones() ) {
+			bool isInside;
+			isInside = reference_zone.pointIsInside(agent->position());
+
+			//#pragma omp critical
+			if(isInside) {
+				reference_zone.addAgent(agent->id());
+				reference_zone.updateAgentsDensity();
+			} else {
+				if(reference_zone.getAgentsDensity() > 0) {
+					reference_zone.deleteAgent(agent->id());
+					reference_zone.updateAgentsDensity();
+				}
+			}
+		}
+	}
+}
+
+
+double Environment::distance(Agent* a, Agent* b)
+{
+	return(sqrt(CGAL::squared_distance(a->position(),b->position())));
+}
+
+/*
+bool Environment::isClose(Agent* a, Agent* b, const double& distanceMax)
+{
+	uint32_t dx, dy;
+
+	dx = a->position()[0] - b->position()[0];
+	dy = a->position()[1] - b->position()[1];
+
+
+	return( (dx+dy) <=  (distanceMax + (dx*dy/distanceMax)) );
+}
+*/

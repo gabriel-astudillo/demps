@@ -2,15 +2,16 @@ CC=gcc
 CXX=g++
 RM=rm -f
 
-TARGET=../demps
+TARGET=../../sim/demps
 
-INCLUDES=-I/usr/local/include -I/usr/local/include/osrm -I../include
-LDFLAGS=-L/usr/local/lib
-LDLIBS=-lGeographic -lCGAL -losrm -lboost_system -lboost_filesystem -lboost_iostreams -lboost_thread -lrt -ltbb -lpthread -fopenmp -lgmp
 
-CXXFLAGS=-std=c++14 -Wall -O3 -fopenmp
+INCLUDES=-I/usr/local/include -I/usr/local/include/osrm -I./include 
+LDFLAGS=-L/usr/local/lib 
+LDLIBS=-lGeographic -lCGAL -losrm -lboost_system -lboost_filesystem -lboost_iostreams -lboost_thread -lrt -lpthread -fopenmp -lgmp
 
-DIR_OBJ=../obj
+CXXFLAGS=-std=c++14 -Wall -O2 -fopenmp
+
+DIR_OBJ=objs
 
 SRCS=$(wildcard *.cc)
 
@@ -23,14 +24,15 @@ $(TARGET): $(OBJS)
 	$(CXX) -o $@ $^ $(CXXFLAGS) $(LDLIBS) $(LDFLAGS) 
 
 $(DIR_OBJ)/%.o: %.cc
+	@mkdir -p $(DIR_OBJ)
 	$(CXX) -c -o $@ $< $(CXXFLAGS) $(INCLUDES)
 
 clean:
-	$(RM) $(OBJS)
-	$(RM) *~
+	@$(RM) $(OBJS)
+	@$(RM) *~ core
 
 distclean: clean
-	$(RM) $(TARGET)
+	@$(RM) $(TARGET)
 
 .PHONY: all clean distclean
 	
