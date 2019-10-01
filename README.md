@@ -1,6 +1,13 @@
 # DEMPS
 Disaster Evacuation and Mobility Patterns Simulator
 
+Este simulador implementa movimientos de personas dentro de una ciudad costera, en el caso de una evacuación de los habitantes hacia las zonas seguras que pueda tener dicho lugar.
+
+Archivos:
+* area.geojson : zona geográfica a simular
+* initial_zones.geojson : zonas iniciales donde los habitantes se crean
+* reference_zones.geojson : zonas de encuentro. Son los lugares donde las personas deben llegar en caso de evacuación.
+
 # Cómo usar
 
 Para utilizar el simulador, se puede ocupar el ejecutable estático disponible dentro del directorio ```sim```. Hay que renombrarlo a ```demps```y ejecutar el script ```run.sh``` para invocarlo correctamente.
