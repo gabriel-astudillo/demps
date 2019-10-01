@@ -1,6 +1,6 @@
 SRC=src
-RESULTS_SIM=results/stats/* results/agents/*
-RESULTS_IMG=scripts/visualizador-offline/mapimages_sim/*
+RESULTS_SIM=sim/results/stats/* results/agents/*
+RESULTS_IMG=sim/scripts/visualizador-offline/mapimages_sim/*
 
 default: all
 
