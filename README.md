@@ -1,5 +1,5 @@
 # DEMPS
-Disaster Evacuation and Mobility Patterns Simulator
+**D**isaster **E**vacuation and **M**obility **P**atterns **S**imulator
 
 Este simulador implementa movimientos de personas dentro de una ciudad costera, en el caso de una evacuación de los habitantes hacia las zonas seguras que pueda tener dicho lugar.
 
