@@ -1,5 +1,10 @@
 # Dependencias
 
+
+## JQ
+
+Utilitario de línea de comando para procesar archivos JSON. Ver https://stedolan.github.io/jq/.
+
 ## JSON
 
 JSON for Modern C++: https://github.com/nlohmann/json
@@ -42,26 +47,24 @@ En el linker, agregar ```-lCGAL```.
 
 ## OSRM backend
 
-Open Source Routing Machine: The OpenStreetMap Data Routing Engine, http://project-osrm.org
+Open Source Routing Machine: The OpenStreetMap Data Routing Engine, http://project-osrm.org. Dependencias: ```libtbb-dev```, ```libbz2-dev```, ```liblua5.3-dev```, ```libexpat1-dev```. Sitio original https://github.com/Project-OSRM/osrm-backend/wiki/Building-OSRM
 
-1) Bajar de https://github.com/Project-OSRM/osrm-backend/releases, descomprimir y entrar al directorio respectivo.
+1) Bajar de https://github.com/Project-OSRM/osrm-backend/releases, descomprimir y entrar al directorio respectivo. Los mapas están procesados en base a la versión 5.18.0.
 2) Compilar e instalar. Por omisión, ```--prefix=/usr/local```:
 ```
 mkdir build
 cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release (!)
-cmake --build .
-cmake --build . --target intall  (!!)
+cmake .. -DCMAKE_BUILD_TYPE=Release  (!)
+cmake --build .                      (!!)
+cmake --build . --target install     (!!!)
 ```
-(!) Este proceso necesita al menos 3GB en RAM.
+(!)  ```cmake .. -DCMAKE_INSTALL_PREFIX=/ruta/instalacion  -DCMAKE_BUILD_TYPE=Release```
 
-(!!) Necesita permisos de superusario.
+(!!) Este proceso necesita al menos 3GB en RAM.
+
+(!!!) Necesita permisos de superusario.
 
 En el linker, agregar ```-losrm```.
-
-## Observaciones
-
-Esta versión no depende de la librería kdtree
 
 
 
