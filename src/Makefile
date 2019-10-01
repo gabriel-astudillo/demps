@@ -2,7 +2,7 @@ CC=gcc
 CXX=g++
 RM=rm -f
 
-TARGET=../../sim/demps
+TARGET=../sim/demps
 
 
 INCLUDES=-I/usr/local/include -I/usr/local/include/osrm -I./include 
