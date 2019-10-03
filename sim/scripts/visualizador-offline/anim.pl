@@ -17,17 +17,19 @@ use Tk::MultiMediaControls;
 my $base_path = dirname(abs_path($0));
 require "$base_path/global.pm";
 
-
+my $sim_img_results_path = "$base_path/$global::sim_img_results_directory/";
 
 # Las imagenes a cargar están definidas en
 # $global::sim_img_results_directory
 
-if (! -e $global::sim_img_results_directory) {
-	die "Directorio $global::sim_img_results_directory no existe.\n";
+if (! -e $sim_img_results_path) {
+	die "Directorio $sim_img_results_path no existe.\n";
 }
 
+
+
 my @files;
-opendir(DIR,$global::sim_img_results_directory);
+opendir(DIR,$sim_img_results_path);
 my @files = grep { /\.png$/}  readdir(DIR);
 closedir(DIR);
 @files = sort {$a <=> $b}  @files;
@@ -41,7 +43,7 @@ my $animate;
 $animate = $main->Animation;
 
 foreach (@files) {
-        $animate->add_frame($main->Photo(-file => $global::sim_img_results_directory . $_));
+        $animate->add_frame($main->Photo(-file => $sim_img_results_path . $_));
     }
 
 $animate->set_image(0);
