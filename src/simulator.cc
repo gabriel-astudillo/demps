@@ -27,11 +27,12 @@ Simulator::Simulator(const json &_fsettings,const json &_finitial_zones,const js
 
 	_duration        = this->_fsettings["duration"];
 	_calibrationTime = this->_fsettings["calibration"].get<uint32_t>();
-	_saveToDisk      = this->_fsettings["output"]["filesim-out"].get<bool>();
+	_saveToDisk      = this->_fsettings["output"]["agents-out"].get<bool>();
 	_interval        = this->_fsettings["output"]["interval"].get<uint32_t>();
-	_filesimPrecision = this->_fsettings["output"]["filesim-precision"].get<uint32_t>();
-	_filesimSufix    = this->_fsettings["output"]["filesim-sufix"].get<std::string>();
-	_filesimPath     = g_baseDir + this->_fsettings["output"]["filesim-path"].get<std::string>();
+	_filesimPrecision = this->_fsettings["output"]["agents-precision"].get<uint32_t>();
+	_filesimSufix    = this->_fsettings["output"]["agents-sufix"].get<std::string>();
+	_filesim         = this->_fsettings["output"]["agents-path"].get<std::string>();
+	_filesimPath     = g_baseDir + _filesim;
 	_statsOut        = this->_fsettings["output"]["stats-out"].get<bool>();
 	_statsInterval   = this->_fsettings["output"]["stats-interval"].get<uint32_t>();
 	_statsPath       = g_baseDir + this->_fsettings["output"]["stats-path"].get<std::string>();
@@ -168,7 +169,7 @@ void Simulator::run()
 	ProgressBar pg;
 	pg.start(_duration-1);
 
-	for(g_currTimeSim = 0; g_currTimeSim < _duration; g_currTimeSim++) {
+	for(g_currTimeSim = 0; g_currTimeSim <= _duration; g_currTimeSim++) {
 
 		if(g_showProgressBar) {
 			pg.update(g_currTimeSim);
@@ -208,6 +209,26 @@ void Simulator::run()
 		for(auto& item : g_logZonesDensity) {
 			ofs << item << std::endl;
 		}
+	}
+	
+	if(_saveToDisk){
+		json animacionConfig = {
+			{"pathFileSim", "agents/"},
+			{"frameMin", 0},
+			{"frameMax", _duration},
+			{"frameStep", _interval},
+			{"input",{
+				{"area"            , "input/area.geojson"},
+				{"initial_zones"   , "input/initial_zones.geojson"},
+				{"reference_zones" , "input/reference_zones.geojson"}
+			}}
+		};
+		
+		std::ofstream ofs(_fsettings["output"]["anim-config"].get<std::string>());
+		
+		ofs << animacionConfig.dump(4) << std::endl;
+		
+		
 	}
 }
 
