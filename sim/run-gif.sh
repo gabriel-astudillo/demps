@@ -3,16 +3,15 @@
 BASEDIR=$(readlink -f $0)
 BASEDIR=$(dirname $BASEDIR)
 
-RM_CMD="$(which rm) -f"
-CP_CMD="$(which cp)"
-MKDIR_CMD="$(which mkdir)"
-
 ulimit -c unlimited
 rm -f core
 
 DEMPS_BIN="./demps"
-DEMPS_CONFIG="./iquique.config"
-#DEMPS_CONFIG="./valpo.config"
+#DEMPS_CONFIG="./iquique.config"
+DEMPS_CONFIG="./valpo.config"
+MAKE_MAPS_SCRIPT="./scripts/visualizador-offline/run-make_maps.sh"
+
+CREATE_GIF="true"
 
 #### CONFIGURACION ####
 DEMPS_PATH=$BASEDIR/$DEMPS_BIN 
@@ -20,6 +19,15 @@ DEMPS_PATH=$BASEDIR/$DEMPS_BIN
 if [[ ! -e $DEMPS_PATH  ]]; then
 	echo "Error: $DEMPS_PATH no existe"
 	exit 1
+fi
+
+MAKE_MAPS_SCRIPT_PATH=$BASEDIR/$MAKE_MAPS_SCRIPT
+
+if [[ ! -e $MAKE_MAPS_SCRIPT_PATH  ]]; then
+	echo "Error: Script $MAKE_MAPS_SCRIPT_PATH no existe. DISABILITADO."
+	MAKE_MAPS_DISABLE=1
+else
+	MAKE_MAPS_DISABLE=0
 fi
 
 DEMPS_CONFIG_PATH="$BASEDIR/$DEMPS_CONFIG"
@@ -47,41 +55,27 @@ fi
 
 
 DEMPS_OPTS="-s $DEMPS_CONFIG_PATH $*"
-
-RESULTS_DIR=$(cat $DEMPS_CONFIG_PATH | $JQ_PATH -r '.output."results-path"')
+RESULTS_DIR=$(cat $DEMPS_CONFIG_PATH | $JQ_PATH -r '.output."agents-path"')
 RESULTS_DIR_PATH=$BASEDIR/$RESULTS_DIR
-
-AGENTS_DIR=$(cat $DEMPS_CONFIG_PATH | $JQ_PATH -r '.output."agents-path"')
-AGENTS_DIR_PATH=$BASEDIR/$AGENTS_DIR
 
 STATS_DIR=$(cat $DEMPS_CONFIG_PATH | $JQ_PATH -r '.output."stats-path"')
 STATS_DIR_PATH=$BASEDIR/$STATS_DIR
 
-if [[ ! -e $AGENTS_DIR_PATH ]]; then
-	mkdir -p $AGENTS_DIR_PATH
+if [[ ! -e $RESULTS_DIR_PATH ]]; then
+	mkdir -p $RESULTS_DIR_PATH
 fi
 
 if [[ ! -e $STATS_DIR_PATH ]]; then
 	mkdir -p $STATS_DIR_PATH
 fi
 
-#Copiar los archivos input/*geojosn a RESULTS_DIR
-#(necesarios para la visualizacion)
-INPUT_PATH=$(cat $DEMPS_CONFIG_PATH | $JQ_PATH -r '.input."input-path"')
+RESULTS_FILES="$RESULTS_DIR_PATH/* $STATS_DIR_PATH/*"
 
-$MKDIR_CMD -p $RESULTS_DIR/input/
-$CP_CMD $INPUT_PATH/*.geojson $RESULTS_DIR/input/
-
-$CP_CMD input/animacion.html $RESULTS_DIR/
-
-
-RESULTS_FILES="$AGENTS_DIR_PATH/* $STATS_DIR_PATH/*"
-
-#FILESIM_OUT=$(cat $DEMPS_CONFIG_PATH | $JQ_PATH -r '.output."agents-out"')
-#CREATE_GIF=$(cat $DEMPS_CONFIG_PATH | $JQ_PATH -r '.output."create-gif"')
+FILESIM_OUT=$(cat $DEMPS_CONFIG_PATH | $JQ_PATH -r '.output."agents-out"')
 THREADS=$(cat $DEMPS_CONFIG_PATH | $JQ_PATH -r '.threads')
 
 
+RM_CMD="$(which rm) -f"
 
 #### MAIN ####
 printf "DEMPS_CONFIG_PATH=%s\n" "$DEMPS_CONFIG_PATH"
@@ -94,3 +88,11 @@ echo "Ejecutando DEMPS..."
 #export OMP_SCHEDULE='schedule(guided,8)'
 $DEMPS_PATH $DEMPS_OPTS
 
+#SI FILESIM_OUT==true AND CREATE_GIF==true ==> crear gif animado
+# $BASEDIR/scripts/visualizador-offline/run-make_maps.sh
+
+if [[ $? -eq 0 && $FILESIM_OUT == "true" &&  $CREATE_GIF == "true" && ($MAKE_MAPS_DISABLE -eq 0) ]]; then
+	echo "Creando gif animado de la simulación..."
+	echo $MAKE_MAPS_SCRIPT_PATH $RESULTS_DIR_PATH
+	$MAKE_MAPS_SCRIPT_PATH $RESULTS_DIR_PATH
+fi
