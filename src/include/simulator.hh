@@ -25,6 +25,7 @@ private:
 	uint32_t    _interval;
 	uint32_t    _filesimPrecision; //Precision ENU->WSG84
 	std::string _filesimSufix;
+	std::string _filesim;
 	std::string _filesimPath;
 	std::string _statsPath;
 
