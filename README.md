@@ -64,7 +64,7 @@ chmod +x download.py
 
 # Visualización de la simulación
 
-Los resultados de la simulación se almacenan en el directorio ```output/CiudadX```, el que tiene la siguiente estructura:
+Los resultados de la simulación se almacenan en el directorio ```sim/output/CiudadX```, el que tiene la siguiente estructura:
 
 * ```agents/```: directorio que contiene el movimiento de las personas.
 * ```agents/<Tn.txt>```: archivo que contiene la posición geográfica de todas las personas simuladas, en el instante de simulación 'Tn'. Cada línea tiene la siguiente estructura:
@@ -82,7 +82,7 @@ Los resultados de la simulación se almacenan en el directorio ```output/CiudadX
 * ```animacion.html``` : Animación del movimiento de los peatones utilizando MapboxGL JS https://docs.mapbox.com/mapbox-gl-js/api/
 * ```animacion.config.json```: archivo de configuración utilizado por el archivo anterior.
   
-Para visualizar la animación, el archivo ```animacion.html``` debe ser accedido a través de un seridor web.
+Para visualizar la animación, el archivo ```animacion.html``` debe ser accedido a través de un servidor web.
                                    
 
 
