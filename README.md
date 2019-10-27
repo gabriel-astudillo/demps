@@ -58,7 +58,7 @@ chmod +x run.sh
 Los resultados de la simulación se almacenan en el directorio ```output/CiudadX```, el que tiene la siguiente estructura:
 
 * ```agents/```: directorio que contiene el movimiento de las personas.
-* ```agents/<Tb.txt>```: archivo que contiene la posición geográfica de todas las personas simuladas, en el instante de simulación 'Tn'. Cada línea tiene la siguiente estructura:
+* ```agents/<Tn.txt>```: archivo que contiene la posición geográfica de todas las personas simuladas, en el instante de simulación 'Tn'. Cada línea tiene la siguiente estructura:
 
 ```
 <IDpersona> <latitud> <longitud> <TipoPersona> 
@@ -70,8 +70,10 @@ Los resultados de la simulación se almacenan en el directorio ```output/CiudadX
 * ```input/area.geojson``` : zona geográfica a simular.
 * ```input/initial_zones.geojson``` : zonas iniciales donde los habitantes se crean.
 * ```input/reference_zones.geojson``` : zonas de encuentro. Son los lugares donde las personas deben evacuar.
-
+* ```animacion.html``` : Animación del movimiento de los peatones utilizando MapboxGL JS https://docs.mapbox.com/mapbox-gl-js/api/
+* ```animacion.config.json```: archivo de configuración utilizado por el archivo anterior.
   
+Para visualizar la animación, el archivo ```animacion.html``` debe ser accedido a través de un seridor web.
                                    
 
 
