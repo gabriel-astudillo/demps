@@ -53,6 +53,15 @@ chmod +x run.sh
 ./run.sh
 ```
 
+3) Si instaló una versión de OSRM > 5.18, entonces debe procesar nuevamente los mapas de la ciudades. Por ejemplo, para procesar el mapa de iquique, se debe hacer:
+
+```
+cd sim/input/iquique
+chmod +x download.py
+./download.py area.geojson
+```
+
+
 # Visualización de la simulación
 
 Los resultados de la simulación se almacenan en el directorio ```output/CiudadX```, el que tiene la siguiente estructura:
