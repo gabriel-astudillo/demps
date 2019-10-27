@@ -53,3 +53,28 @@ chmod +x run.sh
 ./run.sh
 ```
 
+# Visualización de la simulación
+
+Los resultados de la simulación se almacenan en el directorio ```output/CiudadX```, el que tiene la siguiente estructura:
+
+* ```agents/```: directorio que contiene el movimiento de las personas.
+* ```agents/<Tb.txt>```: archivo que contiene la posición geográfica de todas las personas simuladas, en el instante de simulación 'Tn'. Cada línea tiene la siguiente estructura:
+
+```
+<IDpersona> <latitud> <longitud> <TipoPersona> 
+  IDpersona  : {0,1,2,3,...}
+  TipoPersona: {0,1,2}
+```
+
+* ```input/```: directorio con la configuración geográfica de la simulación.
+* ```input/area.geojson``` : zona geográfica a simular.
+* ```input/initial_zones.geojson``` : zonas iniciales donde los habitantes se crean.
+* ```input/reference_zones.geojson``` : zonas de encuentro. Son los lugares donde las personas deben evacuar.
+
+  
+                                   
+
+
+
+
+
