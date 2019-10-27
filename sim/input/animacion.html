@@ -268,7 +268,7 @@
 		//Source y layer para agentes tipo == 2
 		map.addSource('datos_type2',{
 			"type": 'geojson',
-			"data": geoJson
+			"data": geoJson_type2
 		});
 		
 		map.addLayer({
@@ -340,7 +340,6 @@
 	function play(){
 		if (dots.length!=0){
 			//Forma A) utilizar setInterval()
-			//.        Falta averiguar como chucha parar esto... :/
 			interval=setInterval(function(){
 				loop();
 			}, stepFrame);
