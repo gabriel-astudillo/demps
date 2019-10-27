@@ -1,6 +1,5 @@
 SRC=src
-RESULTS_SIM=sim/results/stats/* results/agents/*
-RESULTS_IMG=sim/scripts/visualizador-offline/mapimages_sim/*
+RESULTS_SIM=sim/output
 
 default: all
 
@@ -14,6 +13,5 @@ clean:
 distclean: clean
 	@cd $(SRC) && make distclean
 	@rm -f $(RESULTS_SIM)
-	@rm -f $(RESULTS_IMG)
 
 .PHONY: all clean distclean
