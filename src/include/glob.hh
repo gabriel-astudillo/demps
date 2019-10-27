@@ -109,6 +109,8 @@ extern uint32_t g_currTimeSim;
 extern std::string g_baseDir;
 extern uint32_t g_AgentsMem;
 
+extern float g_deltaT;
+
 //Variables globales para medir tiempo
 extern uint32_t g_timeExecMakeAgents;
 extern uint32_t g_timeExecCal;
