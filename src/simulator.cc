@@ -44,7 +44,7 @@ Simulator::Simulator(const json &_fsettings,const json &_finitial_zones,const js
 	g_closeEnough         = this->_fsettings["closeEnough"].get<float>();
 	g_randomWalkwayRadius = this->_fsettings["randomWalkwayRadius"].get<float>();
 	g_attractionRadius    = this->_fsettings["attractionRadius"].get<float>();
-
+	g_deltaT              = this->_fsettings["deltaT"].get<float>();
 
 	//Tamaño del cuadrante
 	uint32_t quadSize = this->_fsettings["quadSize"].get<uint32_t>(); //quadSize[m] x quadSize[m]
@@ -217,6 +217,7 @@ void Simulator::run()
 			{"frameMin", 0},
 			{"frameMax", _duration},
 			{"frameStep", _interval},
+			{"deltaT", g_deltaT},
 			{"input",{
 				{"area"            , "input/area.geojson"},
 				{"initial_zones"   , "input/initial_zones.geojson"},
@@ -227,7 +228,6 @@ void Simulator::run()
 		std::ofstream ofs(_fsettings["output"]["anim-config"].get<std::string>());
 		
 		ofs << animacionConfig.dump(4) << std::endl;
-		
 		
 	}
 }

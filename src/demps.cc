@@ -12,6 +12,8 @@ float g_attractionRadius;
 uint32_t g_epochInitSim;
 uint32_t g_currTimeSim;
 
+float    g_deltaT;
+
 uint32_t g_AgentsMem;
 
 uint32_t g_timeExecMakeAgents;

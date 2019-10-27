@@ -322,7 +322,7 @@ void Agent::followPath()
 		_direction = scale(direction);
 
 		Vector2D DrivingForce = Vector2D(0.0,0.0);
-		double   deltaT       = 1.0;//[s]
+		//double   deltaT       = 1.0;//[s]
 
 		//Eq (2)
 		//Helbing, D., & Molnar, P. (1998).
@@ -330,12 +330,12 @@ void Agent::followPath()
 		DrivingForce = (_disiredSpeed * _direction - _currVelocity) / _timeRelax;
 		
 		// Por omisión, sólo actúa la fuerza DrivingForce
-		_currVelocity += agentFactor * DrivingForce * deltaT;
+		_currVelocity += agentFactor * DrivingForce * g_deltaT;
 
 		// Si a la actual velocidad, el agente va llegar al destino del tramo en menos
-		// de deltaT tiempo, entonces se descarta el destino del tramo y se continua con el siguiente
+		// de g_deltaT tiempo, entonces se descarta el destino del tramo y se continua con el siguiente
 		// destino de la ruta.
-		if( dist / sqrt(_currVelocity.squared_length()) < deltaT ){
+		if( dist / sqrt(_currVelocity.squared_length()) < g_deltaT ){
 			_route.pop_front();
 			continue;
 		}
@@ -385,17 +385,21 @@ void Agent::followPath()
 				// Determinar directionDependentWeight
 				uint8_t directionDependentWeight = 1;
 
-				if(CGAL::scalar_product(_direction, -repulsiveEfect) >= strengthRepulsiveEfect*_cosPhi) {
+				//if(CGAL::scalar_product(_direction, -repulsiveEfect) >= strengthRepulsiveEfect*_cosPhi) {
+				//REVISAR ESTO ...OK
+				if(CGAL::scalar_product(_direction, repulsiveEfect) >= strengthRepulsiveEfect*_cosPhi) {
 					directionDependentWeight = 1;
 				} else {
 					directionDependentWeight = 0.5;
 				}
 				totalRepulsiveEfect += repulsiveEfect * directionDependentWeight;
+				//totalRepulsiveEfect += repulsiveEfect;
 			}
 			
 			//std::cout << g_currTimeSim << ": " <<  this->id() << ", totalRepulsiveEfect=>" << totalRepulsiveEfect << std::endl;
 
-			_currVelocity += agentFactor * (DrivingForce + totalRepulsiveEfect) * deltaT;
+			//_currVelocity += agentFactor * (DrivingForce + totalRepulsiveEfect) * g_deltaT;
+			_currVelocity += agentFactor * (totalRepulsiveEfect) * g_deltaT;
 		}
 
 		//Se limita la velocidad según Eq (11) y (12)
@@ -412,7 +416,7 @@ void Agent::followPath()
 		}
 
 		//Finalmente, se actualiza la posición del agente
-		_position += _currVelocity * deltaT;
+		_position += _currVelocity * g_deltaT;
 		
 		//Actualizar el vector _direction
 		dist = sqrt(CGAL::squared_distance(_position, dst));
