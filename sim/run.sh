@@ -72,7 +72,7 @@ INPUT_PATH=$(cat $DEMPS_CONFIG_PATH | $JQ_PATH -r '.input."input-path"')
 $MKDIR_CMD -p $RESULTS_DIR/input/
 $CP_CMD $INPUT_PATH/*.geojson $RESULTS_DIR/input/
 
-$CP_CMD input/animacion.html $RESULTS_DIR/
+$CP_CMD input/animacion*.html $RESULTS_DIR/
 
 
 RESULTS_FILES="$AGENTS_DIR_PATH/* $STATS_DIR_PATH/*"
