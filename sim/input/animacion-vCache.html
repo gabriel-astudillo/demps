@@ -25,7 +25,7 @@
 <body >
 <div >
 	<div>
-		<button style="float:left" onclick="play()">Play</button>
+		<button id="playBtn" style="float:left" onclick="play()" disabled>Play</button>
 	</div>
 	<div>
 		<button style="float:left" onclick="stop()">Stop</button>
@@ -34,10 +34,10 @@
 		<button style="float:left" onclick="resetPlay()">Reset</button>
 	</div>
 	<div>
-		<button style="float:left" onclick="backwardFrame()">Frame--</button>
+		<button id="revBtn" style="float:left" onclick="backwardFrame()" disabled> Frame--</button>
 	</div>
 	<div>
-		<button style="float:left" onclick="forwardFrame()">Frame++</button>
+		<button id="forwBtn" style="float:left" onclick="forwardFrame()" disabled>Frame++</button>
 	</div>
 
 	<div style="float:left">Nro Frame: </div><div id="frame" style="float:left"></div>
@@ -295,6 +295,10 @@
 		}
 		
 		frameNumber = 0;
+		
+		document.getElementById("playBtn").disabled = false;
+		document.getElementById("revBtn").disabled = false;
+		document.getElementById("forwBtn").disabled = false;
 	}
 	
 	
