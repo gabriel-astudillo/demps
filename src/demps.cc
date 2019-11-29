@@ -23,6 +23,7 @@ uint32_t g_timeExecSim;
 std::string g_baseDir;
 
 std::vector<std::string> g_logZonesDensity;
+std::vector<uint32_t> g_logUsePhone;
 
 std::map<std::string, model_t> model_map = {
 	{"ShortestPath",   ShortestPath},
@@ -139,7 +140,8 @@ int main(int argc,char** argv)
 	g_timeExecCal        = 0;
 	g_timeExecSim        = 0;
 
-
+	
+	
 	Simulator sim(settings, initial_zones, reference_zones, area_zone, map_osrm);
 
 	omp_set_num_threads( settings["threads"].get<uint32_t>() );

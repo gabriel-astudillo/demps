@@ -402,6 +402,9 @@ void Environment::adjustAgentsRules()
 		}
 
 		Agent* agent = this->getAgent(i);
+		
+		//Ajustar la primera vez que utlizará el teléfono
+		agent->setNextTimeUsePhone();
 
 		switch(agent->model()) {
 		case ShortestPath: {
@@ -528,7 +531,7 @@ void Environment::updateStats()
 {
 	uint32_t totalAgents = this->getTotalAgents();
 
-	#pragma omp parallel for //schedule (dynamic,8)
+	//#pragma omp parallel for //schedule (dynamic,8)
 	for(uint32_t i = 0; i < totalAgents; i++) {
 		Agent* agent = this->getAgent(i);
 
@@ -547,6 +550,8 @@ void Environment::updateStats()
 				}
 			}
 		}
+	
+		g_logUsePhone[g_currTimeSim] += agent->getUsingPhone();
 	}
 }
 

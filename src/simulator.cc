@@ -106,6 +106,8 @@ Simulator::Simulator(const json &_fsettings,const json &_finitial_zones,const js
 			                         position,\
 			                         fagent["speed"]["min"],\
 			                         fagent["speed"]["max"],\
+									 fagent["useRatePhone"].get<double>(),\
+									 fagent["probUsePhoneConst"].get<double>(),\
 			                         SocialForceModel,\
 			                         modelID\
 			                        )\
@@ -161,6 +163,8 @@ void Simulator::calibrate(void)
 
 void Simulator::run()
 {
+	g_logUsePhone.resize(_duration+1);
+	
 	std::cout << "Simulando..." << std::endl;
 
 	g_epochInitSim = std::chrono::duration_cast<std::chrono::seconds>
@@ -168,16 +172,20 @@ void Simulator::run()
 
 	ProgressBar pg;
 	pg.start(_duration-1);
+	
+	//Tiempo 0 equivale a las posiciones iniciales
+	g_currTimeSim = 0;
+	this->savePositionAgents();
 
-	for(g_currTimeSim = 0; g_currTimeSim <= _duration; g_currTimeSim++) {
+	for(g_currTimeSim = 1; g_currTimeSim <= _duration; g_currTimeSim++) {
 
 		if(g_showProgressBar) {
 			pg.update(g_currTimeSim);
 		}
 
-		if(_saveToDisk && ((g_currTimeSim % _interval) == 0)) {
+		/*if(_saveToDisk && ((g_currTimeSim % _interval) == 0)) {
 			this->savePositionAgents();
-		}
+		}*/
 
 		auto start = std::chrono::high_resolution_clock::now(); //Measure Time
 
@@ -187,6 +195,11 @@ void Simulator::run()
 		auto end = std::chrono::high_resolution_clock::now(); //Measure Time
 		auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
 		g_timeExecSim += elapsed.count();
+		
+		
+		if(_saveToDisk && ((g_currTimeSim % _interval) == 0)) {
+			this->savePositionAgents();
+		}
 
 		if(_statsOut && ((g_currTimeSim % _statsInterval) == 0)) {
 			_env->updateStats();
@@ -209,6 +222,16 @@ void Simulator::run()
 		for(auto& item : g_logZonesDensity) {
 			ofs << item << std::endl;
 		}
+		ofs.close();
+		
+		pathFile = _statsPath + "/usePhone.txt" ;
+		ofs.open(pathFile);
+		
+		for(uint32_t timeSim = 0; timeSim <= _duration; timeSim += _statsInterval){
+			ofs << std::to_string(timeSim) << " " << std::to_string(g_logUsePhone[timeSim]) << std::endl;
+		}
+		ofs.close();
+		
 	}
 	
 	if(_saveToDisk){
@@ -253,6 +276,10 @@ void Simulator::savePositionAgents()
 			ofs << agent->id() << " "
 			    << std::fixed << std::setprecision(_filesimPrecision) << latitude << " " << longitude
 			    << " " << agent->model()
+				<< " " << agent->getNextTimeUsePhone()
+				<< " " << agent->getProbUsePhone()
+					<< " " << agent->getAgentNeighborsSize()
+				<< " " << agent->getUsingPhone()
 			    << std::endl;
 		}
 	} else if(_filesimSufix == "geojson") {

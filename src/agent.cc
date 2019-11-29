@@ -8,7 +8,10 @@ Agent::Agent(void)
 	this->_quad = 0;
 }
 
-Agent::Agent(const uint32_t &_id, const Point2D &_position, const double &_min_speed, const double &_max_speed, const json& SocialForceModel, const model_t &_model)
+Agent::Agent(const uint32_t &_id, \
+	const Point2D &_position, const double &_min_speed, const double &_max_speed, \
+	const double &_useRatePhone, const double &_probUsePhoneConst,\
+	const json& SocialForceModel, const model_t &_model)
 {
 	this->_id        = _id;
 	this->_min_speed = _min_speed;
@@ -19,6 +22,12 @@ Agent::Agent(const uint32_t &_id, const Point2D &_position, const double &_min_s
 
 	this->_targetPos = Point2D(-666.6,-666.6);
 	this->_quad = this->determineQuad(); //AKA setQuad()
+	
+	this->_lambda = 1.0/_useRatePhone;
+	this->_probUsePhoneConst = _probUsePhoneConst;
+	this->_usingPhone = 0;
+	this->_probUsePhone = 0.0;
+	
 
 
 	//Establecer la velocidad del agente
@@ -184,7 +193,7 @@ model_t Agent::model(void) const
 
 void Agent::update()
 {
-
+	
 
 	// El agente debe avanzar según su
 	// modelo de movilidad
@@ -217,6 +226,38 @@ void Agent::update()
 	case SNITCH:
 		break;
 	}
+	
+	//Determina cuándo es el instante de tiempo
+	//que debe "pensar" en utilizar su telefóno
+	
+	if( g_currTimeSim >= this->getNextTimeUsePhone() ){
+		//Saca el telefono
+			
+		_probUsePhone = exp(-(double)_agentNeighbors.size() / _probUsePhoneConst);
+		
+		std::random_device _randomDevice;
+		std::uniform_real_distribution<> unifDistro(0.0, 1.0);
+		double unifNumber = unifDistro(_randomDevice); 
+
+		
+		//Ve si realmente lo va a utilizar
+		//if(_agentNeighbors.size() <= 5 && !_route.empty() ) {
+		if(unifNumber <= _probUsePhone && !_route.empty() ) {
+			this->setUsingPhone(1);
+		
+		}
+		else{
+			this->setUsingPhone(0);
+		}
+		
+		//Actualiza el instante de tiempo cuando debe sacar el telefono
+		this->setNextTimeUsePhone();
+		
+	}
+	else{
+		this->setUsingPhone(0);
+	}
+	
 
 }
 
@@ -348,17 +389,18 @@ void Agent::followPath()
 
 		
 
-		Agent::Neighbors agentNeighbors;
-		_myEnv->setNeighborsOf(this->id(), g_attractionRadius, agentNeighbors);
-		//std::cout << g_currTimeSim << ": " <<  this->id() << ", Neighbors=>" << agentNeighbors.size() << std::endl;
+		//Agent::Neighbors agentNeighbors;
+		
+		_myEnv->setNeighborsOf(this->id(), g_attractionRadius, _agentNeighbors);
+		//std::cout << g_currTimeSim << ": " <<  this->id() << ", Neighbors=>" << _agentNeighbors.size() << std::endl;
 
-		if( agentNeighbors.size() > 0 ){
+		if( _agentNeighbors.size() > 0 ){
 			// Si hay vecinos, se debe considerar la SocialForce
 			Vector2D totalRepulsiveEfect = Vector2D(0.0,0.0);
 
 			// Determinar el efecto repulsivo por cada
 			// vecino cercano, y agregarlo al total
-			for(auto& fooAgent : agentNeighbors) {
+			for(auto& fooAgent : _agentNeighbors) {
 
 				if( fooAgent == NULL || fooAgent == this ) {
 					continue;
@@ -540,5 +582,50 @@ double Agent::distanceTo(Agent* _agent) const
 	return(sqrt(CGAL::squared_distance(this->_position,_agent->_position)));
 }
 
+void Agent::setLambda(double L)
+{
+	_lambda = L;
+}
+
+double Agent::getLambda()
+{
+	return(_lambda);
+}
+
+void Agent::setNextTimeUsePhone()
+{
+	std::random_device _randomDevice;
+	std::exponential_distribution<double> expoDistro(_lambda);
+	
+	_nextTimeUsePhone = g_currTimeSim + expoDistro(_randomDevice); //
+	
+}
+
+double Agent::getNextTimeUsePhone()
+{
+	return(_nextTimeUsePhone);
+	
+}
+
+double Agent::getProbUsePhone()
+{	
+	return(_probUsePhone);
+}
+
+void Agent::setUsingPhone(uint16_t u)
+{
+	_usingPhone = u;
+}
+
+uint16_t Agent::getUsingPhone()
+{
+	return(_usingPhone);
+}
+
+int Agent::getAgentNeighborsSize()
+{
+	return(_agentNeighbors.size() );
+	
+}
 
 
