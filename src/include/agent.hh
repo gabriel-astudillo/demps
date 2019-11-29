@@ -12,6 +12,8 @@ public:
 	std::list<Point2D> _route; // Primer intento. Debe ser un atributo privado.
 
 private:
+	//std::random_device _randomDevice;
+	
 	uint32_t _id;
 	double   _min_speed;
 	double   _max_speed;
@@ -22,6 +24,8 @@ private:
 	Point2D  _targetPos;
 
 	uint32_t _quad;
+	
+	Neighbors _agentNeighbors;
 
 	//Variables para el modelo de Fuerza social
 	//Helbing, D., & Molnar, P. (1998).
@@ -41,10 +45,18 @@ private:
 	double   _sigma;    //[m]
 	double   _strengthSocialRepulsiveForceAgents;
 	double   _cosPhi; //cos(200º)
+	
+	//Comportamiento agente c/respecto al uso del teléfono
+	double _lambda;              //  ==> 1/(tiempo promedio de uso del telefono)
+	double _nextTimeUsePhone;    //  ==> delta de tiempo futuro cuando usara el telefono
+	double _probUsePhone;        //  ==> cuando llegue el tiemmo de usar, lo usara con cierta probabilidad
+	double _probUsePhoneConst;   //  ==> constante de la exponencial neg. de la probabilidad de uso
+	
+	uint8_t _usingPhone;    // 0: no; 1: sí.
 
 public:
 	Agent(void);
-	Agent(const uint32_t&, const Point2D&, const double&, const double&, const json& SocialForceModel, const model_t&);
+	Agent(const uint32_t&, const Point2D&, const double&, const double&, const double &, const double &, const json& SocialForceModel, const model_t&);
 	//Agent& operator=(const Agent&);
 
 	~Agent(void);
@@ -78,6 +90,18 @@ public:
 	void randomWalkwayForAdjustInitialPosition();
 
 	double distanceTo(Agent* _agent) const;
+	
+	void   setLambda(double L);
+	double getLambda();
+	void   setNextTimeUsePhone();
+	double getNextTimeUsePhone();
+	double getProbUsePhone();
+	
+	void    setUsingPhone(uint16_t u);
+	uint16_t getUsingPhone();
+	
+	int getAgentNeighborsSize();
+	
 };
 
 #endif
