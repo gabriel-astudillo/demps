@@ -41,6 +41,8 @@
 	</div>
 
 	<div style="float:left">Nro Frame: </div><div id="frame" style="float:left"></div>
+	<div style="float:left">&nbsp;&nbsp;&nbsp;&nbsp;</div>
+	<div style="float:left">Tsim: </div><div id="tsim" style="float:left"></div>
 	
 </div>
 
@@ -65,6 +67,9 @@
 	//
 	//==> Directorio que contiene los archivos de salida de la simulación.
 	var pathFilesSim = configJson['pathFileSim'];
+	
+	//==> delta de tiempo entre cada frame
+	var deltaT = configJson['deltaT'];
 
 	//==> ID min y max de los frames a mostrar
 	var frameMax = configJson['frameMax'];
@@ -288,6 +293,9 @@
 		
 		var frameDiv = document.getElementById("frame");
 		frameDiv.innerHTML = frameNumber;
+		
+		var tsimDiv = document.getElementById("tsim");
+		tsimDiv.innerHTML = frameNumber * deltaT;
 		
 		readSteps();
 		drawDots();
