@@ -24,8 +24,16 @@ Simulator::Simulator(const json &_fsettings,const json &_finitial_zones,const js
 	std::vector<Agent> _agents;
 
 	this->_fsettings = _fsettings;
+	
+	// Asignación de variables globales del proyecto
+	g_showProgressBar     = this->_fsettings["output"]["progressBar"].get<bool>();
+	g_showTimeExec        = this->_fsettings["output"]["showTimeExec"].get<bool>();
+	g_closeEnough         = this->_fsettings["closeEnough"].get<float>();
+	g_randomWalkwayRadius = this->_fsettings["randomWalkwayRadius"].get<float>();
+	g_attractionRadius    = this->_fsettings["attractionRadius"].get<float>();
+	g_deltaT              = this->_fsettings["deltaT"].get<float>();
 
-	_duration        = this->_fsettings["duration"];
+	_duration        = (uint32_t)(this->_fsettings["duration"].get<uint32_t>() / g_deltaT);
 	_calibrationTime = this->_fsettings["calibration"].get<uint32_t>();
 	_saveToDisk      = this->_fsettings["output"]["agents-out"].get<bool>();
 	_interval        = this->_fsettings["output"]["interval"].get<uint32_t>();
@@ -38,13 +46,6 @@ Simulator::Simulator(const json &_fsettings,const json &_finitial_zones,const js
 	_statsPath       = g_baseDir + this->_fsettings["output"]["stats-path"].get<std::string>();
 
 
-	// Asignación de variables globales del proyecto
-	g_showProgressBar     = this->_fsettings["output"]["progressBar"].get<bool>();
-	g_showTimeExec        = this->_fsettings["output"]["showTimeExec"].get<bool>();
-	g_closeEnough         = this->_fsettings["closeEnough"].get<float>();
-	g_randomWalkwayRadius = this->_fsettings["randomWalkwayRadius"].get<float>();
-	g_attractionRadius    = this->_fsettings["attractionRadius"].get<float>();
-	g_deltaT              = this->_fsettings["deltaT"].get<float>();
 
 	//Tamaño del cuadrante
 	uint32_t quadSize = this->_fsettings["quadSize"].get<uint32_t>(); //quadSize[m] x quadSize[m]
@@ -227,14 +228,16 @@ void Simulator::run()
 		pathFile = _statsPath + "/usePhone.txt" ;
 		ofs.open(pathFile);
 		
-		for(uint32_t timeSim = 0; timeSim <= _duration; timeSim += _statsInterval){
-			ofs << std::to_string(timeSim) << " " << std::to_string(g_logUsePhone[timeSim]) << std::endl;
+		for(uint32_t tick = 0; tick <= _duration; tick += _statsInterval){
+			uint32_t timeSim = tick * g_deltaT;
+			ofs << std::to_string(timeSim) << " " << std::to_string(g_logUsePhone[tick]) << std::endl;
 		}
 		ofs.close();
 		
 	}
 	
 	if(_saveToDisk){
+		//Crea el archivo JSON de la animación de la simnulación
 		json animacionConfig = {
 			{"pathFileSim", "agents/"},
 			{"frameMin", 0},
