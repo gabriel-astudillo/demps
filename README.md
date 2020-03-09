@@ -5,7 +5,7 @@ Este simulador implementa movimientos de personas dentro de una ciudad costera, 
 
 **Modelo de movilidad implementado**
 
-El modelo de movilidad implmentado se basa en el Modelo de Fuerza Social propuesto por Helbing & Molnar (1998) "*Social Force Model for Pedestrian Dynamics*". 
+El modelo de movilidad implementado se basa en el Modelo de Fuerza Social propuesto por Helbing & Molnar (1998) "*Social Force Model for Pedestrian Dynamics*". 
 
 **Estructura de directorios**
 
