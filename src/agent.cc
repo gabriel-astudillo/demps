@@ -233,6 +233,8 @@ void Agent::update()
 	if( g_currTimeSim >= this->getNextTimeUsePhone() ){
 		//Saca el telefono
 			
+		//La probabilidad de usar el telefono depende inversamente
+		//de la cantidad de vecinos
 		_probUsePhone = exp(-(double)_agentNeighbors.size() / _probUsePhoneConst);
 		
 		std::random_device _randomDevice;
@@ -241,10 +243,8 @@ void Agent::update()
 
 		
 		//Ve si realmente lo va a utilizar
-		//if(_agentNeighbors.size() <= 5 && !_route.empty() ) {
 		if(unifNumber <= _probUsePhone && !_route.empty() ) {
-			this->setUsingPhone(1);
-		
+			this->setUsingPhone(1);	
 		}
 		else{
 			this->setUsingPhone(0);
@@ -327,7 +327,7 @@ void Agent::randomWalkway()
 	
 	// Si hay suficientes vecinos (p.e. 5), el agente pasa a ser "FollowTheCrowd" 
 	if(neighborsTofollow.size() >= 5){
-		//this->_model = FollowTheCrowd; //ShortestPath; //FollowTheCrowd;
+		this->_model = FollowTheCrowd; //ShortestPath; //FollowTheCrowd;
 		this->_route.clear();
 		
 		
