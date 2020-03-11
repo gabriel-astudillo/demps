@@ -15,8 +15,12 @@ private:
 	//std::random_device _randomDevice;
 	
 	uint32_t _id;
-	double   _min_speed;
-	double   _max_speed;
+	
+	struct s_initSpeedRange{
+		double   min;
+		double   max;
+	} _initSpeedRange;
+	
 
 	model_t  _model;
 
@@ -26,37 +30,70 @@ private:
 	uint32_t _quad;
 	
 	Neighbors _agentNeighbors;
-
-	//Variables para el modelo de Fuerza social
-	//Helbing, D., & Molnar, P. (1998).
-	//Social Force Model for Pedestrian Dynamics. Physical Review E, 51(5), 4282–4286.
-
+	
 	Point2D  _position;
 	Vector2D _direction;
-
-	double   _disiredSpeed;
-	double   _maxDisiredSpeed;
 	Vector2D _currVelocity;
 
-	//Driving force of the taget Point
-	double   _timeRelax;
+	//Variables exclusivas para el modelo de Fuerza social
+	//Helbing, D., & Molnar, P. (1998).
+	//Social Force Model for Pedestrian Dynamics. Physical Review E, 51(5), 4282–4286.
+	struct s_SFM {
+		double  disiredSpeed;
+		double  maxDisiredSpeed;
+	
 
-	//Interaction force between agents
-	double   _sigma;    //[m]
-	double   _strengthSocialRepulsiveForceAgents;
-	double   _cosPhi; //cos(200º)
+		//Driving force of the taget Point
+		double  timeRelax;
+
+		//Interaction force between agents
+		double  sigma;    //[m]
+		double  strengthSocialRepulsiveForceAgents;
+		double  cosPhi; //cos(200º)
+	} _SFM;
 	
-	//Comportamiento agente c/respecto al uso del teléfono
-	double _lambda;              //  ==> 1/(tiempo promedio de uso del telefono)
-	double _nextTimeUsePhone;    //  ==> delta de tiempo futuro cuando usara el telefono
-	double _probUsePhone;        //  ==> cuando llegue el tiemmo de usar, lo usara con cierta probabilidad
-	double _probUsePhoneConst;   //  ==> constante de la exponencial neg. de la probabilidad de uso
 	
-	uint8_t _usingPhone;    // 0: no; 1: sí.
+	//Comportamiento agente c/respecto al uso del teléfono 
+	struct s_usePhone {
+		double nextTimeUsePhone;    //  ==> delta de tiempo futuro cuando usara el telefono
+		double probPhoneUse;        //  ==> cuando llegue el tiemmo de usar, lo usara con cierta probabilidad
+		double probPhoneUseConst;   //  ==> constante de la exponencial neg. de la probabilidad de uso
+		uint8_t usingPhone;    // 0: no; 1: sí.		
+	} _usePhone;
+	
+	//Distribución exponencial relacionada
+	//con el tiempo entre uso del teléfono
+	struct s_expo {
+		double lambda;              //  ==> 1/(tiempo promedio de uso del telefono)
+		
+		double exponentialTime()
+		{
+			std::random_device _randomDevice;
+			std::exponential_distribution<double> expoDistro(lambda);
+	
+			return( g_currTimeSim + expoDistro(_randomDevice) ); //
+	
+		}	
+	} _expo;
+	
+	
+	double _responseTime; // Tiempo de respuesta del agente.
+	
+	//Distribución Rayleigh relacionada
+	//con el tiempo de la fase de respuesta.
+	double rayleighDistroNumber(double sigma, double tau)
+	{
+		std::random_device device;
+		std::uniform_real_distribution<> rayleighNumber(0.0, 1.0);
+
+		double number = rayleighNumber(device);
+
+		return( tau + sigma * sqrt(-2.0*log(number)) );
+	}
 
 public:
 	Agent(void);
-	Agent(const uint32_t&, const Point2D&, const double&, const double&, const double &, const double &, const json& SocialForceModel, const model_t&);
+	Agent(const uint32_t&, const Point2D&, const model_t&, const json& initSpeedRange, const json& phoneUse, const json& SocialForceModel, const json& responseTime);
 	//Agent& operator=(const Agent&);
 
 	~Agent(void);
@@ -79,6 +116,7 @@ public:
 
 	uint32_t id(void) const;
 	model_t model(void) const;
+	double  responseTime(void) const;
 
 	void update();
 
@@ -91,14 +129,19 @@ public:
 
 	double distanceTo(Agent* _agent) const;
 	
-	void   setLambda(double L);
+
+	/*void   setLambda(double L);
 	double getLambda();
+	
+	void    setUsingPhone(uint16_t u);*/
+	
 	void   setNextTimeUsePhone();
+	
 	double getNextTimeUsePhone();
 	double getProbUsePhone();
-	
-	void    setUsingPhone(uint16_t u);
 	uint16_t getUsingPhone();
+	
+
 	
 	int getAgentNeighborsSize();
 	
