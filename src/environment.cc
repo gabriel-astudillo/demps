@@ -244,7 +244,7 @@ Agent* Environment::getAgent(uint32_t id)
 }
 
 /**
-* @brief Retorna un puntero a un patch agente determinado
+* @brief Retorna un puntero a un patch agente determinado por el id del cuadrante
 *
 * @param uint32_t id: identificador del patch agente
 * @return PatchAgent*

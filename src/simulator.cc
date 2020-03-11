@@ -97,7 +97,10 @@ Simulator::Simulator(const json &_fsettings,const json &_finitial_zones,const js
 
 			Point2D position = _env->getInitialZone(zone(rng)).generate();
 
+			json initSpeedRange   = fagent["speed"];
 			json SocialForceModel = fagent["SFM"];
+			json responseTime     = fagent["responseTime"];
+			json phoneUse         = fagent["phoneUse"];
 
 			std::string modelName = fagent["model"].get<std::string>();
 			model_t modelID       = model_map[modelName];
@@ -105,12 +108,11 @@ Simulator::Simulator(const json &_fsettings,const json &_finitial_zones,const js
 			_env->addAgent(\
 			               new Agent(id++,\
 			                         position,\
-			                         fagent["speed"]["min"],\
-			                         fagent["speed"]["max"],\
-									 fagent["useRatePhone"].get<double>(),\
-									 fagent["probUsePhoneConst"].get<double>(),\
+									 modelID,\
+									 initSpeedRange,
+									 phoneUse,\
 			                         SocialForceModel,\
-			                         modelID\
+									 responseTime
 			                        )\
 			              );
 
@@ -234,6 +236,14 @@ void Simulator::run()
 		}
 		ofs.close();
 		
+		pathFile = _statsPath + "/responseTime.txt" ;
+		ofs.open(pathFile);
+		
+		for(auto& fooAgent : _env->getAgents()){
+			ofs << std::to_string(fooAgent->id()) << " " << std::to_string(fooAgent->responseTime()) << std::endl;
+		}
+		ofs.close();
+		
 	}
 	
 	if(_saveToDisk){
@@ -281,9 +291,9 @@ void Simulator::savePositionAgents()
 			    << " " << agent->model()
 				<< " " << agent->getNextTimeUsePhone()
 				<< " " << agent->getProbUsePhone()
-					<< " " << agent->getAgentNeighborsSize()
+				<< " " << agent->getAgentNeighborsSize()
 				<< " " << agent->getUsingPhone()
-			    << std::endl;
+				<< std::endl;
 		}
 	} else if(_filesimSufix == "geojson") {
 		uint32_t currEpoch = g_epochInitSim + g_currTimeSim * 1000;

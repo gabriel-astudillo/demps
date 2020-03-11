@@ -8,66 +8,60 @@ Agent::Agent(void)
 	this->_quad = 0;
 }
 
-Agent::Agent(const uint32_t &_id, \
-	const Point2D &_position, const double &_min_speed, const double &_max_speed, \
-	const double &_useRatePhone, const double &_probUsePhoneConst,\
-	const json& SocialForceModel, const model_t &_model)
+Agent::Agent(const uint32_t &id, \
+	const Point2D &position,\
+	const model_t &model,\
+	const json& initSpeedRange,\
+	const json& phoneUse,\
+	const json& SocialForceModel,\
+	const json& responseTime)
 {
-	this->_id        = _id;
-	this->_min_speed = _min_speed;
-	this->_max_speed = _max_speed;
-	this->_model     = _model;
-	this->_position  = _position;
-	this->_direction = Vector2D(0.0,0.0);
-
-	this->_targetPos = Point2D(-666.6,-666.6);
-	this->_quad = this->determineQuad(); //AKA setQuad()
+	_id = id;
 	
-	this->_lambda = 1.0/_useRatePhone;
-	this->_probUsePhoneConst = _probUsePhoneConst;
-	this->_usingPhone = 0;
-	this->_probUsePhone = 0.0;
+	_initSpeedRange.min = initSpeedRange["min"];
+	_initSpeedRange.max = initSpeedRange["max"];
 	
+	_model     = model;
+	_position  = position;
+	_direction = Vector2D(0.0,0.0);
+	_currVelocity = Vector2D(0.0,0.0);
 
-
-	//Establecer la velocidad del agente
+	_targetPos = Point2D(-666.6,-666.6);
+	_quad = this->determineQuad(); 
+	
+	//Establecer el tiempo de respuesta del agente
+	// Para tiempo de respuesta, se utiliza una distribución Rayleigh.
+	//   sigma: factor de escala. Representa cuán rápido los agentes salen de la fase de respuesta.
+	//   tau  : tiempo de retardo. Antes de este tiempo, los agentes no inician el proceso de evacación.
+	// Referencias:
+	//     Mostafizi, A., Wang, H., Cox, D., Cramer, L. A., & Dong, S. (2017). 
+	//       Agent-based tsunami evacuation modeling of unplanned network disruptions for 
+	//       evidence-driven resource allocation and retrofitting strategies. Natural Hazards. 
+	//     Mas, E., Suppasri, A., Imamura, F., & Koshimura, S. (2012). 
+	//       Agent-based simulation of the 2011 great east japan earthquake/tsunami evacuation: 
+	//       An integrated model of tsunami inundation and evacuation. Journal of Natural Disaster
+	_responseTime = rayleighDistroNumber(responseTime["sigma"].get<double>(), responseTime["tau"].get<double>());
+	
+	_expo.lambda = 1.0/phoneUse["meanTimeTakePhone"].get<double>();
+	
+	_usePhone.probPhoneUseConst = phoneUse["probPhoneUseConst"].get<double>();;
+	_usePhone.usingPhone = 0;
+	_usePhone.probPhoneUse = 0.0;
+	
+	//Establecer la velocidad inicial del agente
 	static thread_local std::random_device device;
 	static thread_local std::mt19937 rng(device());
+	std::uniform_real_distribution<double> speed(_initSpeedRange.min,_initSpeedRange.max);
 
-	std::uniform_real_distribution<double> speed(this->_min_speed,this->_max_speed);
+	_SFM.disiredSpeed = speed(rng);
+	_SFM.maxDisiredSpeed = 1.3 * this->_SFM.disiredSpeed;
+	_SFM.timeRelax = SocialForceModel["timeRelax"].get<double>();//0.5; //[s]
+	_SFM.sigma = SocialForceModel["sigma"].get<double>();//0.6;//[m]
+	_SFM.strengthSocialRepulsiveForceAgents = SocialForceModel["repulsiveForceAgents"].get<double>();//2.1; //[m^2/s^-2]
+	_SFM.cosPhi = SocialForceModel["cosphi"].get<double>();//-0.93969 ; //cos(200º)
 
-	this->_disiredSpeed = speed(rng);
-	this->_maxDisiredSpeed = 1.3 * this->_disiredSpeed;
-
-	this->_currVelocity = Vector2D(0.0,0.0);
-
-	this->_timeRelax =  SocialForceModel["timeRelax"].get<double>();//0.5; //[s]
-
-	this->_sigma                              = SocialForceModel["sigma"].get<double>();//0.6;//[m]
-	this->_strengthSocialRepulsiveForceAgents = SocialForceModel["repulsiveForceAgents"].get<double>();//2.1; //[m^2/s^-2]
-	this->_cosPhi                             = SocialForceModel["cosphi"].get<double>();//-0.93969 ; //cos(200º)
-
+	
 }
-
-/*
-Agent& Agent::operator=(const Agent &_agent)
-{
-	this->_id        = _agent._id;
-	this->_min_speed = _agent._min_speed;
-	this->_max_speed = _agent._max_speed;
-	this->_model     = _agent._model;
-	this->_position  = _agent._position;
-	this->_direction = _agent._direction;
-	this->_quad      = _agent._quad;
-	this->_disiredSpeed = _agent._disiredSpeed;
-	this->_maxDisiredSpeed = _agent._maxDisiredSpeed;
-	this->_currVelocity    = _agent._currVelocity;
-	this->_timeRelax       = _agent._timeRelax;
-	this->_sigma           = _agent._sigma;
-	this->_strengthSocialRepulsiveForceAgents = _agent._strengthSocialRepulsiveForceAgents;
-	this->_cosPhi                             = _agent._cosPhi;
-	return(*this);
-}*/
 
 Agent::~Agent(void)
 {
@@ -173,69 +167,74 @@ void Agent::updateQuad()
 
 Vector2D Agent::direction(void) const
 {
-	return(this->_direction);
+	return(_direction);
 }
 
 void Agent::direction(const Vector2D& direction)
 {
-	this->_direction = direction;
+	_direction = direction;
 }
 
 uint32_t Agent::id(void) const
 {
-	return(this->_id);
+	return(_id);
 }
 
 model_t Agent::model(void) const
 {
-	return(this->_model);
+	return(_model);
+}
+
+double Agent::responseTime(void) const
+{
+	return(_responseTime);
 }
 
 void Agent::update()
 {
+	// El agente debe avanzar según su modelo de movilidad si ya
+	// ha pasado su tiempo de respuesta
 	
-
-	// El agente debe avanzar según su
-	// modelo de movilidad
-	switch(this->model()) {
-	case ShortestPath: {
-		this->shortestPath();
-		break;
-	}
-	case RandomWalkway: {
-		this->randomWalkway();
-		break;
-	}
-	case FollowTheCrowd: {
-		//Agent::Neighbors neighbors = _env.neighbors_of(this->_agents[i],g_attractionRadius,SHORTESTPATH);
-		//
-		//if(neighbors.empty()){
-		//  if(this->_routes[this->_agents[i].id()].empty()){
-		//     auto response = _router.route(this->_agents[i].position(),g_randomWalkwayRadius);
-		//     this->_routes[this->_agents[i].id()] = response.path();
-		//   }
-		//  this->_agents[i].random_walkway(this->_routes[this->_agents[i].id()]);
-		//}
-		//else
-		//   this->_agents[i].follow_the_crowd(neighbors);
-		this->followTheCrowd();
-		break;
-	}
-	case WorkingDay:
-		break;
-	case SNITCH:
-		break;
+	if( g_currTimeSim >= _responseTime ){
+		switch(this->model()) {
+		case ShortestPath: {
+			this->shortestPath();
+			break;
+		}
+		case RandomWalkway: {
+			this->randomWalkway();
+			break;
+		}
+		case FollowTheCrowd: {
+			//Agent::Neighbors neighbors = _env.neighbors_of(this->_agents[i],g_attractionRadius,SHORTESTPATH);
+			//
+			//if(neighbors.empty()){
+			//  if(this->_routes[this->_agents[i].id()].empty()){
+			//     auto response = _router.route(this->_agents[i].position(),g_randomWalkwayRadius);
+			//     this->_routes[this->_agents[i].id()] = response.path();
+			//   }
+			//  this->_agents[i].random_walkway(this->_routes[this->_agents[i].id()]);
+			//}
+			//else
+			//   this->_agents[i].follow_the_crowd(neighbors);
+			this->followTheCrowd();
+			break;
+		}
+		case WorkingDay:
+			break;
+		case SNITCH:
+			break;
+		}
 	}
 	
 	//Determina cuándo es el instante de tiempo
 	//que debe "pensar" en utilizar su telefóno
-	
-	if( g_currTimeSim >= this->getNextTimeUsePhone() ){
+	if( g_currTimeSim >= _usePhone.nextTimeUsePhone ){
 		//Saca el telefono
 			
 		//La probabilidad de usar el telefono depende inversamente
 		//de la cantidad de vecinos
-		_probUsePhone = exp(-(double)_agentNeighbors.size() / _probUsePhoneConst);
+		_usePhone.probPhoneUse = exp(-(double)_agentNeighbors.size() / _usePhone.probPhoneUseConst);
 		
 		std::random_device _randomDevice;
 		std::uniform_real_distribution<> unifDistro(0.0, 1.0);
@@ -243,11 +242,11 @@ void Agent::update()
 
 		
 		//Ve si realmente lo va a utilizar
-		if(unifNumber <= _probUsePhone && !_route.empty() ) {
-			this->setUsingPhone(1);	
+		if(unifNumber <= _usePhone.probPhoneUse && !_route.empty() ) {
+			_usePhone.usingPhone = 1;
 		}
 		else{
-			this->setUsingPhone(0);
+			_usePhone.usingPhone = 0;
 		}
 		
 		//Actualiza el instante de tiempo cuando debe sacar el telefono
@@ -255,7 +254,7 @@ void Agent::update()
 		
 	}
 	else{
-		this->setUsingPhone(0);
+		_usePhone.usingPhone = 0;
 	}
 	
 
@@ -363,12 +362,11 @@ void Agent::followPath()
 		_direction = scale(direction);
 
 		Vector2D DrivingForce = Vector2D(0.0,0.0);
-		//double   deltaT       = 1.0;//[s]
-
+		
 		//Eq (2)
 		//Helbing, D., & Molnar, P. (1998).
 		//Social Force Model for Pedestrian Dynamics. Physical Review E, 51(5), 4282–4286.
-		DrivingForce = (_disiredSpeed * _direction - _currVelocity) / _timeRelax;
+		DrivingForce = (_SFM.disiredSpeed * _direction - _currVelocity) / _SFM.timeRelax;
 		
 		// Por omisión, sólo actúa la fuerza DrivingForce
 		_currVelocity += agentFactor * DrivingForce * g_deltaT;
@@ -419,7 +417,7 @@ void Agent::followPath()
 				//Social Force Model for Pedestrian Dynamics. Physical Review E, 51(5), 4282–4286.
 				// Determinar directionDependentWeight, Eq (8)
 
-				double strengthRepulsiveEfect = _strengthSocialRepulsiveForceAgents * exp(-distance/_sigma);
+				double strengthRepulsiveEfect = _SFM.strengthSocialRepulsiveForceAgents * exp(-distance/_SFM.sigma);
 
 				repulsiveEfect = -strengthRepulsiveEfect * directionAgentsUnit;
 				
@@ -429,7 +427,7 @@ void Agent::followPath()
 
 				//if(CGAL::scalar_product(_direction, -repulsiveEfect) >= strengthRepulsiveEfect*_cosPhi) {
 				//REVISAR ESTO ...OK
-				if(CGAL::scalar_product(_direction, repulsiveEfect) >= strengthRepulsiveEfect*_cosPhi) {
+				if(CGAL::scalar_product(_direction, repulsiveEfect) >= strengthRepulsiveEfect * _SFM.cosPhi) {
 					directionDependentWeight = 1;
 				} else {
 					directionDependentWeight = 0.5;
@@ -453,8 +451,8 @@ void Agent::followPath()
 		//if( sqrt(CGAL::scalar_product(_currVelocity, _currVelocity)) >= _maxDisiredSpeed ) {
 		//	_currVelocity = _maxDisiredSpeed * _currVelocity / sqrt(CGAL::scalar_product(_currVelocity, _currVelocity));
 		//}
-		if( sqrt( _currVelocity.squared_length() ) >= _maxDisiredSpeed ) {
-			_currVelocity = _maxDisiredSpeed * _currVelocity / sqrt( _currVelocity.squared_length() );
+		if( sqrt( _currVelocity.squared_length() ) >= _SFM.maxDisiredSpeed ) {
+			_currVelocity = _SFM.maxDisiredSpeed * _currVelocity / sqrt( _currVelocity.squared_length() );
 		}
 
 		//Finalmente, se actualiza la posición del agente
@@ -503,7 +501,7 @@ void Agent::followTheCrowd(const Neighbors &_neighbors)
 
 	Vector2D direction(0.0,0.0);
 
-	std::uniform_real_distribution<double> speed(this->_min_speed,this->_max_speed);
+	std::uniform_real_distribution<double> speed(this->_initSpeedRange.min,this->_initSpeedRange.max);
 
 	for(auto& neighbor : _neighbors) {
 		direction+=neighbor->direction();
@@ -547,7 +545,7 @@ void Agent::randomWalkwayForAdjustInitialPosition()
 			continue;
 		}
 
-		this->_currVelocity = _disiredSpeed * this->_direction * deltaT;
+		this->_currVelocity = _SFM.disiredSpeed * this->_direction * deltaT;
 
 		//Transformation translate(CGAL::TRANSLATION, this->_currVelocity);
 		//this->_position = translate(this->_position);
@@ -582,44 +580,26 @@ double Agent::distanceTo(Agent* _agent) const
 	return(sqrt(CGAL::squared_distance(this->_position,_agent->_position)));
 }
 
-void Agent::setLambda(double L)
-{
-	_lambda = L;
-}
-
-double Agent::getLambda()
-{
-	return(_lambda);
-}
 
 void Agent::setNextTimeUsePhone()
 {
-	std::random_device _randomDevice;
-	std::exponential_distribution<double> expoDistro(_lambda);
-	
-	_nextTimeUsePhone = g_currTimeSim + expoDistro(_randomDevice); //
-	
+	_usePhone.nextTimeUsePhone = _expo.exponentialTime();
 }
 
 double Agent::getNextTimeUsePhone()
 {
-	return(_nextTimeUsePhone);
+	return(_usePhone.nextTimeUsePhone);
 	
 }
 
 double Agent::getProbUsePhone()
 {	
-	return(_probUsePhone);
-}
-
-void Agent::setUsingPhone(uint16_t u)
-{
-	_usingPhone = u;
+	return(_usePhone.probPhoneUse);
 }
 
 uint16_t Agent::getUsingPhone()
 {
-	return(_usingPhone);
+	return(_usePhone.usingPhone);
 }
 
 int Agent::getAgentNeighborsSize()
