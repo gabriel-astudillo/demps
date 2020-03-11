@@ -11,8 +11,8 @@ ulimit -c unlimited
 rm -f core
 
 DEMPS_BIN="./demps"
-DEMPS_CONFIG="./iquique.config"
-#DEMPS_CONFIG="./valpo.config"
+#DEMPS_CONFIG="./iquique.config"
+DEMPS_CONFIG="./valpo.config"
 
 #### CONFIGURACION ####
 DEMPS_PATH=$BASEDIR/$DEMPS_BIN 
