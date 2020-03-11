@@ -122,6 +122,11 @@
 	features: []
 	};
 	
+	var geoJson_type1 = {
+	type: 'FeatureCollection',
+	features: []
+	};
+	
 	var geoJson_type2 = {
 	type: 'FeatureCollection',
 	features: []
@@ -163,6 +168,7 @@
 	};
 
 	var dots=[];
+	var dots_type1 = [];
 	var dots_type2 = [];
 	
 	// ID del frame inicial
@@ -205,9 +211,11 @@
 
 	function drawDots(){ //GAM
 		geoJson.features=dots;
+		geoJson_type1.features = dots_type1;
 		geoJson_type2.features = dots_type2;
 		
 		map.getSource('datos').setData(geoJson);
+		map.getSource('datos_type1').setData(geoJson_type1);
 		map.getSource('datos_type2').setData(geoJson_type2);
 		
 	}
@@ -233,6 +241,10 @@
 						newDot.geometry.coordinates=[parseFloat(array[2]), parseFloat(array[1])];
 						dots.push(newDot);
 					}
+					else if(array[3] == 1){
+						newDot.geometry.coordinates=[parseFloat(array[2]), parseFloat(array[1])];
+						dots_type1.push(newDot);
+					}
 					else if(array[3] == 2){
 						newDot.geometry.coordinates=[parseFloat(array[2]), parseFloat(array[1])];
 						dots_type2.push(newDot);
@@ -249,9 +261,11 @@
 	
 	function makeInitStruct(){ //GAM
 		dots = []; 
+		dots_type1 = [];
 		dots_type2 = [];
 		
 		geoJson.features=dots;
+		geoJson_type1.features = dots_type1;
 		geoJson_type2.features = dots_type2;
 		
 		//Source y layer para agentes tipo == 0
@@ -267,6 +281,22 @@
 			"paint": {
 				"circle-radius": 1.5,
 				"circle-color": "#FF0000"
+			}
+		});
+		
+		//Source y layer para agentes tipo == 1
+		map.addSource('datos_type1',{
+			"type": 'geojson',
+			"data": geoJson_type1
+		});
+		
+		map.addLayer({
+			"id": "points_type1",
+			"type": "circle",
+			"source": 'datos_type1',
+			"paint": {
+				"circle-radius": 1.5,
+				"circle-color": "#FFFF00"
 			}
 		});
 		
@@ -289,6 +319,7 @@
 	
 	function makeFrame(){ //GAM
 		dots = []; 
+		dots_type1 = [];
 		dots_type2 = [];
 		
 		var frameDiv = document.getElementById("frame");
