@@ -21,7 +21,7 @@ public:
 
 	Zone& operator=(const Zone&);
 
-	bool pointIsInside(const Point2D& testPoint);
+	bool pointIsInside(const Point2D& testPoint, const double& bias);
 	void addAgent(const uint32_t& idAgent);
 	void deleteAgent(const uint32_t& idAgent);
 	void updateAgentsDensity(void);
