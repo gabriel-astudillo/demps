@@ -11,8 +11,10 @@ ulimit -c unlimited
 rm -f core
 
 DEMPS_BIN="./demps"
-#DEMPS_CONFIG="./iquique.config"
-DEMPS_CONFIG="./valpo.config"
+DEMPS_CONFIG="./iquique.config"
+#DEMPS_CONFIG="./valpo.config"
+#DEMPS_CONFIG="./kesennuma.config"
+#DEMPS_CONFIG="./vdm.config"
 
 #### CONFIGURACION ####
 DEMPS_PATH=$BASEDIR/$DEMPS_BIN 
@@ -48,14 +50,14 @@ fi
 
 DEMPS_OPTS="-s $DEMPS_CONFIG_PATH $*"
 
-RESULTS_DIR=$(cat $DEMPS_CONFIG_PATH | $JQ_PATH -r '.output."results-path"')
+RESULTS_DIR=$(cat $DEMPS_CONFIG_PATH | $JQ_PATH -r '.output.directory')
 RESULTS_DIR_PATH=$BASEDIR/$RESULTS_DIR
 
 AGENTS_DIR=$(cat $DEMPS_CONFIG_PATH | $JQ_PATH -r '.output."agents-path"')
-AGENTS_DIR_PATH=$BASEDIR/$AGENTS_DIR
+AGENTS_DIR_PATH=$RESULTS_DIR_PATH/$AGENTS_DIR
 
 STATS_DIR=$(cat $DEMPS_CONFIG_PATH | $JQ_PATH -r '.output."stats-path"')
-STATS_DIR_PATH=$BASEDIR/$STATS_DIR
+STATS_DIR_PATH=$RESULTS_DIR_PATH/$STATS_DIR
 
 if [[ ! -e $AGENTS_DIR_PATH ]]; then
 	mkdir -p $AGENTS_DIR_PATH
@@ -67,7 +69,7 @@ fi
 
 #Copiar los archivos input/*geojosn a RESULTS_DIR
 #(necesarios para la visualizacion)
-INPUT_PATH=$(cat $DEMPS_CONFIG_PATH | $JQ_PATH -r '.input."input-path"')
+INPUT_PATH=$(cat $DEMPS_CONFIG_PATH | $JQ_PATH -r '.input.directory')
 
 $MKDIR_CMD -p $RESULTS_DIR/input/
 $CP_CMD $INPUT_PATH/*.geojson $RESULTS_DIR/input/
