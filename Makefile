@@ -4,14 +4,14 @@ RESULTS_SIM=sim/output
 default: all
 
 all:
-	@cd $(SRC) && make
+	@cd $(SRC) && $(MAKE)
 
 clean:
-	@cd $(SRC) && make clean
+	@cd $(SRC) && $(MAKE) clean
 	@rm -rf *~ core
 
 distclean: clean
-	@cd $(SRC) && make distclean
-	@rm -f $(RESULTS_SIM)
+	@cd $(SRC) && $(MAKE) distclean
+	@rm -rf $(RESULTS_SIM)
 
 .PHONY: all clean distclean
