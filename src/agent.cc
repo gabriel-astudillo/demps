@@ -11,20 +11,58 @@ Agent::Agent(void)
 Agent::Agent(const uint32_t &id, \
 	const Point2D &position,\
 	const model_t &model,\
-	const json& initSpeedRange,\
+	const json& ageRange,\
 	const json& phoneUse,\
 	const json& SocialForceModel,\
 	const json& responseTime)
 {
 	_id = id;
+
+	//Establecer el rango etareo del agente
+	//
+	//  Los grupos se establecen según el agrupamiento que realiza el INE para los censos.
+	//  Por ejemplo, para Iquique:
+	//    https://reportescomunales.bcn.cl/2017/index.php/Iquique
+	//
+	//  Las velocidades de cada grupo se establecen según la literatura:
+	//  Gates et al. (2006)
+	//  Makinoshima et al. (2018)
 	
-	_initSpeedRange.min = initSpeedRange["min"];
-	_initSpeedRange.max = initSpeedRange["max"];
+	_ageRange.groupFeatures[0].prob     = ageRange["G0"]["prob"].get<double>();
+	_ageRange.groupFeatures[0].minSpeed = ageRange["G0"]["minSpeed"].get<double>();
+	_ageRange.groupFeatures[0].maxSpeed = ageRange["G0"]["maxSpeed"].get<double>();
+	_ageRange.groupFeatures[1].prob     = ageRange["G1"]["prob"].get<double>();
+	_ageRange.groupFeatures[1].minSpeed = ageRange["G1"]["minSpeed"].get<double>();
+	_ageRange.groupFeatures[1].maxSpeed = ageRange["G1"]["maxSpeed"].get<double>();
+	_ageRange.groupFeatures[2].prob     = ageRange["G2"]["prob"].get<double>();
+	_ageRange.groupFeatures[2].minSpeed = ageRange["G2"]["minSpeed"].get<double>();
+	_ageRange.groupFeatures[2].maxSpeed = ageRange["G2"]["maxSpeed"].get<double>();
+	_ageRange.groupFeatures[3].prob     = ageRange["G3"]["prob"].get<double>();
+	_ageRange.groupFeatures[3].minSpeed = ageRange["G3"]["minSpeed"].get<double>();
+	_ageRange.groupFeatures[3].maxSpeed = ageRange["G3"]["maxSpeed"].get<double>();
 	
+	_ageRange.getAgeFeatures(_groupAge, _initSpeedRange.min, _initSpeedRange.max);
+
 	_model     = model;
 	_position  = position;
+	
+	_safeZoneNameID = "NA"; // Por omisión, la zona de seguridad no está asignada, se asigna después.
+	_safeZone = nullptr;
+	_distanceToTargetPos = -1.0;
+	
 	_direction = Vector2D(0.0,0.0);
 	_currVelocity = Vector2D(0.0,0.0);
+	_radius    = 0.25;
+	
+	// Si pertenece al grupo niño, se asume que va 
+	// junto a un adulto ==> el radio se expande)
+	if(_groupAge == 0) {
+		_radius = 0.45;
+	}
+	
+	_inSafeZone     = false;
+	_evacuationTime = 0;
+	_travelDistance = 0;
 
 	_targetPos = Point2D(-666.6,-666.6);
 	_quad = this->determineQuad(); 
@@ -40,7 +78,11 @@ Agent::Agent(const uint32_t &id, \
 	//     Mas, E., Suppasri, A., Imamura, F., & Koshimura, S. (2012). 
 	//       Agent-based simulation of the 2011 great east japan earthquake/tsunami evacuation: 
 	//       An integrated model of tsunami inundation and evacuation. Journal of Natural Disaster
-	_responseTime = rayleighDistroNumber(responseTime["sigma"].get<double>(), responseTime["tau"].get<double>());
+	
+	_responseTimeEngine.sigma = responseTime["sigma"].get<double>();
+	_responseTimeEngine.tau   = responseTime["tau"].get<double>();
+	_responseTime = _responseTimeEngine.get();
+	//_responseTime = rayleighDistroNumber(responseTime["sigma"].get<double>(), responseTime["tau"].get<double>());
 	
 	_expo.lambda = 1.0/phoneUse["meanTimeTakePhone"].get<double>();
 	
@@ -70,7 +112,7 @@ Agent::~Agent(void)
 
 void Agent::setTargetPos(const Point2D& tposition)
 {
-	this->_targetPos = tposition;
+	_targetPos = tposition;
 }
 
 const Point2D Agent::getTargetPos(void) const
@@ -78,19 +120,65 @@ const Point2D Agent::getTargetPos(void) const
 	return(this->_targetPos);
 }
 
+void Agent::setSafeZoneID(const std::string& safeZoneNameID)
+{
+	_safeZoneNameID = safeZoneNameID;
+}
+
+std::string Agent::getSafeZoneID()
+{
+	return(_safeZoneNameID);
+}
+
+void Agent::safeZone(Zone* safeZonePtr)
+{
+	_safeZone = safeZonePtr;
+}
+
+Zone* Agent::safeZone()
+{
+	return(_safeZone);
+}
+
+const double Agent::distanceToTargetPos()
+{
+	return(_distanceToTargetPos);
+}
+
 const Point2D Agent::position(void) const
 {
-	return(this->_position);
+	return(_position);
 }
 
 const Vector2D Agent::currVelocity(void)
 {
-	return(this->_currVelocity);
+	return(_currVelocity);
 }
 
 void Agent::currVelocity(const Vector2D& velocity)
 {
-	this->_currVelocity = velocity;
+	_currVelocity = velocity;
+}
+
+bool Agent::inSafeZone()
+{
+	return(_inSafeZone);
+}
+
+void Agent::inSafeZone(bool in)
+{
+	_inSafeZone = in;
+}
+
+
+void Agent::evacuationTime(uint32_t& currTick)
+{
+	_evacuationTime = currTick * g_deltaT - _responseTimeEngine.tau  ;
+}
+
+double Agent::evacuationTime()
+{
+	return(_evacuationTime);
 }
 
 void Agent::showPosition()
@@ -185,6 +273,11 @@ model_t Agent::model(void) const
 	return(_model);
 }
 
+uint32_t Agent::groupAge(void) const
+{
+	return(_groupAge);
+}
+
 double Agent::responseTime(void) const
 {
 	return(_responseTime);
@@ -195,7 +288,7 @@ void Agent::update()
 	// El agente debe avanzar según su modelo de movilidad si ya
 	// ha pasado su tiempo de respuesta
 	
-	if( g_currTimeSim >= _responseTime ){
+	if( g_currTimeSim >= (_responseTimeEngine.tau + _responseTime) ){
 		switch(this->model()) {
 		case ShortestPath: {
 			this->shortestPath();
@@ -257,6 +350,12 @@ void Agent::update()
 		_usePhone.usingPhone = 0;
 	}
 	
+	//Una vez que avanza, se calcula la distancia que le falta para llegar a su targetPos
+	//if(this->getTargetPos() != Point2D(-666.6,-666.6) && !_route.empty() ){ //_safeZone
+	if( _safeZone != nullptr && !_route.empty() ){ //_safeZone
+		_distanceToTargetPos = sqrt(CGAL::squared_distance(_position, this->getTargetPos() ));	
+	}
+	
 
 }
 
@@ -314,6 +413,7 @@ void Agent::randomWalkway()
 	
 	Agent::Neighbors agentNeighbors;
 	_myEnv->setNeighborsOf(this->id(), g_attractionRadius, agentNeighbors);
+	//_myEnv->setNeighborsOf(this->id(), g_closeEnough, agentNeighbors);
 	
 	std::vector<Agent*> neighborsTofollow; // vecinos que se pueden seguir
 	
@@ -324,15 +424,17 @@ void Agent::randomWalkway()
 		}
 	}
 	
-	// Si hay suficientes vecinos (p.e. 5), el agente pasa a ser "FollowTheCrowd" 
+	// Si hay suficientes vecinos (p.e. 3), el agente pasa a ser "FollowTheCrowd" 
 	if(neighborsTofollow.size() >= 5){
-		this->_model = FollowTheCrowd; //ShortestPath; //FollowTheCrowd;
-		this->_route.clear();
+		_model = FollowTheCrowd; //ShortestPath; //FollowTheCrowd;
+		_route.clear();
 		
 		
 		this->setTargetPos( neighborsTofollow[1]->getTargetPos() );
 		this->currVelocity( neighborsTofollow[1]->currVelocity() );
 		this->direction( neighborsTofollow[1]->direction() );
+		this->setSafeZoneID( neighborsTofollow[1]->getSafeZoneID() );
+		this->safeZone( neighborsTofollow[1]->safeZone() );
 		
 		//this->randomWalkwayForAdjustInitialPosition();
 		auto response = _myEnv->getRouter()->route(this->position(), this->getTargetPos() );
@@ -532,25 +634,35 @@ void Agent::randomWalkwayForAdjustInitialPosition()
 
 	while(!_route.empty()) {
 		Point2D dst = _route.front();
-		double dist = sqrt(CGAL::squared_distance(this->_position, dst));
+		double dist = sqrt(CGAL::squared_distance(_position, dst));
 
 		Transformation scale(CGAL::SCALING, 1.0, dist);
-		Vector2D direction(this->_position, dst);
+		Vector2D direction(_position, dst);
 
-		this->_direction = scale(direction);
-		double deltaT = 1.0;//[s]
+		_direction = scale(direction);
+		//double deltaT = 1.0;//[s]
 
-		if(dist < g_closeEnough) {
+		/*if(dist < g_closeEnough) {
+			_route.pop_front();
+			continue;
+		}*/
+
+		_currVelocity = _SFM.disiredSpeed * _direction * g_deltaT;
+		
+		
+		// Si a la actual velocidad, el agente va llegar al destino del tramo en menos
+		// de g_deltaT tiempo, entonces se descarta el destino del tramo y se continua con el siguiente
+		// destino de la ruta.
+		if( dist / sqrt(_currVelocity.squared_length()) < g_deltaT ){
 			_route.pop_front();
 			continue;
 		}
-
-		this->_currVelocity = _SFM.disiredSpeed * this->_direction * deltaT;
+		
 
 		//Transformation translate(CGAL::TRANSLATION, this->_currVelocity);
 		//this->_position = translate(this->_position);
 		
-		_position += _currVelocity * deltaT;
+		_position += _currVelocity * g_deltaT;
 		
 		// Si el agente se sale del área de simulación, dejarlo en el borde con velocidad 0.
 		Environment::grid_t gridData = _myEnv->getGrid();
@@ -575,9 +687,9 @@ void Agent::randomWalkwayForAdjustInitialPosition()
 	}
 }
 
-double Agent::distanceTo(Agent* _agent) const
+double Agent::distanceTo(Agent* fooAg) const
 {
-	return(sqrt(CGAL::squared_distance(this->_position,_agent->_position)));
+	return(abs(sqrt(CGAL::squared_distance(_position,fooAg->_position)) - _radius - fooAg->_radius));
 }
 
 

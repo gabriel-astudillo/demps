@@ -63,14 +63,49 @@ Zone& Zone::operator=(const Zone &_z)
 	return(*this);
 }
 
-bool Zone::pointIsInside(const Point2D& testPoint)
+bool Zone::pointIsInside(const Point2D& testPoint, const double& bias)
 {
-
 	CGAL::Bounded_side bside = CGAL::bounded_side_2(this->_polygon.vertices_begin(), this->_polygon.vertices_end(), testPoint, K() );
-	if (bside == CGAL::ON_BOUNDED_SIDE) {
+	if (bside == CGAL::ON_BOUNDED_SIDE || bside == CGAL::ON_BOUNDARY) {
 		return(true);
 	} else {
-		return(false);
+		Point2D testPointFoo = testPoint + Vector2D(bias, 0.0);
+		
+		bside = CGAL::bounded_side_2(this->_polygon.vertices_begin(), this->_polygon.vertices_end(), testPointFoo, K() );
+		if (bside == CGAL::ON_BOUNDED_SIDE || bside == CGAL::ON_BOUNDARY) {
+			return(true);
+		}
+		else{
+			Point2D testPointFoo = testPoint + Vector2D(-bias, 0.0);
+		
+			bside = CGAL::bounded_side_2(this->_polygon.vertices_begin(), this->_polygon.vertices_end(), testPointFoo, K() );
+			if (bside == CGAL::ON_BOUNDED_SIDE || bside == CGAL::ON_BOUNDARY) {
+				return(true);
+			}
+			else{
+				Point2D testPointFoo = testPoint + Vector2D(0.0, bias);
+		
+				bside = CGAL::bounded_side_2(this->_polygon.vertices_begin(), this->_polygon.vertices_end(), testPointFoo, K() );
+				if (bside == CGAL::ON_BOUNDED_SIDE || bside == CGAL::ON_BOUNDARY) {
+					return(true);
+				}
+				else{
+					Point2D testPointFoo = testPoint + Vector2D(0.0, -bias);
+		
+					bside = CGAL::bounded_side_2(this->_polygon.vertices_begin(), this->_polygon.vertices_end(), testPointFoo, K() );
+					if (bside == CGAL::ON_BOUNDED_SIDE || bside == CGAL::ON_BOUNDARY) {
+						return(true);
+					}
+					else{
+						return(false);
+					}
+					
+				}
+				
+			}
+			
+			
+		}
 	}
 }
 

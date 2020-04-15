@@ -16,50 +16,55 @@ Simulator::Simulator(void)
 
 }
 
-Simulator::Simulator(const json &_fsettings,const json &_finitial_zones,const json &_freference_zones, const json &_fmap_zone,const std::string &_map_osrm)
+Simulator::Simulator(const json &fsettings,const json &finitial_zones,const json &freference_zones, const json &fmap_zone,const std::string &map_osrm)
 {
 	static thread_local std::random_device device;
 	static thread_local std::mt19937 rng(device());
 
 	std::vector<Agent> _agents;
 
-	this->_fsettings = _fsettings;
+	_fsettings = fsettings;
 	
 	// Asignación de variables globales del proyecto
-	g_showProgressBar     = this->_fsettings["output"]["progressBar"].get<bool>();
-	g_showTimeExec        = this->_fsettings["output"]["showTimeExec"].get<bool>();
-	g_closeEnough         = this->_fsettings["closeEnough"].get<float>();
-	g_randomWalkwayRadius = this->_fsettings["randomWalkwayRadius"].get<float>();
-	g_attractionRadius    = this->_fsettings["attractionRadius"].get<float>();
-	g_deltaT              = this->_fsettings["deltaT"].get<float>();
+	g_showProgressBar     = _fsettings["output"]["progressBar"].get<bool>();
+	g_showTimeExec        = _fsettings["output"]["showTimeExec"].get<bool>();
+	g_closeEnough         = _fsettings["closeEnough"].get<float>();
+	g_randomWalkwayRadius = _fsettings["randomWalkwayRadius"].get<float>();
+	g_attractionRadius    = _fsettings["attractionRadius"].get<float>();
+	g_deltaT              = _fsettings["deltaT"].get<float>();
 
-	_duration        = (uint32_t)(this->_fsettings["duration"].get<uint32_t>() / g_deltaT);
-	_calibrationTime = this->_fsettings["calibration"].get<uint32_t>();
-	_saveToDisk      = this->_fsettings["output"]["agents-out"].get<bool>();
-	_interval        = this->_fsettings["output"]["interval"].get<uint32_t>();
-	_filesimPrecision = this->_fsettings["output"]["agents-precision"].get<uint32_t>();
-	_filesimSufix    = this->_fsettings["output"]["agents-sufix"].get<std::string>();
-	_filesim         = this->_fsettings["output"]["agents-path"].get<std::string>();
-	_filesimPath     = g_baseDir + _filesim;
-	_statsOut        = this->_fsettings["output"]["stats-out"].get<bool>();
-	_statsInterval   = this->_fsettings["output"]["stats-interval"].get<uint32_t>();
-	_statsPath       = g_baseDir + this->_fsettings["output"]["stats-path"].get<std::string>();
+	_duration        = (uint32_t)(_fsettings["duration"].get<uint32_t>() / g_deltaT);
+	_calibrationTime = _fsettings["calibration"].get<uint32_t>();
+	
+	std::string outputBaseDir = _fsettings["output"]["directory"].get<std::string>() + "/";
+	
+	_saveToDisk      = _fsettings["output"]["agents-out"].get<bool>();
+	_interval        = _fsettings["output"]["interval"].get<uint32_t>();
+	
+	_filesimPrecision = _fsettings["output"]["agents-precision"].get<uint32_t>();
+	_filesimSufix    = _fsettings["output"]["agents-sufix"].get<std::string>();
+	_filesim         = _fsettings["output"]["agents-path"].get<std::string>();
+	_filesimPath     = g_baseDir + outputBaseDir + _filesim;
+	
+	_statsOut        = _fsettings["output"]["stats-out"].get<bool>();
+	_statsInterval   = _fsettings["output"]["stats-interval"].get<uint32_t>();
+	_statsPath       = g_baseDir + outputBaseDir +  _fsettings["output"]["stats-path"].get<std::string>();
 
-
+	_animConfig      = g_baseDir + outputBaseDir + _fsettings["output"]["anim-config"].get<std::string>();
 
 	//Tamaño del cuadrante
-	uint32_t quadSize = this->_fsettings["quadSize"].get<uint32_t>(); //quadSize[m] x quadSize[m]
+	uint32_t quadSize = _fsettings["quadSize"].get<uint32_t>(); //quadSize[m] x quadSize[m]
 
 	//Se crea el ambiente vacío.
 	_env = std::make_shared<Environment>();
 
-	_env->setReferencePoint(_fmap_zone);
-	_env->setRouter(_map_osrm);
+	_env->setReferencePoint(fmap_zone);
+	_env->setRouter(map_osrm);
 	_env->setProjector();
-	_env->setReferenceZones(_freference_zones);
-	_env->setInitialZones(_finitial_zones);
+	_env->setReferenceZones(freference_zones);
+	_env->setInitialZones(finitial_zones);
 
-	_env->setGrid(_fmap_zone, quadSize);
+	_env->setGrid(fmap_zone, quadSize);
 	_env->showGrid();
 
 	// inicializar la variable estática _myEnv
@@ -95,9 +100,14 @@ Simulator::Simulator(const json &_fsettings,const json &_finitial_zones,const js
 				pg.update(i);
 			}
 
-			Point2D position = _env->getInitialZone(zone(rng)).generate();
+			auto zoneInitial = _env->getInitialZone(zone(rng));
+			//Point2D position = _env->getInitialZone(zone(rng)).generate();
+			Point2D position = zoneInitial.generate();
+			
+			//bool isInside = zoneInitial.pointIsInside(position);
+			//std::cout << "Agente:"<< i << ": " << isInside << std::endl;
 
-			json initSpeedRange   = fagent["speed"];
+			json ageRange         = fagent["ageRange"];
 			json SocialForceModel = fagent["SFM"];
 			json responseTime     = fagent["responseTime"];
 			json phoneUse         = fagent["phoneUse"];
@@ -109,7 +119,7 @@ Simulator::Simulator(const json &_fsettings,const json &_finitial_zones,const js
 			               new Agent(id++,\
 			                         position,\
 									 modelID,\
-									 initSpeedRange,
+									 ageRange,\
 									 phoneUse,\
 			                         SocialForceModel,\
 									 responseTime
@@ -220,34 +230,45 @@ void Simulator::run()
 	}
 
 	if( _statsOut) {
-		std::string pathFile = _statsPath + "/zonesDensity.txt" ;
-		std::ofstream ofs(pathFile);
-		for(auto& item : g_logZonesDensity) {
-			ofs << item << std::endl;
-		}
-		ofs.close();
+		std::string pathFile01;
+		std::string pathFile02;
+		std::string pathFile03;
 		
-		pathFile = _statsPath + "/usePhone.txt" ;
-		ofs.open(pathFile);
+		pathFile01 = _statsPath + "/zonesDensity.txt" ;
+		std::ofstream ofs01(pathFile01);
+		for(auto& item : g_logZonesDensity) {
+			ofs01 << item << std::endl;
+		}
+		ofs01.close();
+		
+		pathFile01 = _statsPath + "/usePhone.txt" ;
+		ofs01.open(pathFile01);
 		
 		for(uint32_t tick = 0; tick <= _duration; tick += _statsInterval){
 			uint32_t timeSim = tick * g_deltaT;
-			ofs << std::to_string(timeSim) << " " << std::to_string(g_logUsePhone[tick]) << std::endl;
+			ofs01 << std::to_string(timeSim) << " " << std::to_string(g_logUsePhone[tick]) << std::endl;
 		}
-		ofs.close();
+		ofs01.close();
 		
-		pathFile = _statsPath + "/responseTime.txt" ;
-		ofs.open(pathFile);
-		
+		pathFile01 = _statsPath + "/summary.txt" ;
+		ofs01.open(pathFile01);
+
+		ofs01 << "id model groupAge safeZone distanceToTargetPos responseTime evacTime" << std::endl;		
 		for(auto& fooAgent : _env->getAgents()){
-			ofs << std::to_string(fooAgent->id()) << " " << std::to_string(fooAgent->responseTime()) << std::endl;
+			ofs01 << std::to_string(fooAgent->id()) << " "  
+				<< fooAgent->model() << " " 
+				<< std::to_string(fooAgent->groupAge()) << " " 
+				<< fooAgent->getSafeZoneID() << " " 
+				<< std::to_string(fooAgent->distanceToTargetPos()) << " " 
+				<< std::to_string(fooAgent->responseTime()) << " " 
+				<< std::to_string(fooAgent->evacuationTime()) << std::endl;	
 		}
-		ofs.close();
+		ofs01.close();
 		
 	}
 	
 	if(_saveToDisk){
-		//Crea el archivo JSON de la animación de la simnulación
+		//Crea el archivo JSON de la animación de la simulación
 		json animacionConfig = {
 			{"pathFileSim", "agents/"},
 			{"frameMin", 0},
@@ -261,7 +282,8 @@ void Simulator::run()
 			}}
 		};
 		
-		std::ofstream ofs(_fsettings["output"]["anim-config"].get<std::string>());
+		//std::ofstream ofs(_fsettings["output"]["anim-config"].get<std::string>()); _animConfig
+		std::ofstream ofs( _animConfig );
 		
 		ofs << animacionConfig.dump(4) << std::endl;
 		
@@ -320,6 +342,7 @@ void Simulator::savePositionAgents()
 
 void Simulator::saveStats()
 {
+	/*
 	for(auto& reference_zone : _env->getReferenceZones() ) {
 		std::string logString;
 		logString = reference_zone.getNameID() + ":" +  \
@@ -328,6 +351,18 @@ void Simulator::saveStats()
 		            std::to_string(reference_zone.getAgentsDensity());
 		g_logZonesDensity.push_back(logString);
 	}
+	*/
+	
+	std::string logString;
+	
+	logString = std::to_string(g_currTimeSim);
+	
+	for(auto& reference_zone : _env->getReferenceZones() ) {	
+		logString +=  ":" + reference_zone.getNameID() + ":" +  \
+		            std::to_string(reference_zone.getTotalAgents()) + ":" + \
+		            std::to_string(reference_zone.getAgentsDensity());		
+	}
+	g_logZonesDensity.push_back(logString);
 }
 
 void Simulator::showTimeExec(void)

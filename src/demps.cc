@@ -107,12 +107,13 @@ int main(int argc,char** argv)
 
 	g_baseDir = full_path.parent_path().string() + "/" ;
 
+	std::string inputBaseDir = settings["input"]["directory"].get<std::string>() + "/";
 
 	try {
-		map_osrm             = g_baseDir + settings["input"]["map"].get<std::string>();
-		area_zone_file       = g_baseDir + settings["input"]["area"].get<std::string>();
-		initial_zones_file   = g_baseDir + settings["input"]["initial_zones"].get<std::string>();
-		reference_zones_file = g_baseDir + settings["input"]["reference_zones"].get<std::string>();
+		map_osrm             = g_baseDir + inputBaseDir + settings["input"]["map"].get<std::string>();
+		area_zone_file       = g_baseDir + inputBaseDir + settings["input"]["area"].get<std::string>();
+		initial_zones_file   = g_baseDir + inputBaseDir + settings["input"]["initial_zones"].get<std::string>();
+		reference_zones_file = g_baseDir + inputBaseDir + settings["input"]["reference_zones"].get<std::string>();
 	} catch (json::exception &e) {
 		std::cerr << "Error in get action from 'input' section in <config.json>:" << std::endl;
 		std::cerr << e.what() << std::endl;

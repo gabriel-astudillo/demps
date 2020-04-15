@@ -410,6 +410,7 @@ void Environment::adjustAgentsRules()
 		case ShortestPath: {
 			double distance = DBL_MAX;
 			Point2D  fooTarget;
+			std::string safeZoneNameID;
 			for(auto &reference_zone : this->getReferenceZones()) {
 				/*
 				//VERSION 1 ORIGINAL
@@ -441,11 +442,14 @@ void Environment::adjustAgentsRules()
 				// del 18% para el mapa de Iquique, Q1=12.04, Q3=21.62.
 				// Se logra un SpeedUp de 2.8 comparado con la V1
 				fooTarget = reference_zone.generate();
+				safeZoneNameID = reference_zone.getNameID();
 				double fooDistance = sqrt(CGAL::squared_distance(agent->position(), fooTarget));
 
 				if( fooDistance < distance ) {
 					distance = fooDistance;
 					agent->setTargetPos(fooTarget);
+					agent->setSafeZoneID(safeZoneNameID);
+					agent->safeZone(&reference_zone);
 				}
 
 			}
@@ -534,22 +538,55 @@ void Environment::updateStats()
 	//#pragma omp parallel for //schedule (dynamic,8)
 	for(uint32_t i = 0; i < totalAgents; i++) {
 		Agent* agent = this->getAgent(i);
+		
+		std::string fooSafeZoneNameID = agent->getSafeZoneID();
+		
+		if(fooSafeZoneNameID == "NA"){
+			agent->inSafeZone(false);	
+		}
+		else{
+			auto reference_zone = agent->safeZone();
+			
+			bool isInside = reference_zone->pointIsInside(agent->position(), g_closeEnough);
+			
+			if(isInside) {
+				
+				if(!agent->inSafeZone()){
+					agent->inSafeZone(true);
+					agent->evacuationTime(g_currTimeSim);
 
+					reference_zone->addAgent(agent->id());
+					reference_zone->updateAgentsDensity();
+				}
+			} else {
+				agent->inSafeZone(false);				
+			}	
+		}
+
+		/*
 		for(auto& reference_zone : this->getReferenceZones() ) {
 			bool isInside;
-			isInside = reference_zone.pointIsInside(agent->position());
+
+			isInside = reference_zone.pointIsInside(agent->position(), g_closeEnough);
 
 			//#pragma omp critical
 			if(isInside) {
-				reference_zone.addAgent(agent->id());
-				reference_zone.updateAgentsDensity();
-			} else {
-				if(reference_zone.getAgentsDensity() > 0) {
-					reference_zone.deleteAgent(agent->id());
+				
+				if(!agent->inSafeZone()){
+					agent->inSafeZone(true);
+					agent->evacuationTime(g_currTimeSim);
+
+					reference_zone.addAgent(agent->id());
 					reference_zone.updateAgentsDensity();
 				}
-			}
-		}
+			} else {
+				agent->inSafeZone(false);				
+				//if(reference_zone.getAgentsDensity() > 0) {
+				//	reference_zone.deleteAgent(agent->id());					
+				//	reference_zone.updateAgentsDensity();
+				//	}
+			}	
+		}*/
 	
 		g_logUsePhone[g_currTimeSim] += agent->getUsingPhone();
 	}
