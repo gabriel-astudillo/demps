@@ -5,16 +5,19 @@ BASEDIR=$(dirname $BASEDIR)
 
 RM_CMD="$(which rm) -f"
 CP_CMD="$(which cp)"
+CHMOD_CMD="$(which chmod)"
 MKDIR_CMD="$(which mkdir)"
 
 ulimit -c unlimited
 rm -f core
 
 DEMPS_BIN="./demps"
-DEMPS_CONFIG="./iquique.config"
+
+#DEMPS_CONFIG="./iquique.config"
 #DEMPS_CONFIG="./valpo.config"
-#DEMPS_CONFIG="./kesennuma.config"
+DEMPS_CONFIG="./kesennuma.config"
 #DEMPS_CONFIG="./vdm.config"
+#DEMPS_CONFIG="./kochi.config"
 
 #### CONFIGURACION ####
 DEMPS_PATH=$BASEDIR/$DEMPS_BIN 
@@ -75,6 +78,8 @@ $MKDIR_CMD -p $RESULTS_DIR/input/
 $CP_CMD $INPUT_PATH/*.geojson $RESULTS_DIR/input/
 
 $CP_CMD input/animacion*.html $RESULTS_DIR/
+
+$CHMOD_CMD -R +r $RESULTS_DIR/input
 
 
 RESULTS_FILES="$AGENTS_DIR_PATH/* $STATS_DIR_PATH/*"
