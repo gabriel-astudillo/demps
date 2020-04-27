@@ -42,7 +42,9 @@
 
 	<div style="float:left">Nro Frame: </div><div id="frame" style="float:left"></div>
 	<div style="float:left">&nbsp;&nbsp;&nbsp;&nbsp;</div>
-	<div style="float:left">Tsim: </div><div id="tsim" style="float:left"></div>
+	<div style="float:left">Tsim: </div> <!-- <div id="tsim" style="float:left"></div> -->
+	<div style="float:left"><input type="text" id="tsim" size=6></div>
+	<div style="float:left"><button onclick="go()">Ir</button></div>
 	
 </div>
 
@@ -52,6 +54,14 @@
 
 
 <script>
+	var inputTsim = document.getElementById("tsim");
+	inputTsim.addEventListener("keyup", function(event) {
+	  if (event.keyCode === 13) {
+	   event.preventDefault();
+	   go();
+	  }
+	});
+	
 	mapboxgl.accessToken = 'pk.eyJ1IjoibGluZ2h1YW0iLCJhIjoiY2o1dWYzYzlqMDQ4OTJxbzRiZWl5OHdtcyJ9._Ae66CF7CGUIoJlVdrXjqA';
 	
 	// @@@@@@@ CAMBIAR ARCHIVO DE CONFIGURACIÓN SEGÚN CORRESPONDA @@@@@@@ 
@@ -326,10 +336,26 @@
 		frameDiv.innerHTML = frameNumber;
 		
 		var tsimDiv = document.getElementById("tsim");
-		tsimDiv.innerHTML = frameNumber * deltaT;
+		//tsimDiv.innerHTML = frameNumber * deltaT;
+		tsimDiv.value = frameNumber * deltaT;
 		
 		readSteps();
 		drawDots();
+	}
+	
+	function go(){
+		var tsimDiv = document.getElementById("tsim");
+		
+		var tsimCurrent = tsimDiv.value;
+		frameNumber = tsimCurrent / deltaT;
+		
+		frameNumber = Math.round(frameNumber/frameStep) * frameStep;
+		
+		if(frameNumber > frameMax){
+			frameNumber = frameMax;
+		}
+		
+		makeFrame(); 
 	}
 	
 	function forwardFrame(){ //GAM
