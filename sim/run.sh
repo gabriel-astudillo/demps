@@ -3,7 +3,7 @@
 BASEDIR=$(readlink -f $0)
 BASEDIR=$(dirname $BASEDIR)
 
-RM_CMD="$(which rm) -f"
+RM_CMD="$(which rm) "
 CP_CMD="$(which cp)"
 CHMOD_CMD="$(which chmod)"
 MKDIR_CMD="$(which mkdir)"
@@ -15,6 +15,11 @@ DEMPS_BIN="./demps"
 
 DEMPS_CONFIG="./iquique.config"
 #DEMPS_CONFIG="./valpo.config"
+#DEMPS_CONFIG="./kesennuma.config"
+#DEMPS_CONFIG="./vdm.config"
+#DEMPS_CONFIG="./kochi.config"
+
+
 
 #### CONFIGURACION ####
 DEMPS_PATH=$BASEDIR/$DEMPS_BIN 
@@ -51,7 +56,23 @@ fi
 DEMPS_OPTS="-s $DEMPS_CONFIG_PATH $*"
 
 RESULTS_DIR=$(cat $DEMPS_CONFIG_PATH | $JQ_PATH -r '.output.directory')
+
+while getopts "o:" opt; do
+  case ${opt} in
+    o ) 
+		RESULTS_DIR=$OPTARG
+		;;
+	\? )
+      ;;
+  esac
+done
+shift $((OPTIND -1))
+
 RESULTS_DIR_PATH=$BASEDIR/$RESULTS_DIR
+
+echo "Eliminando resultados anteriores..."
+$RM_CMD -rf $RESULTS_DIR_PATH
+
 
 AGENTS_DIR=$(cat $DEMPS_CONFIG_PATH | $JQ_PATH -r '.output."agents-path"')
 AGENTS_DIR_PATH=$RESULTS_DIR_PATH/$AGENTS_DIR
@@ -81,8 +102,6 @@ $CHMOD_CMD -R +r $RESULTS_DIR/input
 
 RESULTS_FILES="$AGENTS_DIR_PATH/* $STATS_DIR_PATH/*"
 
-#FILESIM_OUT=$(cat $DEMPS_CONFIG_PATH | $JQ_PATH -r '.output."agents-out"')
-#CREATE_GIF=$(cat $DEMPS_CONFIG_PATH | $JQ_PATH -r '.output."create-gif"')
 THREADS=$(cat $DEMPS_CONFIG_PATH | $JQ_PATH -r '.threads')
 
 
@@ -90,11 +109,11 @@ THREADS=$(cat $DEMPS_CONFIG_PATH | $JQ_PATH -r '.threads')
 #### MAIN ####
 printf "DEMPS_CONFIG_PATH=%s\n" "$DEMPS_CONFIG_PATH"
 
-echo "Eliminando resultados anteriores..."
-$RM_CMD $RESULTS_FILES
+
 
 echo "Ejecutando DEMPS..."
 #export OMP_NUM_THREADS=$THREADS
 #export OMP_SCHEDULE='schedule(guided,8)'
+
 $DEMPS_PATH $DEMPS_OPTS
 
