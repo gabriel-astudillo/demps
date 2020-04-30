@@ -102,7 +102,7 @@ $CHMOD_CMD -R +r $RESULTS_DIR/input
 
 RESULTS_FILES="$AGENTS_DIR_PATH/* $STATS_DIR_PATH/*"
 
-THREADS=$(cat $DEMPS_CONFIG_PATH | $JQ_PATH -r '.threads')
+#THREADS=$(cat $DEMPS_CONFIG_PATH | $JQ_PATH -r '.threads')
 
 
 
