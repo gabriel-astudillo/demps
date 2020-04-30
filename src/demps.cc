@@ -4,7 +4,6 @@
 #include <checkArgs.hpp>
 
 bool  g_showProgressBar;
-bool  g_showTimeExec;
 float g_closeEnough;
 float g_randomWalkwayRadius;
 float g_attractionRadius;
@@ -25,10 +24,15 @@ std::string g_baseDir;
 std::vector<std::string> g_logZonesDensity;
 std::vector<uint32_t> g_logUsePhone;
 
-std::map<std::string, model_t> model_map = {
+/*std::map<std::string, model_t> model_map = {
 	{"ShortestPath",   ShortestPath},
 	{"FollowTheCrowd", FollowTheCrowd},
 	{"RandomWalkway",  RandomWalkway}
+};*/
+
+std::map<std::string, model_t> model_map = {
+	{"Residents",   Residents},
+	{"Visitors", Visitors_II}
 };
 
 void loadDataFrom(std::string fileIn, json& dataOut)
@@ -79,6 +83,8 @@ int main(int argc,char** argv)
 	uint32_t duration     = argumentos->getArgs().duration;
 	uint32_t agentsNumber = argumentos->getArgs().agentsNumber;
 	uint32_t numThreads   = argumentos->getArgs().numThreads ;
+	std::string outputDirectory = argumentos->getArgs().outputDirectory;
+	int32_t numExperiment = argumentos->getArgs().numExperiment ;
 
 	if(duration > 0) {
 		settings["duration"] = duration;
@@ -89,7 +95,13 @@ int main(int argc,char** argv)
 	if(numThreads > 0) {
 		settings["threads"] = numThreads;
 	}
+	if(outputDirectory != "") {
+		settings["output"]["directory"] = outputDirectory;
+	}
 
+	//Si es >=0, entonces se asume que se están haciendo simulaciones
+	//
+	settings["numExperiment"] = numExperiment;
 
 	// En base a los datos de la sección "input" del archivo
 	// de configuración, carga las rutas de los archivos

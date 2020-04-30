@@ -407,7 +407,8 @@ void Environment::adjustAgentsRules()
 		agent->setNextTimeUsePhone();
 
 		switch(agent->model()) {
-		case ShortestPath: {
+		//case ShortestPath: {
+		case Residents: {
 			double distance = DBL_MAX;
 			Point2D  fooTarget;
 			std::string safeZoneNameID;
@@ -460,13 +461,16 @@ void Environment::adjustAgentsRules()
 
 			break;
 		}
-		case RandomWalkway:  {
+		case Visitors_I:  {
 			break;
 		}
-		case FollowTheCrowd:
+		case Visitors_II:  {
+			break;
+		}
+		/*case FollowTheCrowd:
 			break;
 		case WorkingDay:
-			break;
+			break;*/
 		default: {
 			std::cerr << "error::simulator_constructor::unknown_mobility_model::\"" << agent->model() << "\"" << std::endl;
 			exit(EXIT_FAILURE);

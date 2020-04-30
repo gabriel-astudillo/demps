@@ -27,11 +27,12 @@ Simulator::Simulator(const json &fsettings,const json &finitial_zones,const json
 	
 	// Asignación de variables globales del proyecto
 	g_showProgressBar     = _fsettings["output"]["progressBar"].get<bool>();
-	g_showTimeExec        = _fsettings["output"]["showTimeExec"].get<bool>();
 	g_closeEnough         = _fsettings["closeEnough"].get<float>();
 	g_randomWalkwayRadius = _fsettings["randomWalkwayRadius"].get<float>();
 	g_attractionRadius    = _fsettings["attractionRadius"].get<float>();
 	g_deltaT              = _fsettings["deltaT"].get<float>();
+	
+	_numExperiment = _fsettings["numExperiment"].get<int32_t>();
 
 	_duration        = (uint32_t)(_fsettings["duration"].get<uint32_t>() / g_deltaT);
 	_calibrationTime = _fsettings["calibration"].get<uint32_t>();
@@ -70,9 +71,9 @@ Simulator::Simulator(const json &fsettings,const json &finitial_zones,const json
 	// inicializar la variable estática _myEnv
 	// de la clase Agent y PatchAgent
 	Agent::_myEnv = _env;
-	PatchAgent::_myEnv = _env; //NEW
+	PatchAgent::_myEnv = _env; 
 
-	std::cout << "Creando patch agentes..." << std::endl; //NEW
+	std::cout << "Creando patch agentes..." << std::endl; 
 	Environment::grid_t gridData = _env->getGrid();
 	for(size_t y = 0; y < gridData._quadY; y++) {
 		for(size_t x = 0; x < gridData._quadX; x++) {
@@ -188,17 +189,16 @@ void Simulator::run()
 	
 	//Tiempo 0 equivale a las posiciones iniciales
 	g_currTimeSim = 0;
-	this->savePositionAgents();
+	
+	if( _saveToDisk ) {
+		this->savePositionAgents();
+	}
 
 	for(g_currTimeSim = 1; g_currTimeSim <= _duration; g_currTimeSim++) {
 
 		if(g_showProgressBar) {
 			pg.update(g_currTimeSim);
 		}
-
-		/*if(_saveToDisk && ((g_currTimeSim % _interval) == 0)) {
-			this->savePositionAgents();
-		}*/
 
 		auto start = std::chrono::high_resolution_clock::now(); //Measure Time
 
@@ -218,49 +218,72 @@ void Simulator::run()
 			_env->updateStats();
 			this->saveStats();
 		}
-		//std::cout << " ==> " << elapsed.count() << std::endl;
+
 	}
 
 	if(g_showProgressBar) {
 		std::cout << std::endl;
 	}
 
-	if( g_showTimeExec ) {
-		this->showTimeExec();
-	}
+	this->executionSummary();
 
 	if( _statsOut) {
 		std::string pathFile01;
-		std::string pathFile02;
-		std::string pathFile03;
 		
-		pathFile01 = _statsPath + "/zonesDensity.txt" ;
+		
+		std::string nameSuffix = this->getNameSuffix();
+		
+		pathFile01 = _statsPath + "/zonesDensity" +  nameSuffix;
 		std::ofstream ofs01(pathFile01);
 		for(auto& item : g_logZonesDensity) {
+			
+			if( _numExperiment >= 0){
+				ofs01 << _numExperiment << ":";
+			}
+			
 			ofs01 << item << std::endl;
 		}
 		ofs01.close();
 		
-		pathFile01 = _statsPath + "/usePhone.txt" ;
+		pathFile01 = _statsPath + "/usePhone" + nameSuffix ;
 		ofs01.open(pathFile01);
+		
+		if( _numExperiment >= 0){
+			ofs01 << "numExperiment:" ;
+		}
+		
+		ofs01 << "timeStamp usePhone" << std::endl;		
 		
 		for(uint32_t tick = 0; tick <= _duration; tick += _statsInterval){
 			uint32_t timeSim = tick * g_deltaT;
-			ofs01 << std::to_string(timeSim) << " " << std::to_string(g_logUsePhone[tick]) << std::endl;
+			
+			if( _numExperiment >= 0){
+				ofs01 << _numExperiment << ":";
+			}
+			
+			ofs01 << std::to_string(timeSim) << ":" << std::to_string(g_logUsePhone[tick]) << std::endl;
 		}
 		ofs01.close();
 		
-		pathFile01 = _statsPath + "/summary.txt" ;
+		pathFile01 = _statsPath + "/summary" + nameSuffix ;
 		ofs01.open(pathFile01);
+		
+		if( _numExperiment >= 0){
+			ofs01 << "numExperiment:" ;
+		}
 
-		ofs01 << "id model groupAge safeZone distanceToTargetPos responseTime evacTime" << std::endl;		
+		ofs01 << "id:model:groupAge:safeZone:distanceToTargetPos:responseTime:evacTime" << std::endl;		
 		for(auto& fooAgent : _env->getAgents()){
-			ofs01 << std::to_string(fooAgent->id()) << " "  
-				<< fooAgent->model() << " " 
-				<< std::to_string(fooAgent->groupAge()) << " " 
-				<< fooAgent->getSafeZoneID() << " " 
-				<< std::to_string(fooAgent->distanceToTargetPos()) << " " 
-				<< std::to_string(fooAgent->responseTime()) << " " 
+			if( _numExperiment >= 0){
+				ofs01 << _numExperiment << ":";
+			}
+			
+			ofs01 << std::to_string(fooAgent->id()) << ":"  
+				<< fooAgent->model() << ":" 
+				<< std::to_string(fooAgent->groupAge()) << ":" 
+				<< fooAgent->getSafeZoneID() << ":" 
+				<< std::to_string(fooAgent->distanceToTargetPos()) << ":" 
+				<< std::to_string(fooAgent->responseTime()) << ":" 
 				<< std::to_string(fooAgent->evacuationTime()) << std::endl;	
 		}
 		ofs01.close();
@@ -282,7 +305,6 @@ void Simulator::run()
 			}}
 		};
 		
-		//std::ofstream ofs(_fsettings["output"]["anim-config"].get<std::string>()); _animConfig
 		std::ofstream ofs( _animConfig );
 		
 		ofs << animacionConfig.dump(4) << std::endl;
@@ -342,17 +364,6 @@ void Simulator::savePositionAgents()
 
 void Simulator::saveStats()
 {
-	/*
-	for(auto& reference_zone : _env->getReferenceZones() ) {
-		std::string logString;
-		logString = reference_zone.getNameID() + ":" +  \
-		            std::to_string(g_currTimeSim) + ":" + \
-		            std::to_string(reference_zone.getTotalAgents()) + ":" + \
-		            std::to_string(reference_zone.getAgentsDensity());
-		g_logZonesDensity.push_back(logString);
-	}
-	*/
-	
 	std::string logString;
 	
 	logString = std::to_string(g_currTimeSim);
@@ -365,22 +376,55 @@ void Simulator::saveStats()
 	g_logZonesDensity.push_back(logString);
 }
 
-void Simulator::showTimeExec(void)
+void Simulator::executionSummary()
 {
-
+	std::string pathFile01;
+	
 	uint32_t maxMemory = getMaxMemory();
+	
+	std::string nameSuffix = this->getNameSuffix();
+	
+	pathFile01 = _statsPath + "/executionSummary" + nameSuffix ;
+	std::ofstream ofs01(pathFile01);
+	
+	if( _numExperiment >= 0){
+		ofs01 << "numExperiment:";
+	}
 
-	std::cout << _duration << ":"
-	          << _calibrationTime << ":"
-	          << _fsettings["agents"][0]["number"] << ":"
-	          << _fsettings["agents"][1]["number"] << ":"
-	          << _fsettings["agents"][2]["number"] << ":"
-	          << g_timeExecMakeAgents  << ":"
-	          << g_timeExecCal << ":"
-	          << g_timeExecSim << ":"
-	          << maxMemory << ":"
-	          << g_AgentsMem
-	          << std::endl;
+	ofs01 << "tsim:calibatrionTime:Residents:Visitors:timeExecMakeAgents:timeExecCal:timeExecSim:maxMemory:agentsMem" << std::endl;	
+	
+	if( _numExperiment >= 0){
+		ofs01 << _numExperiment << ":";
+	}
+	
+	ofs01 << _duration << ":"
+	      << _calibrationTime << ":"
+	      << _fsettings["agents"][0]["number"] << ":"
+		  << _fsettings["agents"][1]["number"] << ":"
+	      << g_timeExecMakeAgents  << ":"
+	      << g_timeExecCal << ":"
+	      << g_timeExecSim << ":"
+	      << maxMemory << ":"
+	      << g_AgentsMem
+	      << std::endl;
+	
+	ofs01.close();
+}
+
+std::string Simulator::getNameSuffix()
+{
+	std::string nameSuffix = "";
+	
+	if( _numExperiment >= 0){
+		std::ostringstream ss;
+		ss << "-" << std::setw( 5 ) << std::setfill( '0' ) << _numExperiment;
+		nameSuffix = ss.str();
+	}
+	
+	nameSuffix += ".txt";
+	
+	return(nameSuffix);
+	
 }
 
 

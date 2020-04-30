@@ -290,15 +290,15 @@ void Agent::update()
 	
 	if( g_currTimeSim >= (_responseTimeEngine.tau + _responseTime) ){
 		switch(this->model()) {
-		case ShortestPath: {
+		case Residents: {
 			this->shortestPath();
 			break;
 		}
-		case RandomWalkway: {
+		case Visitors_II: {
 			this->randomWalkway();
 			break;
 		}
-		case FollowTheCrowd: {
+		case Visitors_I: {
 			//Agent::Neighbors neighbors = _env.neighbors_of(this->_agents[i],g_attractionRadius,SHORTESTPATH);
 			//
 			//if(neighbors.empty()){
@@ -313,10 +313,10 @@ void Agent::update()
 			this->followTheCrowd();
 			break;
 		}
-		case WorkingDay:
+		/*case WorkingDay:
 			break;
 		case SNITCH:
-			break;
+			break;*/
 		}
 	}
 	
@@ -418,15 +418,15 @@ void Agent::randomWalkway()
 	std::vector<Agent*> neighborsTofollow; // vecinos que se pueden seguir
 	
 	for(auto& fooAgent : agentNeighbors) {
-		// Por el momento, los vecinos a seguir son del tipo "ShortestPath" o "FollowTheCrowd" RandomWalkway
-		if( fooAgent->model() == ShortestPath || fooAgent->model() == FollowTheCrowd ){
+		// Por el momento, los vecinos a seguir son del tipo "Residents" o "Visitors_I"
+		if( fooAgent->model() == Residents || fooAgent->model() == Visitors_I ){
 			neighborsTofollow.push_back(fooAgent);
 		}
 	}
 	
-	// Si hay suficientes vecinos (p.e. 3), el agente pasa a ser "FollowTheCrowd" 
+	// Si hay suficientes vecinos (p.e. 5), el agente pasa a ser "Visitors type I" 
 	if(neighborsTofollow.size() >= 5){
-		_model = FollowTheCrowd; //ShortestPath; //FollowTheCrowd;
+		_model = Visitors_I; 
 		_route.clear();
 		
 		
