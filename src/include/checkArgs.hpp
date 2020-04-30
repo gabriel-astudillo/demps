@@ -9,15 +9,17 @@ extern int optind, opterr, optopt;
 class checkArgs {
 private:
 	// 1) Modificar esta sección
-	const std::string optString = "s:d:n:t:h";
+	const std::string optString = "s:d:n:t:o:e:h";
 
-	const std::string opciones = "-s file [-d tiempo] [-n número] [-t número] [-h]";
+	const std::string opciones = "-s file [-d tiempo] [-n número] [-t número] [-o directorio] [-e nro.experimento] [-h]";
 
 	const std::string descripcion  = "Descripción:\n"
 	                                 "\t-s   Archivo de configuración JSON\n"
 	                                 "\t-d   tiempo de simulación. En segundos.\n"
 	                                 "\t-n   Cantidad de agentes.\n"
 	                                 "\t-t   Cantidad de threads.\n"
+									 "\t-o   Directorio de salida.\n"
+									 "\t-e   Numero de experimento.\n"
 	                                 "\t-h   Muestra esta salida y termina.\n";
 
 	typedef struct args_t {
@@ -25,6 +27,8 @@ private:
 		uint32_t duration;
 		uint32_t agentsNumber;
 		uint32_t numThreads;
+		std::string outputDirectory;
+		int32_t numExperiment;
 	} args_t;
 
 	// 2) Modificar constructor
@@ -55,6 +59,8 @@ checkArgs::checkArgs(int _argc, char **_argv)
 	parametros.duration     = 0;
 	parametros.agentsNumber = 0;
 	parametros.numThreads   = 0;
+	parametros.outputDirectory = "";
+	parametros.numExperiment = -1;
 
 
 	argc = _argc;
@@ -86,6 +92,12 @@ checkArgs::args_t checkArgs::getArgs()
 			break;
 		case 't':
 			parametros.numThreads = atoi(optarg);
+			break;
+		case 'o':
+			parametros.outputDirectory = optarg;
+			break;
+		case 'e':
+			parametros.numExperiment=atoi(optarg);
 			break;
 		case 'h':
 		default:

@@ -16,7 +16,7 @@ private:
 	json _fsettings;
 	std::shared_ptr<Environment> _env;
 
-	
+	int32_t     _numExperiment;
 
 	uint32_t    _duration;
 	uint32_t    _calibrationTime;
@@ -36,7 +36,9 @@ private:
 
 	void savePositionAgents();
 	void saveStats();
-	void showTimeExec(void);
+	void executionSummary();
+	
+	std::string getNameSuffix();
 
 public:
 	Simulator(void);
