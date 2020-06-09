@@ -35,6 +35,7 @@ Router::Response Router::route(const Point2D &_src,const Point2D &_dst)
 {
 	osrm::RouteParameters params;
 	params.steps = true;
+	params.alternatives = true;
 
 	double src_latitude,src_longitude,src_h;
 	double dst_latitude,dst_longitude,dst_h;
@@ -52,8 +53,18 @@ Router::Response Router::route(const Point2D &_src,const Point2D &_dst)
 	std::list<Point2D> path;
 
 	if(status==osrm::Status::Ok) {
+		std::random_device device;
+		std::mt19937 rng(device());
+		
 		auto &routes=result.values["routes"].get<osrm::json::Array>();
-		auto &route=routes.values.begin()->get<osrm::json::Object>();
+		
+		// routes.values.size() es la cantidad de rutas disponibles
+		// Se selecciona una al azar
+		std::uniform_int_distribution<uint32_t> idxRute(0, routes.values.size() - 1);		
+		uint32_t routeNumber = idxRute(rng);
+		
+		//auto &route=routes.values.begin()->get<osrm::json::Object>();
+		auto &route = routes.values.at(routeNumber).get<osrm::json::Object>();
 
 		auto &legs=route.values["legs"].get<osrm::json::Array>();
 		auto &leg=legs.values.begin()->get<osrm::json::Object>();

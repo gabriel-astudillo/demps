@@ -275,16 +275,21 @@ std::vector<Agent*>& Environment::getAgents()
 * @param distanceMax: radio de la vecindad
 * @param agentNeighbors: Vector con los agentes vecinos [out]
 */
-void Environment::setNeighborsOf(const uint32_t& idAgent,const double& distanceMax, Agent::Neighbors& agentNeighbors)
+//void Environment::setNeighborsOf(const uint32_t& idAgent,const double& distanceMax, Agent::Neighbors& agentNeighbors)
+void Environment::setNeighborsOf(const uint32_t& idAgent,const double& distanceMax)
 {
+	//Agent::Neighbors agentNeighbors;
+	
 	std::vector<uint32_t> idsAgents;
 
 	Agent* agent = this->getAgent(idAgent);
 
 	idsAgents = this->getPatchAgent( agent->getQuad() )->getAgents();
 
-	//agent->clearCloseNeighbors();
-	agentNeighbors.clear();
+	
+	agent->clearAgentNeighbors(); //<--
+	
+	//agentNeighbors.clear();
 
 	for(auto& id : idsAgents) {
 		if(id != idAgent) {
@@ -301,7 +306,9 @@ void Environment::setNeighborsOf(const uint32_t& idAgent,const double& distanceM
 			double dist = distance(agent, neighbor);
 			if(  dist < distanceMax && dist > 0 ) {
 				//agent->addCloseNeighbors(neighbor);
-				agentNeighbors.push_back(neighbor);
+				
+				//agentNeighbors.push_back(neighbor);
+				agent->addAgentNeighbors(neighbor); //<--
 			}
 
 
@@ -311,6 +318,8 @@ void Environment::setNeighborsOf(const uint32_t& idAgent,const double& distanceM
 
 		}
 	}
+	
+	//agent->setAgentNeighbors(agentNeighbors);
 }
 
 /**
@@ -407,74 +416,92 @@ void Environment::adjustAgentsRules()
 		agent->setNextTimeUsePhone();
 
 		switch(agent->model()) {
-		//case ShortestPath: {
-		case Residents: {
-			double distance = DBL_MAX;
-			Point2D  fooTarget;
-			std::string safeZoneNameID;
-			for(auto &reference_zone : this->getReferenceZones()) {
-				/*
-				//VERSION 1 ORIGINAL
-				auto response = this->getRouter()->route(agent->position(),reference_zone.generate());
-				if(response.distance() < distance) {
-					distance = response.distance();
+			case Residents: {				
+				if(agent->safeZone() == nullptr){ //El agente no tiene su zona segura asignada				
+					double distance = DBL_MAX;
+					Point2D  fooTarget;
+					std::string safeZoneNameID;
+					for(auto &reference_zone : this->getReferenceZones()) {
+						/*
+						//VERSION 1 ORIGINAL
+						auto response = this->getRouter()->route(agent->position(),reference_zone.generate());
+						if(response.distance() < distance) {
+							distance = response.distance();
+							agent->_route = response.path();
+						}*/
+
+
+						//VERSION 2
+						// Por cada zona calcula en forma independiente la distancia agente-zona
+						// Una vez que se obtiene la zona más cercana, se calcula la ruta hacia
+						// ella.
+						// Se logra un SpeedUp de 1.3 comparado con la V1
+						/*
+						fooTarget = reference_zone.generate();
+						double fooDistance = this->getRouter()->distance(agent->position(), fooTarget);
+						if( fooDistance < distance ){
+							distance = fooDistance;
+							agent->setTargetPos(fooTarget);
+						}
+						*/
+
+						//VERSION 3
+						// Similar a la C2, pero se basa en calcular la distancia
+						// entre el agente y una zona de referencia
+						// a través de la distancia euclideana. El error cometido es del orden
+						// del 18% para el mapa de Iquique, Q1=12.04, Q3=21.62.
+						// Se logra un SpeedUp de 2.8 comparado con la V1
+						fooTarget = reference_zone.generate();
+						safeZoneNameID = reference_zone.getNameID();
+						double fooDistance = sqrt(CGAL::squared_distance(agent->position(), fooTarget));
+
+						if( fooDistance < distance ) {
+							distance = fooDistance;
+							agent->setTargetPos(fooTarget);
+							agent->setSafeZoneID(safeZoneNameID);
+							agent->safeZone(&reference_zone);													
+						}
+					}//Fin for
+					
+					//VERSION 2, 3
+					auto response = this->getRouter()->route(agent->position(),agent->getTargetPos());
 					agent->_route = response.path();
-				}*/
+					
+					//Aprovecha de asignar la zona Segura y el punto objetivo
+					//a sus vecinos
+					
+					//IDEA: los agentes Residentes que sean vecinos deben tener la misma zona.
+					this->setNeighborsOf(agent->id(), g_attractionRadius);
+		
+					for(auto &fooAg : agent->getAgentNeighbors()) {
+						if(fooAg->model() == Residents){
+				
+							fooAg->setSafeZoneID( agent->getSafeZoneID() );
+							fooAg->safeZone( agent->safeZone() );
+									
+							//Opcion 1) copiar targetPos 
+							fooAg->setTargetPos( agent->getTargetPos() );
+							fooAg->_route = agent->_route;									
+				
+							//Opcion 2) buscar otro targetPost 
+							//fooAg->setTargetPos( fooAg->safeZone()->generate() );								
 
+						}
+					}		
+				}//Fin if
 
-				//VERSION 2
-				// Por cada zona calcula en forma independiente la distancia agente-zona
-				// Una vez que se obtiene la zona más cercana, se calcula la ruta hacia
-				// ella.
-				// Se logra un SpeedUp de 1.3 comparado con la V1
-				/*
-				fooTarget = reference_zone.generate();
-				double fooDistance = this->getRouter()->distance(agent->position(), fooTarget);
-				if( fooDistance < distance ){
-					distance = fooDistance;
-					agent->setTargetPos(fooTarget);
-				}
-				*/
-
-				//VERSION 3
-				// Similar a la C2, pero se basa en calcular la distancia
-				// entre el agente y una zona de referencia
-				// a través de la distancia euclideana. El error cometido es del orden
-				// del 18% para el mapa de Iquique, Q1=12.04, Q3=21.62.
-				// Se logra un SpeedUp de 2.8 comparado con la V1
-				fooTarget = reference_zone.generate();
-				safeZoneNameID = reference_zone.getNameID();
-				double fooDistance = sqrt(CGAL::squared_distance(agent->position(), fooTarget));
-
-				if( fooDistance < distance ) {
-					distance = fooDistance;
-					agent->setTargetPos(fooTarget);
-					agent->setSafeZoneID(safeZoneNameID);
-					agent->safeZone(&reference_zone);
-				}
-
+				break;
 			}
-
-			//VERSION 2, 3
-			auto response = this->getRouter()->route(agent->position(),agent->getTargetPos());
-			agent->_route = response.path();
-
-			break;
-		}
-		case Visitors_I:  {
-			break;
-		}
-		case Visitors_II:  {
-			break;
-		}
-		/*case FollowTheCrowd:
-			break;
-		case WorkingDay:
-			break;*/
-		default: {
-			std::cerr << "error::simulator_constructor::unknown_mobility_model::\"" << agent->model() << "\"" << std::endl;
-			exit(EXIT_FAILURE);
-		}
+			case Visitors_I:  {
+				break;
+			}
+			case Visitors_II:  {
+				break;
+			}
+			default: {
+				std::cerr << "error::simulator_constructor::unknown_mobility_model::\"" << agent->model() << "\"" << std::endl;
+				exit(EXIT_FAILURE);
+			}
 		}
 
 	}

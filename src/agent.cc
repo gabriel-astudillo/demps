@@ -41,6 +41,7 @@ Agent::Agent(const uint32_t &id, \
 	_ageRange.groupFeatures[3].minSpeed = ageRange["G3"]["minSpeed"].get<double>();
 	_ageRange.groupFeatures[3].maxSpeed = ageRange["G3"]["maxSpeed"].get<double>();
 	
+	//Determina grupo etario y su correspondiente vel min y max
 	_ageRange.getAgeFeatures(_groupAge, _initSpeedRange.min, _initSpeedRange.max);
 
 	_model     = model;
@@ -48,6 +49,8 @@ Agent::Agent(const uint32_t &id, \
 	
 	_safeZoneNameID = "NA"; // Por omisión, la zona de seguridad no está asignada, se asigna después.
 	_safeZone = nullptr;
+	
+	_targetPos = Point2D(-666.6,-666.6);
 	_distanceToTargetPos = -1.0;
 	
 	_direction = Vector2D(0.0,0.0);
@@ -64,7 +67,7 @@ Agent::Agent(const uint32_t &id, \
 	_evacuationTime = 0;
 	_travelDistance = 0;
 
-	_targetPos = Point2D(-666.6,-666.6);
+	
 	_quad = this->determineQuad(); 
 	
 	//Establecer el tiempo de respuesta del agente
@@ -82,7 +85,6 @@ Agent::Agent(const uint32_t &id, \
 	_responseTimeEngine.sigma = responseTime["sigma"].get<double>();
 	_responseTimeEngine.tau   = responseTime["tau"].get<double>();
 	_responseTime = _responseTimeEngine.get();
-	//_responseTime = rayleighDistroNumber(responseTime["sigma"].get<double>(), responseTime["tau"].get<double>());
 	
 	_expo.lambda = 1.0/phoneUse["meanTimeTakePhone"].get<double>();
 	
@@ -99,7 +101,7 @@ Agent::Agent(const uint32_t &id, \
 	_SFM.maxDisiredSpeed = 1.3 * this->_SFM.disiredSpeed;
 	_SFM.timeRelax = SocialForceModel["timeRelax"].get<double>();//0.5; //[s]
 	_SFM.sigma = SocialForceModel["sigma"].get<double>();//0.6;//[m]
-	_SFM.strengthSocialRepulsiveForceAgents = SocialForceModel["repulsiveForceAgents"].get<double>();//2.1; //[m^2/s^-2]
+	_SFM.strengthSocialRepulsiveForceAgents = SocialForceModel["repulsiveForceAgents"].get<double>(); //[m^2/s^2]
 	_SFM.cosPhi = SocialForceModel["cosphi"].get<double>();//-0.93969 ; //cos(200º)
 
 	
@@ -288,35 +290,31 @@ void Agent::update()
 	// El agente debe avanzar según su modelo de movilidad si ya
 	// ha pasado su tiempo de respuesta
 	
-	if( g_currTimeSim >= (_responseTimeEngine.tau + _responseTime) ){
+	if( g_currTimeSim >= (_responseTimeEngine.tau + _responseTime) ){		
 		switch(this->model()) {
-		case Residents: {
-			this->shortestPath();
-			break;
-		}
-		case Visitors_II: {
-			this->randomWalkway();
-			break;
-		}
-		case Visitors_I: {
-			//Agent::Neighbors neighbors = _env.neighbors_of(this->_agents[i],g_attractionRadius,SHORTESTPATH);
-			//
-			//if(neighbors.empty()){
-			//  if(this->_routes[this->_agents[i].id()].empty()){
-			//     auto response = _router.route(this->_agents[i].position(),g_randomWalkwayRadius);
-			//     this->_routes[this->_agents[i].id()] = response.path();
-			//   }
-			//  this->_agents[i].random_walkway(this->_routes[this->_agents[i].id()]);
-			//}
-			//else
-			//   this->_agents[i].follow_the_crowd(neighbors);
-			this->followTheCrowd();
-			break;
-		}
-		/*case WorkingDay:
-			break;
-		case SNITCH:
-			break;*/
+			case Residents: {
+				this->shortestPath();
+				break;
+			}
+			case Visitors_II: {
+				this->randomWalkway();
+				break;
+			}
+			case Visitors_I: {
+				//Agent::Neighbors neighbors = _env.neighbors_of(this->_agents[i],g_attractionRadius,SHORTESTPATH);
+				//
+				//if(neighbors.empty()){
+				//  if(this->_routes[this->_agents[i].id()].empty()){
+				//     auto response = _router.route(this->_agents[i].position(),g_randomWalkwayRadius);
+				//     this->_routes[this->_agents[i].id()] = response.path();
+				//   }
+				//  this->_agents[i].random_walkway(this->_routes[this->_agents[i].id()]);
+				//}
+				//else
+				//   this->_agents[i].follow_the_crowd(neighbors);
+				this->followTheCrowd();
+				break;
+			}
 		}
 	}
 	
@@ -351,7 +349,6 @@ void Agent::update()
 	}
 	
 	//Una vez que avanza, se calcula la distancia que le falta para llegar a su targetPos
-	//if(this->getTargetPos() != Point2D(-666.6,-666.6) && !_route.empty() ){ //_safeZone
 	if( _safeZone != nullptr && !_route.empty() ){ //_safeZone
 		_distanceToTargetPos = sqrt(CGAL::squared_distance(_position, this->getTargetPos() ));	
 	}
@@ -411,13 +408,11 @@ void Agent::randomWalkway()
 		return;
 	}
 	
-	Agent::Neighbors agentNeighbors;
-	_myEnv->setNeighborsOf(this->id(), g_attractionRadius, agentNeighbors);
-	//_myEnv->setNeighborsOf(this->id(), g_closeEnough, agentNeighbors);
+	_myEnv->setNeighborsOf(this->id(), g_attractionRadius); 
 	
 	std::vector<Agent*> neighborsTofollow; // vecinos que se pueden seguir
 	
-	for(auto& fooAgent : agentNeighbors) {
+	for(auto& fooAgent : _agentNeighbors) {
 		// Por el momento, los vecinos a seguir son del tipo "Residents" o "Visitors_I"
 		if( fooAgent->model() == Residents || fooAgent->model() == Visitors_I ){
 			neighborsTofollow.push_back(fooAgent);
@@ -428,15 +423,13 @@ void Agent::randomWalkway()
 	if(neighborsTofollow.size() >= 5){
 		_model = Visitors_I; 
 		_route.clear();
-		
-		
+
 		this->setTargetPos( neighborsTofollow[1]->getTargetPos() );
 		this->currVelocity( neighborsTofollow[1]->currVelocity() );
 		this->direction( neighborsTofollow[1]->direction() );
 		this->setSafeZoneID( neighborsTofollow[1]->getSafeZoneID() );
 		this->safeZone( neighborsTofollow[1]->safeZone() );
 		
-		//this->randomWalkwayForAdjustInitialPosition();
 		auto response = _myEnv->getRouter()->route(this->position(), this->getTargetPos() );
 		this->_route = response.path();	
 	}
@@ -486,12 +479,10 @@ void Agent::followPath()
 			_route.pop_front();
 			continue;
 		}*/
-
 		
-
-		//Agent::Neighbors agentNeighbors;
+		_myEnv->setNeighborsOf(this->id(), g_attractionRadius); //Ya se actualizó en this->update();
 		
-		_myEnv->setNeighborsOf(this->id(), g_attractionRadius, _agentNeighbors);
+		
 		//std::cout << g_currTimeSim << ": " <<  this->id() << ", Neighbors=>" << _agentNeighbors.size() << std::endl;
 
 		if( _agentNeighbors.size() > 0 ){
@@ -598,7 +589,7 @@ void Agent::followPath()
 
 void Agent::followTheCrowd(const Neighbors &_neighbors)
 {
-	static thread_local std::random_device device;
+	/*static thread_local std::random_device device;
 	static thread_local std::mt19937 rng(device());
 
 	Vector2D direction(0.0,0.0);
@@ -613,7 +604,7 @@ void Agent::followTheCrowd(const Neighbors &_neighbors)
 	this->_direction=scale(direction);
 
 	Transformation translate(CGAL::TRANSLATION,this->_direction*speed(rng));
-	this->_position=translate(this->_position);
+	this->_position=translate(this->_position);*/
 }
 
 void Agent::followTheCrowd()
@@ -640,7 +631,6 @@ void Agent::randomWalkwayForAdjustInitialPosition()
 		Vector2D direction(_position, dst);
 
 		_direction = scale(direction);
-		//double deltaT = 1.0;//[s]
 
 		/*if(dist < g_closeEnough) {
 			_route.pop_front();
@@ -666,9 +656,6 @@ void Agent::randomWalkwayForAdjustInitialPosition()
 		
 		// Si el agente se sale del área de simulación, dejarlo en el borde con velocidad 0.
 		Environment::grid_t gridData = _myEnv->getGrid();
-		/*if(_position[1] >= gridData._yMax || _position[1] <= gridData._yMin || _position[0] >= gridData._xMax || _position[0] <= gridData._xMin){
-			_currVelocity = Vector2D(0.0,0.0);
-		}*/
 		
 		if(_position[1] >= gridData._yMax ){
 			_position = Point2D(_position[0], gridData._yMax);
@@ -712,6 +699,22 @@ double Agent::getProbUsePhone()
 uint16_t Agent::getUsingPhone()
 {
 	return(_usePhone.usingPhone);
+}
+
+void Agent::setAgentNeighbors(const Neighbors& n){
+	_agentNeighbors = n;
+}
+
+void Agent::clearAgentNeighbors(){
+	_agentNeighbors.clear();
+}
+
+void Agent::addAgentNeighbors(Agent* ag){
+	_agentNeighbors.push_back( ag );
+}
+
+Agent::Neighbors& Agent::getAgentNeighbors(){
+	return(_agentNeighbors );
 }
 
 int Agent::getAgentNeighborsSize()
