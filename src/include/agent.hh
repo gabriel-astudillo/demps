@@ -32,10 +32,6 @@ private:
 	} _initSpeedRange;
 	
 	struct s_ageRange{
-		/*double G1prob;
-		double G2prob;
-		double G3prob;
-		double G4prob;*/
 		
 		struct {
 			double prob;
@@ -62,32 +58,7 @@ private:
 					break;
 				}
 			}
-			
-			/*
-			if(trigg <= G1prob){ //< 15 años, Gates et al. (2006)
-				groupAge = 1;
-				minSpeed = 1.22 - 0.18;
-				maxSpeed = 1.22 + 0.18;
-			}
-			else 
-				if(trigg <= (G1prob + G2prob) ){ // < 30 años, Gates et al. (2006)
-					groupAge = 2;
-					minSpeed = 1.48 - 0.20;
-					maxSpeed = 1.48 + 0.20;
-				}
-				else 
-					if(trigg <= (G1prob + G2prob + G3prob) ){ // < 30 -64 años, Makinoshima et al. (2018)
-						groupAge = 3;
-						minSpeed = 1.34 - 0.26;
-						maxSpeed = 1.34 + 0.26;
-					}
-					else { // > 64 años, Makinoshima et al. (2018)
-						groupAge = 4;
-						minSpeed = 0.67 - 0.26;
-						maxSpeed = 0.67 + 0.26;
-					}
-					
-					*/
+
 		}
 	} _ageRange;
 	
@@ -169,17 +140,6 @@ private:
 		}
 	
 	} _responseTimeEngine;
-	
-	/*
-	double rayleighDistroNumber(double sigma, double tau)
-	{
-		std::random_device device;
-		std::uniform_real_distribution<> rayleighNumber(0.0, 1.0);
-
-		double number = rayleighNumber(device);
-
-		return( tau + sigma * sqrt(-2.0*log(number)) );
-	}*/
 
 public:
 	Agent(void);
@@ -240,12 +200,6 @@ public:
 
 	double distanceTo(Agent* _agent) const;
 	
-
-	/*void   setLambda(double L);
-	double getLambda();
-	
-	void    setUsingPhone(uint16_t u);*/
-	
 	void   setNextTimeUsePhone();
 	
 	double getNextTimeUsePhone();
@@ -253,8 +207,11 @@ public:
 	uint16_t getUsingPhone();
 	
 
-	
-	int getAgentNeighborsSize();
+	void setAgentNeighbors(const Neighbors& n);
+	void clearAgentNeighbors();
+	void addAgentNeighbors(Agent* ag);
+	Neighbors& getAgentNeighbors();
+	int  getAgentNeighborsSize();
 	
 };
 
