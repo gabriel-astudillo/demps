@@ -22,7 +22,7 @@ make install (!)
 
 ## CGAL
 
-The Computational Geometry Algorithms Library, https://www.cgal.org. Utilizar versión ≥ 4.10
+The Computational Geometry Algorithms Library, https://www.cgal.org. Utilizar versión ≥ 5.0
 
 * Linux: ```apt-get install libcgal-dev```
 
