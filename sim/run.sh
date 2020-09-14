@@ -13,28 +13,40 @@ rm -f core
 
 DEMPS_BIN="./demps"
 
-DEMPS_CONFIG="./iquique.config"
-#DEMPS_CONFIG="./valpo.config"
-#DEMPS_CONFIG="./kesennuma.config"
-#DEMPS_CONFIG="./vdm.config"
-#DEMPS_CONFIG="./kochi.config"
-
-
+EXPERIMENT_NUMBER=-1
+while getopts "c:o:e:" opt; do
+  case ${opt} in
+    o ) 
+		RESULTS_DIR_OPT=$OPTARG
+		;;
+	e )
+		EXPERIMENT_NUMBER=$OPTARG
+		;;
+	c )
+		DEMPS_CONFIG=$OPTARG
+		;;
+	\? )
+      ;;
+  esac
+done
+shift $((OPTIND -1))
 
 #### CONFIGURACION ####
 DEMPS_PATH=$BASEDIR/$DEMPS_BIN 
 
-if [[ ! -e $DEMPS_PATH  ]]; then
+if [[ ! -f $DEMPS_PATH  ]]; then
 	echo "Error: $DEMPS_PATH no existe"
 	exit 1
 fi
 
 DEMPS_CONFIG_PATH="$BASEDIR/$DEMPS_CONFIG"
 
-if [[ ! -e $DEMPS_CONFIG_PATH ]]; then
+if [[ ! -f $DEMPS_CONFIG_PATH ]]; then
 	echo "El archivo de configuración $DEMPS_CONFIG_PATH no exite."
-	exit
+	echo "USO: $0 -c config_file.json"
+	exit 1
 fi
+
 
 # command-line JSON processor
 # https://stedolan.github.io/jq/
@@ -49,28 +61,24 @@ fi
 TEST_CONFIG_OK=$(cat $DEMPS_CONFIG_PATH | $JQ_PATH -r '.output."agents-path"' )
 if [[  $? -ne 0  ]]; then
 	echo "El archivo $DEMPS_CONFIG_PATH tiene errores."
-	exit
+	exit 1
 fi
 
 
-DEMPS_OPTS="-s $DEMPS_CONFIG_PATH $*"
-
 RESULTS_DIR=$(cat $DEMPS_CONFIG_PATH | $JQ_PATH -r '.output.directory')
 
-while getopts "o:" opt; do
-  case ${opt} in
-    o ) 
-		RESULTS_DIR=$OPTARG
-		;;
-	\? )
-      ;;
-  esac
-done
-shift $((OPTIND -1))
+#Verificar si hay que reemplazar el valor de $RESULTS_DIR
+#del archivo de configuración con $RESULTS_DIR_OPT (parámetro -o)
+if [[ -z $RESULTS_DIR_OPT ]]; then
+	RESULTS_DIR_PATH=$BASEDIR/$RESULTS_DIR
+else
+	RESULTS_DIR_PATH=$BASEDIR/$RESULTS_DIR_OPT
+	RESULTS_DIR=$RESULTS_DIR_OPT
+fi
+#RESULTS_DIR_PATH=$BASEDIR/$RESULTS_DIR
 
-RESULTS_DIR_PATH=$BASEDIR/$RESULTS_DIR
 
-echo "Eliminando resultados anteriores..."
+echo "Eliminando resultados anteriores... $RESULTS_DIR_PATH"
 $RM_CMD -rf $RESULTS_DIR_PATH
 
 
@@ -92,12 +100,13 @@ fi
 #(necesarios para la visualizacion)
 INPUT_PATH=$(cat $DEMPS_CONFIG_PATH | $JQ_PATH -r '.input.directory')
 
-$MKDIR_CMD -p $RESULTS_DIR/input/
-$CP_CMD $INPUT_PATH/*.geojson $RESULTS_DIR/input/
+$MKDIR_CMD -p $RESULTS_DIR_PATH/input/
+echo $CP_CMD $INPUT_PATH/*.geojson $RESULTS_DIR_PATH/input/
+$CP_CMD $INPUT_PATH/*.geojson $RESULTS_DIR_PATH/input/
 
-$CP_CMD input/animacion*.html $RESULTS_DIR/
+$CP_CMD input/animacion*.html $RESULTS_DIR_PATH/
 
-$CHMOD_CMD -R +r $RESULTS_DIR/input
+$CHMOD_CMD -R +r $RESULTS_DIR_PATH/input
 
 
 RESULTS_FILES="$AGENTS_DIR_PATH/* $STATS_DIR_PATH/*"
@@ -115,5 +124,8 @@ echo "Ejecutando DEMPS..."
 #export OMP_NUM_THREADS=$THREADS
 #export OMP_SCHEDULE='schedule(guided,8)'
 
+DEMPS_OPTS="-c $DEMPS_CONFIG_PATH -o $RESULTS_DIR -e $EXPERIMENT_NUMBER"
+
+echo $DEMPS_PATH $DEMPS_OPTS
 $DEMPS_PATH $DEMPS_OPTS
 
