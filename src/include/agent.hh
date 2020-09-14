@@ -25,6 +25,7 @@ private:
 	
 	double   _radius;
 	uint32_t _groupAge;
+	double   _density; //Densidad de personas alrededor del agente
 	
 	struct s_initSpeedRange{
 		double   min;
@@ -164,6 +165,7 @@ public:
 	Zone*         safeZone();
 	
 	const double  distanceToTargetPos();
+	void          distanceToTargetPos(const double& dist);
 
 	const Point2D  position(void) const;
 	const Vector2D currVelocity(void);
@@ -185,8 +187,11 @@ public:
 	void     direction(const Vector2D& direction);
 
 	uint32_t id(void) const;
+	double radius(void) const;
 	model_t model(void) const;
 	uint32_t groupAge() const;
+	double getDensity(void) const;
+	void   setDensity(const double& density);
 	double  responseTime(void) const;
 
 	void update();

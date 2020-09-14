@@ -9,12 +9,12 @@ extern int optind, opterr, optopt;
 class checkArgs {
 private:
 	// 1) Modificar esta sección
-	const std::string optString = "s:d:n:t:o:e:h";
+	const std::string optString = "c:d:n:t:o:e:h";
 
-	const std::string opciones = "-s file [-d tiempo] [-n número] [-t número] [-o directorio] [-e nro.experimento] [-h]";
+	const std::string opciones = "-c file [-d tiempo] [-n número] [-t número] [-o directorio] [-e nro.experimento] [-h]";
 
 	const std::string descripcion  = "Descripción:\n"
-	                                 "\t-s   Archivo de configuración JSON\n"
+	                                 "\t-c   Archivo de configuración JSON\n"
 	                                 "\t-d   tiempo de simulación. En segundos.\n"
 	                                 "\t-n   Cantidad de agentes.\n"
 	                                 "\t-t   Cantidad de threads.\n"
@@ -81,7 +81,7 @@ checkArgs::args_t checkArgs::getArgs()
 
 	while ((opcion = getopt (argc, argv, optString.c_str())) != -1) {
 		switch (opcion) {
-		case 's':
+		case 'c':
 			parametros.fileConfig = optarg;
 			break;
 		case 'd':

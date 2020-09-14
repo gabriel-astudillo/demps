@@ -74,6 +74,7 @@ public:
 
 	void adjustAgentsInitialPosition(const uint32_t& calibrationTime);
 	void adjustAgentsRules();
+	void setSafeZoneAttribAgent(Agent* agent);
 
 	void updateAgents();
 	void updateQuads();
