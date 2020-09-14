@@ -271,6 +271,9 @@ void Simulator::run()
 		if( _numExperiment >= 0){
 			ofs01 << "numExperiment:" ;
 		}
+		
+		std::random_device _randomDevice;
+		std::uniform_real_distribution<> unifDistro(-(float)_interval/2.0, (float)_interval/2.0);		
 
 		ofs01 << "id:model:groupAge:safeZone:distanceToTargetPos:responseTime:evacTime" << std::endl;		
 		for(auto& fooAgent : _env->getAgents()){
@@ -278,13 +281,36 @@ void Simulator::run()
 				ofs01 << _numExperiment << ":";
 			}
 			
+			//aleatorizar el tiempo de evacuación para que esté 
+			//en un rango tevac +/- (_interval)/2
+			double evacTime = fooAgent->evacuationTime();
+			//if( fooAgent->evacuationTime() > 0 ){
+			if( fooAgent->evacuationTime() > (fooAgent->responseTime() + _interval/2.0) ){
+				evacTime +=  unifDistro(_randomDevice) ; 
+				
+				/*if(evacTime < fooAgent->responseTime() ){
+					evacTime = fooAgent->evacuationTime();
+					evacTime +=  std::abs(unifDistro(_randomDevice)) ; 
+				}*/
+			}
+			
+			
+			//Para todos los visitantes II que no alcanzaron a evacuar
+			//debido a que nunca supuieron donde estaba su zona segura
+			//más cercana, determinar su zona segura y calcula a qué
+			//distancia quedaron.
+			if(fooAgent->safeZone() == nullptr && fooAgent->model() == Visitors_II){
+				_env->setSafeZoneAttribAgent(fooAgent);
+			}
+			
+			
 			ofs01 << std::to_string(fooAgent->id()) << ":"  
 				<< fooAgent->model() << ":" 
 				<< std::to_string(fooAgent->groupAge()) << ":" 
 				<< fooAgent->getSafeZoneID() << ":" 
 				<< std::to_string(fooAgent->distanceToTargetPos()) << ":" 
 				<< std::to_string(fooAgent->responseTime()) << ":" 
-				<< std::to_string(fooAgent->evacuationTime()) << std::endl;	
+				<< std::to_string(evacTime) << std::endl;	
 		}
 		ofs01.close();
 		
@@ -316,6 +342,7 @@ Simulator::~Simulator(void)
 {
 	;
 }
+
 void Simulator::savePositionAgents()
 {
 	std::ostringstream ss;
@@ -336,6 +363,7 @@ void Simulator::savePositionAgents()
 				<< " " << agent->getNextTimeUsePhone()
 				<< " " << agent->getProbUsePhone()
 				<< " " << agent->getAgentNeighborsSize()
+				<< " " << agent->getDensity()
 				<< " " << agent->getUsingPhone()
 				<< std::endl;
 		}

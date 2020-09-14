@@ -100,7 +100,8 @@ void Environment::setReferencePoint(const json &_fmap_zone)
 */
 void Environment::setProjector()
 {
-	this->_projector = LocalCartesian(_reference_point["features"][0]["geometry"]["coordinates"][1],_reference_point["features"][0]["geometry"]["coordinates"][0],0,Geocentric::WGS84());
+	//LocalCartesian (real lat0, real lon0, real h0=0, const Geocentric &earth=Geocentric::WGS84())
+	this->_projector = LocalCartesian(_reference_point["features"][0]["geometry"]["coordinates"][1], _reference_point["features"][0]["geometry"]["coordinates"][0],0,Geocentric::WGS84());
 }
 
 /**
@@ -284,7 +285,8 @@ void Environment::setNeighborsOf(const uint32_t& idAgent,const double& distanceM
 
 	Agent* agent = this->getAgent(idAgent);
 
-	idsAgents = this->getPatchAgent( agent->getQuad() )->getAgents();
+	//idsAgents = this->getPatchAgent( agent->getQuad() )->getAgents();
+	idsAgents = this->getPatchAgent( agent->getQuad() )->getNeighborsAgents();
 
 	
 	agent->clearAgentNeighbors(); //<--
@@ -418,59 +420,17 @@ void Environment::adjustAgentsRules()
 		switch(agent->model()) {
 			case Residents: {				
 				if(agent->safeZone() == nullptr){ //El agente no tiene su zona segura asignada				
-					double distance = DBL_MAX;
-					Point2D  fooTarget;
-					std::string safeZoneNameID;
-					for(auto &reference_zone : this->getReferenceZones()) {
-						/*
-						//VERSION 1 ORIGINAL
-						auto response = this->getRouter()->route(agent->position(),reference_zone.generate());
-						if(response.distance() < distance) {
-							distance = response.distance();
-							agent->_route = response.path();
-						}*/
+					this->setSafeZoneAttribAgent(agent);
 
-
-						//VERSION 2
-						// Por cada zona calcula en forma independiente la distancia agente-zona
-						// Una vez que se obtiene la zona más cercana, se calcula la ruta hacia
-						// ella.
-						// Se logra un SpeedUp de 1.3 comparado con la V1
-						/*
-						fooTarget = reference_zone.generate();
-						double fooDistance = this->getRouter()->distance(agent->position(), fooTarget);
-						if( fooDistance < distance ){
-							distance = fooDistance;
-							agent->setTargetPos(fooTarget);
-						}
-						*/
-
-						//VERSION 3
-						// Similar a la C2, pero se basa en calcular la distancia
-						// entre el agente y una zona de referencia
-						// a través de la distancia euclideana. El error cometido es del orden
-						// del 18% para el mapa de Iquique, Q1=12.04, Q3=21.62.
-						// Se logra un SpeedUp de 2.8 comparado con la V1
-						fooTarget = reference_zone.generate();
-						safeZoneNameID = reference_zone.getNameID();
-						double fooDistance = sqrt(CGAL::squared_distance(agent->position(), fooTarget));
-
-						if( fooDistance < distance ) {
-							distance = fooDistance;
-							agent->setTargetPos(fooTarget);
-							agent->setSafeZoneID(safeZoneNameID);
-							agent->safeZone(&reference_zone);													
-						}
-					}//Fin for
-					
-					//VERSION 2, 3
 					auto response = this->getRouter()->route(agent->position(),agent->getTargetPos());
 					agent->_route = response.path();
 					
+					/*
 					//Aprovecha de asignar la zona Segura y el punto objetivo
 					//a sus vecinos
 					
 					//IDEA: los agentes Residentes que sean vecinos deben tener la misma zona.
+					
 					this->setNeighborsOf(agent->id(), g_attractionRadius);
 		
 					for(auto &fooAg : agent->getAgentNeighbors()) {
@@ -487,7 +447,9 @@ void Environment::adjustAgentsRules()
 							//fooAg->setTargetPos( fooAg->safeZone()->generate() );								
 
 						}
-					}		
+					}
+					*/
+							
 				}//Fin if
 
 				break;
@@ -506,6 +468,56 @@ void Environment::adjustAgentsRules()
 
 	}
 }
+
+void Environment::setSafeZoneAttribAgent(Agent* agent)
+{			
+	double distance = DBL_MAX;
+	Point2D  fooTarget;
+	std::string safeZoneNameID;
+	for(auto &reference_zone : this->getReferenceZones()) {
+		/*
+		//VERSION 1 ORIGINAL
+		auto response = this->getRouter()->route(agent->position(),reference_zone.generate());
+		if(response.distance() < distance) {
+			distance = response.distance();
+			agent->_route = response.path();
+		}*/
+
+
+		//VERSION 2
+		// Por cada zona calcula en forma independiente la distancia agente-zona
+		// Una vez que se obtiene la zona más cercana, se calcula la ruta hacia
+		// ella.
+		// Se logra un SpeedUp de 1.3 comparado con la V1
+		/*
+		fooTarget = reference_zone.generate();
+		double fooDistance = this->getRouter()->distance(agent->position(), fooTarget);
+		if( fooDistance < distance ){
+			distance = fooDistance;
+			agent->setTargetPos(fooTarget);
+		}
+		*/
+
+		//VERSION 3
+		// Similar a la C2, pero se basa en calcular la distancia
+		// entre el agente y una zona de referencia
+		// a través de la distancia euclideana. El error cometido es del orden
+		// del 18% para el mapa de Iquique, Q1=12.04, Q3=21.62.
+		// Se logra un SpeedUp de 2.8 comparado con la V1
+		fooTarget = reference_zone.generate();
+		safeZoneNameID = reference_zone.getNameID();
+		double fooDistance = sqrt(CGAL::squared_distance(agent->position(), fooTarget));
+
+		if( fooDistance < distance ) {
+			distance = fooDistance;			
+			agent->setTargetPos(fooTarget);
+			agent->distanceToTargetPos(distance);
+			agent->setSafeZoneID(safeZoneNameID);
+			agent->safeZone(&reference_zone);													
+		}
+	}//Fin for
+}
+
 
 /**
 * @brief Actualiza agentes del Environment
@@ -593,31 +605,6 @@ void Environment::updateStats()
 				agent->inSafeZone(false);				
 			}	
 		}
-
-		/*
-		for(auto& reference_zone : this->getReferenceZones() ) {
-			bool isInside;
-
-			isInside = reference_zone.pointIsInside(agent->position(), g_closeEnough);
-
-			//#pragma omp critical
-			if(isInside) {
-				
-				if(!agent->inSafeZone()){
-					agent->inSafeZone(true);
-					agent->evacuationTime(g_currTimeSim);
-
-					reference_zone.addAgent(agent->id());
-					reference_zone.updateAgentsDensity();
-				}
-			} else {
-				agent->inSafeZone(false);				
-				//if(reference_zone.getAgentsDensity() > 0) {
-				//	reference_zone.deleteAgent(agent->id());					
-				//	reference_zone.updateAgentsDensity();
-				//	}
-			}	
-		}*/
 	
 		g_logUsePhone[g_currTimeSim] += agent->getUsingPhone();
 	}
@@ -626,7 +613,7 @@ void Environment::updateStats()
 
 double Environment::distance(Agent* a, Agent* b)
 {
-	return(sqrt(CGAL::squared_distance(a->position(),b->position())));
+	return(sqrt(CGAL::squared_distance(a->position(),b->position())) - a->radius() - b->radius()  );
 }
 
 /*

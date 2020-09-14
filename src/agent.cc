@@ -56,6 +56,7 @@ Agent::Agent(const uint32_t &id, \
 	_direction = Vector2D(0.0,0.0);
 	_currVelocity = Vector2D(0.0,0.0);
 	_radius    = 0.25;
+	_density   = 0.0;
 	
 	// Si pertenece al grupo niño, se asume que va 
 	// junto a un adulto ==> el radio se expande)
@@ -64,7 +65,7 @@ Agent::Agent(const uint32_t &id, \
 	}
 	
 	_inSafeZone     = false;
-	_evacuationTime = 0;
+	_evacuationTime = -1;
 	_travelDistance = 0;
 
 	
@@ -147,6 +148,11 @@ const double Agent::distanceToTargetPos()
 	return(_distanceToTargetPos);
 }
 
+void Agent::distanceToTargetPos(const double& dist)
+{
+	_distanceToTargetPos = dist;
+}
+
 const Point2D Agent::position(void) const
 {
 	return(_position);
@@ -175,7 +181,13 @@ void Agent::inSafeZone(bool in)
 
 void Agent::evacuationTime(uint32_t& currTick)
 {
-	_evacuationTime = currTick * g_deltaT - _responseTimeEngine.tau  ;
+	if(currTick * g_deltaT <= _responseTimeEngine.tau){ //El agente ya está en zona segura antes de tau
+		_evacuationTime = 0;
+	}
+	else{
+		_evacuationTime = currTick * g_deltaT - _responseTimeEngine.tau;
+	}
+	
 }
 
 double Agent::evacuationTime()
@@ -270,6 +282,11 @@ uint32_t Agent::id(void) const
 	return(_id);
 }
 
+double Agent::radius(void) const
+{
+	return(_radius);
+}
+
 model_t Agent::model(void) const
 {
 	return(_model);
@@ -278,6 +295,16 @@ model_t Agent::model(void) const
 uint32_t Agent::groupAge(void) const
 {
 	return(_groupAge);
+}
+
+double Agent::getDensity(void) const
+{
+	return(_density);
+}
+
+void Agent::setDensity(const double& density)
+{
+	_density = density;
 }
 
 double Agent::responseTime(void) const
@@ -362,32 +389,6 @@ void Agent::shortestPath()
 	//de la simulación. Solo debe seguir dicha ruta.
 	this->followPath();
 
-	/*
-	if(_route.empty()) return;
-
-	while(!_route.empty()) {
-	    Point2D dst = _route.front();
-	    double dist = sqrt(CGAL::squared_distance(this->_position, dst));
-
-	    Transformation scale(CGAL::SCALING, 1.0, dist);
-	    Vector2D direction(this->_position, dst);
-
-		this->_direction = scale(direction);
-
-	    if(dist < g_closeEnough) {
-	        _route.pop_front();
-	        continue;
-	    }
-
-		this->_currVelocity = _disiredSpeed * this->_direction;
-
-		Transformation translate(CGAL::TRANSLATION, this->_currVelocity);
-	    this->_position = translate(this->_position);
-
-	    break;
-	}
-	*/
-
 }
 
 void Agent::randomWalkway()
@@ -456,15 +457,14 @@ void Agent::followPath()
 
 		_direction = scale(direction);
 
-		Vector2D DrivingForce = Vector2D(0.0,0.0);
+		Vector2D drivingForce = Vector2D(0.0,0.0);
+		Vector2D totalRepulsiveEfect = Vector2D(0.0,0.0);
+		Vector2D totalForce = Vector2D(0.0,0.0);
 		
-		//Eq (2)
-		//Helbing, D., & Molnar, P. (1998).
-		//Social Force Model for Pedestrian Dynamics. Physical Review E, 51(5), 4282–4286.
-		DrivingForce = (_SFM.disiredSpeed * _direction - _currVelocity) / _SFM.timeRelax;
+		//Eq (2) Helbing, D., & Molnar, P. (1998).
+		//	Social Force Model for Pedestrian Dynamics. Physical Review E, 51(5), 4282–4286.
+		drivingForce = (_SFM.disiredSpeed * _direction - _currVelocity) / _SFM.timeRelax;
 		
-		// Por omisión, sólo actúa la fuerza DrivingForce
-		_currVelocity += agentFactor * DrivingForce * g_deltaT;
 
 		// Si a la actual velocidad, el agente va llegar al destino del tramo en menos
 		// de g_deltaT tiempo, entonces se descarta el destino del tramo y se continua con el siguiente
@@ -474,21 +474,19 @@ void Agent::followPath()
 			continue;
 		}
 		
-		
-		/*if(dist < g_closeEnough) {
-			_route.pop_front();
-			continue;
-		}*/
-		
 		_myEnv->setNeighborsOf(this->id(), g_attractionRadius); //Ya se actualizó en this->update();
 		
+		//Actualizar densidad de vecinos del agente
+		this->setDensity(
+			 (double)_agentNeighbors.size() / ( 3.14*(g_attractionRadius-this->radius())*(g_attractionRadius-this->radius()) )
+				 );
 		
 		//std::cout << g_currTimeSim << ": " <<  this->id() << ", Neighbors=>" << _agentNeighbors.size() << std::endl;
 
+		/**/
 		if( _agentNeighbors.size() > 0 ){
-			// Si hay vecinos, se debe considerar la SocialForce
-			Vector2D totalRepulsiveEfect = Vector2D(0.0,0.0);
-
+			// Si hay vecinos, se debe considerar la RepulsiveForce
+			
 			// Determinar el efecto repulsivo por cada
 			// vecino cercano, y agregarlo al total
 			for(auto& fooAgent : _agentNeighbors) {
@@ -531,22 +529,30 @@ void Agent::followPath()
 			
 			//std::cout << g_currTimeSim << ": " <<  this->id() << ", totalRepulsiveEfect=>" << totalRepulsiveEfect << std::endl;
 
-			//_currVelocity += agentFactor * (DrivingForce + totalRepulsiveEfect) * g_deltaT;
-			_currVelocity += agentFactor * (totalRepulsiveEfect) * g_deltaT;
 		}
+		
+		/**/
+		totalForce =  drivingForce + totalRepulsiveEfect;
+		_currVelocity +=  agentFactor * totalForce * g_deltaT;
 
 		//Se limita la velocidad según Eq (11) y (12)
 		//Helbing, D., & Molnar, P. (1998).
 		//Social Force Model for Pedestrian Dynamics. Physical Review E, 51(5), 4282–4286.
 		// REVISAR Y COMPARAR CON
-		// Chen, X., Treiber, M., Kanagaraj, V., & Li, H. (2018). Social force models for pedestrian traffic–state of the art. 
-		// Transport Reviews.
-		//if( sqrt(CGAL::scalar_product(_currVelocity, _currVelocity)) >= _maxDisiredSpeed ) {
-		//	_currVelocity = _maxDisiredSpeed * _currVelocity / sqrt(CGAL::scalar_product(_currVelocity, _currVelocity));
-		//}
+		// Chen, X., Treiber, M., Kanagaraj, V., & Li, H. (2018). Social force models for pedestrian traffic–state of the art. Transport Reviews.
+
 		if( sqrt( _currVelocity.squared_length() ) >= _SFM.maxDisiredSpeed ) {
 			_currVelocity = _SFM.maxDisiredSpeed * _currVelocity / sqrt( _currVelocity.squared_length() );
 		}
+		
+		//Disminuir _currVelocity según la densidad de personas alrededor del agente
+		if(this->getDensity() >=0.5){
+			double velFactor = exp( -this->getDensity() )/exp(-0.5);
+			if(velFactor <= 0.3){ velFactor = 0.3;}
+			
+			_currVelocity *= velFactor;
+		}
+		
 
 		//Finalmente, se actualiza la posición del agente
 		_position += _currVelocity * g_deltaT;
@@ -632,10 +638,6 @@ void Agent::randomWalkwayForAdjustInitialPosition()
 
 		_direction = scale(direction);
 
-		/*if(dist < g_closeEnough) {
-			_route.pop_front();
-			continue;
-		}*/
 
 		_currVelocity = _SFM.disiredSpeed * _direction * g_deltaT;
 		
