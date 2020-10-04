@@ -29,6 +29,8 @@ public:
 	double getAgentsDensity(void);
 	std::string getNameID(void);
 	Point2D generate(void);
+	
+	double getArea();
 
 private:
 	void mark_domains(CDT& cdt);

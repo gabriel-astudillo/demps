@@ -17,6 +17,8 @@ private:
 	
 	uint32_t _id;
 	
+	std::string  _initialZoneNameID;
+	
 	// Para los agentes que conocen donde su meta
 	std::string  _safeZoneNameID;
 	Zone*        _safeZone;
@@ -146,6 +148,7 @@ public:
 	Agent(void);
 	Agent(const uint32_t&, \
 		const Point2D&,\
+		const std::string &,\
 		const model_t&,\
 		const json& ageRange,\
 		const json& phoneUse,\
@@ -160,6 +163,7 @@ public:
 	
 	void          setSafeZoneID(const std::string& safeZoneNameID);
 	std::string   getSafeZoneID();
+	std::string   getInitialZoneID();
 	
 	void          safeZone(Zone* safeZonePtr);
 	Zone*         safeZone();
