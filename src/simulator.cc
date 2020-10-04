@@ -35,12 +35,12 @@ Simulator::Simulator(const json &fsettings,const json &finitial_zones,const json
 	_numExperiment = _fsettings["numExperiment"].get<int32_t>();
 
 	_duration        = (uint32_t)(_fsettings["duration"].get<uint32_t>() / g_deltaT);
-	_calibrationTime = _fsettings["calibration"].get<uint32_t>();
+	_calibrationTime = (uint32_t)(_fsettings["calibration"].get<uint32_t>() / g_deltaT);
 	
 	std::string outputBaseDir = _fsettings["output"]["directory"].get<std::string>() + "/";
 	
 	_saveToDisk      = _fsettings["output"]["agents-out"].get<bool>();
-	_interval        = _fsettings["output"]["interval"].get<uint32_t>();
+	_interval        = (uint32_t)(_fsettings["output"]["interval"].get<uint32_t>() /  g_deltaT);; //NEW
 	
 	_filesimPrecision = _fsettings["output"]["agents-precision"].get<uint32_t>();
 	_filesimSufix    = _fsettings["output"]["agents-sufix"].get<std::string>();
@@ -48,7 +48,8 @@ Simulator::Simulator(const json &fsettings,const json &finitial_zones,const json
 	_filesimPath     = g_baseDir + outputBaseDir + _filesim;
 	
 	_statsOut        = _fsettings["output"]["stats-out"].get<bool>();
-	_statsInterval   = _fsettings["output"]["stats-interval"].get<uint32_t>();
+	_statsInterval   = (uint32_t)(_fsettings["output"]["stats-interval"].get<uint32_t>() /  g_deltaT);; //NEW;
+	
 	_statsPath       = g_baseDir + outputBaseDir +  _fsettings["output"]["stats-path"].get<std::string>();
 
 	_animConfig      = g_baseDir + outputBaseDir + _fsettings["output"]["anim-config"].get<std::string>();
@@ -84,7 +85,27 @@ Simulator::Simulator(const json &fsettings,const json &finitial_zones,const json
 
 
 	std::uniform_int_distribution<uint32_t> zone(0, _env->getInitialZones().size() - 1);
+	
+	std::uniform_real_distribution<double> unif(0.0, 1.0);
+	std::vector<double> initZoneAreasAcum;
+	double areaTotal = 0.0;
+	
+	for(auto& fooInitZone : _env->getInitialZones()){
+		initZoneAreasAcum.push_back(fooInitZone.getArea());
+		areaTotal += fooInitZone.getArea();
+	}
+	
+	for(size_t i = 0; i < initZoneAreasAcum.size(); ++i){
+		if(i == 0){
+			initZoneAreasAcum[i] /= areaTotal;
+		}
+		else{
+			initZoneAreasAcum[i] /= areaTotal;
+			initZoneAreasAcum[i] += initZoneAreasAcum[i-1];
+		}
+	}
 
+	
 	std::cout << "Creando agentes..." << std::endl;
 	g_AgentsMem = getMaxMemory();
 
@@ -100,12 +121,26 @@ Simulator::Simulator(const json &fsettings,const json &finitial_zones,const json
 			if(g_showProgressBar) {
 				pg.update(i);
 			}
-
-			auto zoneInitial = _env->getInitialZone(zone(rng));
-			//Point2D position = _env->getInitialZone(zone(rng)).generate();
-			Point2D position = zoneInitial.generate();
 			
-			//bool isInside = zoneInitial.pointIsInside(position);
+			uint32_t initialZoneIndex = 0;
+			
+			//La probabilidad de seleccion de la zona inicial
+			//depende del area de ella
+			double trigg = unif(rng);
+			//std::cout << "trigg: "<< trigg  << std::endl;			
+			for(size_t i = 0; i < initZoneAreasAcum.size(); ++i){			
+				if(trigg <= initZoneAreasAcum[i]){
+					initialZoneIndex = i;
+					break;
+				}
+			}
+
+			auto initialZone = _env->getInitialZone(zone(rng));
+			//auto initialZone = _env->getInitialZone(initialZoneIndex);
+			Point2D position = initialZone.generate();
+			std::string initialZoneNameID = initialZone.getNameID();
+			
+			//bool isInside = initialZone.pointIsInside(position);
 			//std::cout << "Agente:"<< i << ": " << isInside << std::endl;
 
 			json ageRange         = fagent["ageRange"];
@@ -119,6 +154,7 @@ Simulator::Simulator(const json &fsettings,const json &finitial_zones,const json
 			_env->addAgent(\
 			               new Agent(id++,\
 			                         position,\
+									 initialZoneNameID,\
 									 modelID,\
 									 ageRange,\
 									 phoneUse,\
@@ -275,7 +311,7 @@ void Simulator::run()
 		std::random_device _randomDevice;
 		std::uniform_real_distribution<> unifDistro(-(float)_interval/2.0, (float)_interval/2.0);		
 
-		ofs01 << "id:model:groupAge:safeZone:distanceToTargetPos:responseTime:evacTime" << std::endl;		
+		ofs01 << "id:model:groupAge:safeZone:distanceToTargetPos:responseTime:evacTime:initialZone" << std::endl;		
 		for(auto& fooAgent : _env->getAgents()){
 			if( _numExperiment >= 0){
 				ofs01 << _numExperiment << ":";
@@ -285,7 +321,8 @@ void Simulator::run()
 			//en un rango tevac +/- (_interval)/2
 			double evacTime = fooAgent->evacuationTime();
 			//if( fooAgent->evacuationTime() > 0 ){
-			if( fooAgent->evacuationTime() > (fooAgent->responseTime() + _interval/2.0) ){
+			//if( fooAgent->evacuationTime() > (fooAgent->responseTime() + _interval/2.0) ){
+			if( fooAgent->evacuationTime() >  (float)_interval/2.0 ){
 				evacTime +=  unifDistro(_randomDevice) ; 
 				
 				/*if(evacTime < fooAgent->responseTime() ){
@@ -310,7 +347,9 @@ void Simulator::run()
 				<< fooAgent->getSafeZoneID() << ":" 
 				<< std::to_string(fooAgent->distanceToTargetPos()) << ":" 
 				<< std::to_string(fooAgent->responseTime()) << ":" 
-				<< std::to_string(evacTime) << std::endl;	
+				<< std::to_string(evacTime) << ":"
+				<< fooAgent->getInitialZoneID()
+				<< std::endl;	
 		}
 		ofs01.close();
 		
@@ -360,10 +399,10 @@ void Simulator::savePositionAgents()
 			ofs << agent->id() << " "
 			    << std::fixed << std::setprecision(_filesimPrecision) << latitude << " " << longitude
 			    << " " << agent->model()
-				<< " " << agent->getNextTimeUsePhone()
-				<< " " << agent->getProbUsePhone()
-				<< " " << agent->getAgentNeighborsSize()
-				<< " " << agent->getDensity()
+				//<< " " << agent->getNextTimeUsePhone()
+				//<< " " << agent->getProbUsePhone()
+				//<< " " << agent->getAgentNeighborsSize()
+				//<< " " << agent->getDensity()
 				<< " " << agent->getUsingPhone()
 				<< std::endl;
 		}
@@ -394,7 +433,7 @@ void Simulator::saveStats()
 {
 	std::string logString;
 	
-	logString = std::to_string(g_currTimeSim);
+	logString = std::to_string(g_currTimeSim*g_deltaT);
 	
 	for(auto& reference_zone : _env->getReferenceZones() ) {	
 		logString +=  ":" + reference_zone.getNameID() + ":" +  \

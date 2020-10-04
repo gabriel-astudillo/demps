@@ -10,6 +10,7 @@ Agent::Agent(void)
 
 Agent::Agent(const uint32_t &id, \
 	const Point2D &position,\
+	const std::string &initialZoneNameID, \
 	const model_t &model,\
 	const json& ageRange,\
 	const json& phoneUse,\
@@ -17,6 +18,8 @@ Agent::Agent(const uint32_t &id, \
 	const json& responseTime)
 {
 	_id = id;
+	
+	_initialZoneNameID = initialZoneNameID;
 
 	//Establecer el rango etareo del agente
 	//
@@ -132,6 +135,11 @@ std::string Agent::getSafeZoneID()
 {
 	return(_safeZoneNameID);
 }
+
+std::string Agent::getInitialZoneID()
+{
+	return(_initialZoneNameID);
+}	
 
 void Agent::safeZone(Zone* safeZonePtr)
 {
@@ -317,7 +325,7 @@ void Agent::update()
 	// El agente debe avanzar según su modelo de movilidad si ya
 	// ha pasado su tiempo de respuesta
 	
-	if( g_currTimeSim >= (_responseTimeEngine.tau + _responseTime) ){		
+	if( g_currTimeSim >= (_responseTimeEngine.tau + _responseTime) && !this->inSafeZone() ){		
 		switch(this->model()) {
 			case Residents: {
 				this->shortestPath();

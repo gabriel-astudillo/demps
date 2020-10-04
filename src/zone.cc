@@ -194,6 +194,10 @@ Point2D Zone::generate(void)
 	return(points[0]);
 }
 
+double Zone::getArea()
+{
+	return _area;
+}
 
 // Mark facets that are inside the domain bounded by the polygon
 // Ref: https://doc.cgal.org/latest/Triangulation_2/Triangulation_2_2polygon_triangulation_8cpp-example.html
