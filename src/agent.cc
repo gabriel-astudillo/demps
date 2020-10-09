@@ -325,7 +325,7 @@ void Agent::update()
 	// El agente debe avanzar según su modelo de movilidad si ya
 	// ha pasado su tiempo de respuesta
 	
-	if( g_currTimeSim >= (_responseTimeEngine.tau + _responseTime) && !this->inSafeZone() ){		
+	if( g_currTimeSim >= (_responseTimeEngine.tau + _responseTime) ){//  && !this->inSafeZone()
 		switch(this->model()) {
 			case Residents: {
 				this->shortestPath();
@@ -647,7 +647,7 @@ void Agent::randomWalkwayForAdjustInitialPosition()
 		_direction = scale(direction);
 
 
-		_currVelocity = _SFM.disiredSpeed * _direction * g_deltaT;
+		_currVelocity = _SFM.disiredSpeed * _direction;// * g_deltaT;
 		
 		
 		// Si a la actual velocidad, el agente va llegar al destino del tramo en menos
