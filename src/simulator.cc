@@ -309,7 +309,8 @@ void Simulator::run()
 		}
 		
 		std::random_device _randomDevice;
-		std::uniform_real_distribution<> unifDistro(-(float)_interval/2.0, (float)_interval/2.0);		
+		//std::uniform_real_distribution<> unifDistro(-(float)_interval/2.0, (float)_interval/2.0);	 
+		std::uniform_real_distribution<> unifDistro(-(float)_interval*g_deltaT/2.0, (float)_interval*g_deltaT/2.0); //2020-10-09
 
 		ofs01 << "id:model:groupAge:safeZone:distanceToTargetPos:responseTime:evacTime:initialZone" << std::endl;		
 		for(auto& fooAgent : _env->getAgents()){
@@ -322,7 +323,8 @@ void Simulator::run()
 			double evacTime = fooAgent->evacuationTime();
 			//if( fooAgent->evacuationTime() > 0 ){
 			//if( fooAgent->evacuationTime() > (fooAgent->responseTime() + _interval/2.0) ){
-			if( fooAgent->evacuationTime() >  (float)_interval/2.0 ){
+			//if( fooAgent->evacuationTime() >  (float)_interval/2.0 ){
+			if( fooAgent->evacuationTime() >  (float)_interval*g_deltaT/2.0 ){ //2020-10-09
 				evacTime +=  unifDistro(_randomDevice) ; 
 				
 				/*if(evacTime < fooAgent->responseTime() ){
