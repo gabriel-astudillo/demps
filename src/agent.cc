@@ -554,8 +554,9 @@ void Agent::followPath()
 		}
 		
 		//Disminuir _currVelocity según la densidad de personas alrededor del agente
-		if(this->getDensity() >=0.5){
-			double velFactor = exp( -this->getDensity() )/exp(-0.5);
+		
+		if(this->getDensity() >=3.0){
+			double velFactor = exp( -this->getDensity() )/exp(-3.0);
 			if(velFactor <= 0.3){ velFactor = 0.3;}
 			
 			_currVelocity *= velFactor;
