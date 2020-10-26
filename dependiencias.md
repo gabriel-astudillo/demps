@@ -5,7 +5,7 @@
 
 Utilitario de línea de comando para procesar archivos JSON. Ver https://stedolan.github.io/jq/.
 
-* Linux: ```apt-get install jq```
+* Ubuntu 20.04: ```apt-get install jq```
 
 ## Geographic lib
 
@@ -26,7 +26,7 @@ make install (!)
 
 The Computational Geometry Algorithms Library, https://www.cgal.org. Utilizar versión ≥ 5.0
 
-* Linux: ```apt-get install libcgal-dev```
+* Ubuntu 20.04: ```apt-get install libcgal-dev```
 
 
 ## OSRM backend
