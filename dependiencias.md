@@ -43,6 +43,10 @@ cmake --build .                      (!!)
 cmake --build . --target install     (!!!)
 ```
 (!)  ```cmake .. -DCMAKE_INSTALL_PREFIX=/ruta/instalacion  -DCMAKE_BUILD_TYPE=Release```
+En la versión 5.18.0, la compilación en Ubuntu 20.04, arroja algunos errores que se solucionan con estos pasos:
+* ```src/server/api/parameters_parser.cpp```: línea 50, eliminar ```std::move()```.
+* ```src/storage/io_config.cpp```: línea 18, eliminar ```{``` y ```}```.
+* ```include/updates/csv_file_parser.hpp``` :Línea 150, eliminar ```std::move()```.
 
 (!!) Este proceso necesita al menos 3GB en RAM.
 
