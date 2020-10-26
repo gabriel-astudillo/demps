@@ -5,6 +5,8 @@
 
 Utilitario de línea de comando para procesar archivos JSON. Ver https://stedolan.github.io/jq/.
 
+* Linux: ```apt-get install jq```
+
 ## Geographic lib
 
 "GeographicLib is a small set of C++ classes for performing conversions between geographic, UTM, UPS, MGRS, geocentric, and local cartesian coordinates", https://geographiclib.sourceforge.io
