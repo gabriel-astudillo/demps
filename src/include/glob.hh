@@ -117,6 +117,7 @@ extern uint32_t g_timeExecSim;
 
 extern std::vector<std::string> g_logZonesDensity;
 extern std::vector<uint32_t> g_logUsePhone;
+extern std::vector<std::string> g_logVelocity;
 
 //enum model_t {ShortestPath=0, FollowTheCrowd=1, RandomWalkway=2, WorkingDay, SNITCH=666};
 enum model_t {Residents=0, Visitors_I=1, Visitors_II=2};

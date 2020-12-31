@@ -132,7 +132,7 @@ private:
 		double sigma;
 		double tau;
 		
-		double get()
+		double getRayleigh()
 		{
 			std::random_device device;
 			std::uniform_real_distribution<> rayleighNumber(0.0, 1.0);
@@ -140,6 +140,13 @@ private:
 			double number = rayleighNumber(device);
 
 			return( sigma * sqrt(-2.0*log(number)) );
+		}
+		
+		double getLogNormalNumber(double mean, double std){
+			std::random_device device;
+			std::lognormal_distribution<double> logNormalDistro(mean,std);
+	
+			return( logNormalDistro(device) );
 		}
 	
 	} _responseTimeEngine;
