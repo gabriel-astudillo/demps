@@ -88,7 +88,12 @@ Agent::Agent(const uint32_t &id, \
 	
 	_responseTimeEngine.sigma = responseTime["sigma"].get<double>();
 	_responseTimeEngine.tau   = responseTime["tau"].get<double>();
-	_responseTime = _responseTimeEngine.get();
+	
+	
+	_responseTime = _responseTimeEngine.getRayleigh();
+	
+	//Parametros para la simulación de Makinoshima (2018)
+	//_responseTime = _responseTimeEngine.getLogNormalNumber(6.383,0.1655);
 	
 	_expo.lambda = 1.0/phoneUse["meanTimeTakePhone"].get<double>();
 	
@@ -529,7 +534,7 @@ void Agent::followPath()
 				if(CGAL::scalar_product(_direction, repulsiveEfect) >= strengthRepulsiveEfect * _SFM.cosPhi) {
 					directionDependentWeight = 1;
 				} else {
-					directionDependentWeight = 0.5;
+					directionDependentWeight = 0.5; 
 				}
 				totalRepulsiveEfect += repulsiveEfect * directionDependentWeight;
 				//totalRepulsiveEfect += repulsiveEfect;
@@ -555,9 +560,9 @@ void Agent::followPath()
 		
 		//Disminuir _currVelocity según la densidad de personas alrededor del agente
 		
-		if(this->getDensity() >=3.0){
-			double velFactor = exp( -this->getDensity() )/exp(-3.0);
-			if(velFactor <= 0.3){ velFactor = 0.3;}
+		if(this->getDensity() >=2.0){
+			double velFactor = exp( -this->getDensity() )/exp(-2.0);
+			if(velFactor <= 0.1){ velFactor = 0.1;}
 			
 			_currVelocity *= velFactor;
 		}

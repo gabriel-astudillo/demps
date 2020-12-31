@@ -214,6 +214,7 @@ void Simulator::calibrate(void)
 void Simulator::run()
 {
 	g_logUsePhone.resize(_duration+1);
+	g_logVelocity.resize(_env->getTotalAgents());
 	
 	std::cout << "Simulando..." << std::endl;
 
@@ -265,10 +266,14 @@ void Simulator::run()
 
 	if( _statsOut) {
 		std::string pathFile01;
+		std::string pathFile02;
 		
 		
 		std::string nameSuffix = this->getNameSuffix();
 		
+		/*
+		**	zonesDensity
+		*/
 		pathFile01 = _statsPath + "/zonesDensity" +  nameSuffix;
 		std::ofstream ofs01(pathFile01);
 		for(auto& item : g_logZonesDensity) {
@@ -281,14 +286,19 @@ void Simulator::run()
 		}
 		ofs01.close();
 		
+		/*
+		**	usePhone
+		*/
 		pathFile01 = _statsPath + "/usePhone" + nameSuffix ;
 		ofs01.open(pathFile01);
+			
 		
 		if( _numExperiment >= 0){
 			ofs01 << "numExperiment:" ;
 		}
 		
-		ofs01 << "timeStamp usePhone" << std::endl;		
+		ofs01 << "timeStamp:usePhone" << std::endl;		
+		
 		
 		for(uint32_t tick = 0; tick <= _duration; tick += _statsInterval){
 			uint32_t timeSim = tick * g_deltaT;
@@ -301,6 +311,41 @@ void Simulator::run()
 		}
 		ofs01.close();
 		
+		/*
+		**	velocity
+		*/
+		pathFile01 = _statsPath + "/velocity" + nameSuffix ;
+		ofs01.open(pathFile01);
+		
+		if( _numExperiment >= 0){
+			ofs01 << "numExperiment:" ;
+		}
+		
+		ofs01 << "id:model:groupAge:";
+		for(uint32_t tick = 0; tick <= _duration; tick += _statsInterval){
+			uint32_t timeSim = tick * g_deltaT;
+		
+			ofs01 << std::to_string(timeSim) << ":";
+		}
+		
+		ofs01 << std::endl;
+		
+		ofs01 << "Coming soon..." <<std::endl;
+		
+		/*
+		for(auto& fooAgent : _env->getAgents()){
+			ofs01 << std::to_string(fooAgent->id()) << ":";
+			ofs01 << std::to_string(fooAgent->model()) << ":" ;
+			ofs01 << std::to_string(fooAgent->groupAge()) << ":";
+			ofs01 << g_logVelocity[fooAgent->id()] << std::endl;
+		}
+		*/
+		
+		ofs01.close();
+		
+		/*
+		**	summary
+		*/
 		pathFile01 = _statsPath + "/summary" + nameSuffix ;
 		ofs01.open(pathFile01);
 		
@@ -460,14 +505,15 @@ void Simulator::executionSummary()
 		ofs01 << "numExperiment:";
 	}
 
-	ofs01 << "tsim:calibatrionTime:Residents:Visitors:timeExecMakeAgents:timeExecCal:timeExecSim:maxMemory:agentsMem" << std::endl;	
+	ofs01 << "tsim:calibrationTime:deltaT:Residents:Visitors:timeExecMakeAgents:timeExecCal:timeExecSim:maxMemory:agentsMem" << std::endl;	
 	
 	if( _numExperiment >= 0){
 		ofs01 << _numExperiment << ":";
 	}
 	
-	ofs01 << _duration << ":"
-	      << _calibrationTime << ":"
+	ofs01 << _duration*g_deltaT << ":"
+	      << _calibrationTime*g_deltaT << ":"
+		  << g_deltaT << ":"
 	      << _fsettings["agents"][0]["number"] << ":"
 		  << _fsettings["agents"][1]["number"] << ":"
 	      << g_timeExecMakeAgents  << ":"

@@ -23,6 +23,7 @@ std::string g_baseDir;
 
 std::vector<std::string> g_logZonesDensity;
 std::vector<uint32_t> g_logUsePhone;
+std::vector<std::string> g_logVelocity;
 
 /*std::map<std::string, model_t> model_map = {
 	{"ShortestPath",   ShortestPath},

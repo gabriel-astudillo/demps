@@ -389,6 +389,20 @@ void Environment::adjustAgentsInitialPosition(const uint32_t& calibrationTime)
 			agent->randomWalkwayForAdjustInitialPosition();
 		}
 	}
+	
+	//
+	// Despues que se posicionan en las calles, 
+	// ajustar velocidad de los agentes a cero. (reposo)
+	//
+	#pragma omp parallel for
+	for(uint32_t i = 0; i < this->getTotalAgents(); i++) {
+		Agent* agent = this->getAgent(i);
+
+		agent->currVelocity(Vector2D(0.0,0.0));
+	}
+	
+	
+	
 }
 
 /**
@@ -607,6 +621,7 @@ void Environment::updateStats()
 		}
 	
 		g_logUsePhone[g_currTimeSim] += agent->getUsingPhone();
+		g_logVelocity[agent->id()] += std::to_string(sqrt(agent->currVelocity().squared_length())) + ":";
 	}
 }
 
