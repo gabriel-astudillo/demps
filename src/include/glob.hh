@@ -99,16 +99,15 @@ typedef CGAL::Delaunay_mesh_size_criteria_2<CDT>                  Mesh_2_criteri
 using json=nlohmann::json;
 using namespace GeographicLib;
 
-extern bool  g_showProgressBar;
-extern float g_closeEnough;
-extern float g_randomWalkwayRadius;
-extern float g_attractionRadius;
-extern uint32_t g_epochInitSim;
-extern uint32_t g_currTimeSim;
+extern bool        g_showProgressBar;
+extern float       g_closeEnough;
+extern float       g_randomWalkwayRadius;
+extern float       g_attractionRadius;
+extern uint32_t    g_epochInitSim;
+extern uint32_t    g_currTimeSim;
 extern std::string g_baseDir;
-extern uint32_t g_AgentsMem;
-
-extern float g_deltaT;
+extern uint32_t    g_AgentsMem;
+extern float       g_deltaT;
 
 //Variables globales para medir tiempo
 extern uint32_t g_timeExecMakeAgents;
@@ -116,7 +115,7 @@ extern uint32_t g_timeExecCal;
 extern uint32_t g_timeExecSim;
 
 extern std::vector<std::string> g_logZonesDensity;
-extern std::vector<uint32_t> g_logUsePhone;
+extern std::vector<uint32_t>    g_logUsePhone;
 extern std::vector<std::string> g_logVelocity;
 
 //enum model_t {ShortestPath=0, FollowTheCrowd=1, RandomWalkway=2, WorkingDay, SNITCH=666};
