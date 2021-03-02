@@ -40,7 +40,7 @@ Simulator::Simulator(const json &fsettings,const json &finitial_zones,const json
 	std::string outputBaseDir = _fsettings["output"]["directory"].get<std::string>() + "/";
 	
 	_saveToDisk      = _fsettings["output"]["agents-out"].get<bool>();
-	_interval        = (uint32_t)(_fsettings["output"]["interval"].get<uint32_t>() /  g_deltaT);; //NEW
+	_interval        = (uint32_t)(_fsettings["output"]["interval"].get<uint32_t>() /  g_deltaT);
 	
 	_filesimPrecision = _fsettings["output"]["agents-precision"].get<uint32_t>();
 	_filesimSufix    = _fsettings["output"]["agents-sufix"].get<std::string>();
@@ -48,7 +48,7 @@ Simulator::Simulator(const json &fsettings,const json &finitial_zones,const json
 	_filesimPath     = g_baseDir + outputBaseDir + _filesim;
 	
 	_statsOut        = _fsettings["output"]["stats-out"].get<bool>();
-	_statsInterval   = (uint32_t)(_fsettings["output"]["stats-interval"].get<uint32_t>() /  g_deltaT);; //NEW;
+	_statsInterval   = (uint32_t)(_fsettings["output"]["stats-interval"].get<uint32_t>() /  g_deltaT);
 	
 	_statsPath       = g_baseDir + outputBaseDir +  _fsettings["output"]["stats-path"].get<std::string>();
 
@@ -121,28 +121,28 @@ Simulator::Simulator(const json &fsettings,const json &finitial_zones,const json
 			if(g_showProgressBar) {
 				pg.update(i);
 			}
-			
-			uint32_t initialZoneIndex = 0;
-			
+				
 			//La probabilidad de seleccion de la zona inicial
 			//depende del area de ella
+			/*
+			uint32_t initialZoneIndex = 0;
 			double trigg = unif(rng);
-			//std::cout << "trigg: "<< trigg  << std::endl;			
 			for(size_t i = 0; i < initZoneAreasAcum.size(); ++i){			
 				if(trigg <= initZoneAreasAcum[i]){
 					initialZoneIndex = i;
 					break;
 				}
 			}
+			auto initialZone = _env->getInitialZone(initialZoneIndex);
+			*/
 
+			//La probabilidad de seleccion de la zona inicial
+			//es uniforme
 			auto initialZone = _env->getInitialZone(zone(rng));
-			//auto initialZone = _env->getInitialZone(initialZoneIndex);
+			
 			Point2D position = initialZone.generate();
 			std::string initialZoneNameID = initialZone.getNameID();
 			
-			//bool isInside = initialZone.pointIsInside(position);
-			//std::cout << "Agente:"<< i << ": " << isInside << std::endl;
-
 			json ageRange         = fagent["ageRange"];
 			json SocialForceModel = fagent["SFM"];
 			json responseTime     = fagent["responseTime"];

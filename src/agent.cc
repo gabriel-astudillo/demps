@@ -108,10 +108,10 @@ Agent::Agent(const uint32_t &id, \
 
 	_SFM.disiredSpeed = speed(rng);
 	_SFM.maxDisiredSpeed = 1.3 * this->_SFM.disiredSpeed;
-	_SFM.timeRelax = SocialForceModel["timeRelax"].get<double>();//0.5; //[s]
-	_SFM.sigma = SocialForceModel["sigma"].get<double>();//0.6;//[m]
+	_SFM.timeRelax = SocialForceModel["timeRelax"].get<double>();//[s]
+	_SFM.sigma = SocialForceModel["sigma"].get<double>();//[m]
 	_SFM.strengthSocialRepulsiveForceAgents = SocialForceModel["repulsiveForceAgents"].get<double>(); //[m^2/s^2]
-	_SFM.cosPhi = SocialForceModel["cosphi"].get<double>();//-0.93969 ; //cos(200º)
+	_SFM.cosPhi = SocialForceModel["cosphi"].get<double>();//cos(200º)
 
 	
 }
@@ -251,29 +251,10 @@ void Agent::updateQuad()
 	newQuad = this->determineQuad();
 
 	if(currQuad != newQuad) { //Cambio de cuadrante
-		
-		/*
-		#pragma omp critical
-		{
-		std::cout << g_currTimeSim << ": " << this->id() <<  
-			" => currQuad=" << currQuad   << std::endl;
-		}*/
-		
-		
+			
 		_myEnv->getPatchAgent(currQuad)->delAgent( this->id() );
 
 		this->setQuad(newQuad);
-		
-		/*
-		#pragma omp critical
-		{
-		std::cout << g_currTimeSim << ": " <<  this->id() <<  ", x:" << this->_position[0] <<
-			", y:" << this->_position[1] <<
-			" => newQuad=" << newQuad   << std::endl;
-		}
-		*/
-		
-		
 
 		_myEnv->getPatchAgent(newQuad)->addAgent( this->id() );
 	}
@@ -341,17 +322,6 @@ void Agent::update()
 				break;
 			}
 			case Visitors_I: {
-				//Agent::Neighbors neighbors = _env.neighbors_of(this->_agents[i],g_attractionRadius,SHORTESTPATH);
-				//
-				//if(neighbors.empty()){
-				//  if(this->_routes[this->_agents[i].id()].empty()){
-				//     auto response = _router.route(this->_agents[i].position(),g_randomWalkwayRadius);
-				//     this->_routes[this->_agents[i].id()] = response.path();
-				//   }
-				//  this->_agents[i].random_walkway(this->_routes[this->_agents[i].id()]);
-				//}
-				//else
-				//   this->_agents[i].follow_the_crowd(neighbors);
 				this->followTheCrowd();
 				break;
 			}
@@ -414,8 +384,7 @@ void Agent::randomWalkway()
 		return;
 	}
 	
-	//Lo del target 666.6 es algo cochino, pero la idea es
-	//que si el agente copia la ruta de otro, yo no
+	//si el agente copia la ruta de otro, yo no
 	//entra en el ciclo de más abajo
 	if(this->getTargetPos() != Point2D(-666.6,-666.6) ){
 		this->followPath();
@@ -663,10 +632,6 @@ void Agent::randomWalkwayForAdjustInitialPosition()
 			_route.pop_front();
 			continue;
 		}
-		
-
-		//Transformation translate(CGAL::TRANSLATION, this->_currVelocity);
-		//this->_position = translate(this->_position);
 		
 		_position += _currVelocity * g_deltaT;
 		
