@@ -4,7 +4,7 @@
     {
       "type": "Feature",
       "properties": {
-		    "nameID": "Zona2"
+		    "nameID": "Z1"
 	  },
       "geometry": {
         "type": "Polygon",
@@ -37,7 +37,7 @@
     {
       "type": "Feature",
       "properties": {
-		    "nameID": "Zona3"
+		    "nameID": "Z2"
 	  },
       "geometry": {
         "type": "Polygon",
@@ -70,7 +70,7 @@
     {
       "type": "Feature",
       "properties": {
-		    "nameID": "Zona4"
+		    "nameID": "Z3"
 	  },
       "geometry": {
         "type": "Polygon",
