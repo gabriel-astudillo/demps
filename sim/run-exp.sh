@@ -21,3 +21,5 @@ do
 	echo "======"
 	$CMD
 done
+
+echo "--- FIN DE LOS EXPERIMENTOS ---"
