@@ -20,7 +20,7 @@ private:
 
 	uint32_t    _duration;
 	uint32_t    _calibrationTime;
-	bool        _saveToDisk;
+	bool        _agentsOut;
 	uint32_t    _interval;
 	
 	uint32_t    _filesimPrecision; //Precision ENU->WSG84
@@ -32,11 +32,18 @@ private:
 	uint32_t    _statsInterval;
 	std::string _statsPath;
 	
+	//Intevalo para muestrear la simulación
+	uint32_t    _samplingInterval;
+	
+	
 	std::string _animConfig;
 
 	void savePositionAgents();
 	void saveStats();
 	void executionSummary();
+	void makeStats();
+	
+	void samplingSim();
 	
 	std::string getNameSuffix();
 

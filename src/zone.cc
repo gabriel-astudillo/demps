@@ -109,6 +109,11 @@ bool Zone::pointIsInside(const Point2D& testPoint, const double& bias)
 	}
 }
 
+////////////////////////////////////////////////
+// Operaciones con _agentsInZone
+// Estos son los agentes que están dentro de la 
+// zona segura.
+//
 void Zone::addAgent(const uint32_t& idAgent)
 {
 	//#pragma omp critical
@@ -123,6 +128,37 @@ void Zone::deleteAgent(const uint32_t& idAgent)
 	{
 		_agentsInZone.erase(idAgent);
 	}
+}
+
+const std::set<uint32_t>& Zone::agentsInZone(void)
+{
+	return(_agentsInZone);
+}
+
+////////////////////////////////////////////////
+// Operaciones con _agentsAssignedInZone
+// Estos son los agentes que están asignados
+// a la zona segura.
+//
+void Zone::addAgentAssigned(const uint32_t& idAgent)
+{
+	#pragma omp critical
+	{
+		_agentsAssignedInZone.insert(idAgent);
+	}
+}
+
+void Zone::deleteAgentAssigned(const uint32_t& idAgent)
+{
+	#pragma omp critical
+	{
+		_agentsAssignedInZone.erase(idAgent);
+	}
+}
+
+const std::set<uint32_t>& Zone::agentsAssignedInZone(void)
+{
+	return(_agentsAssignedInZone);
 }
 
 void Zone::updateAgentsDensity(void)

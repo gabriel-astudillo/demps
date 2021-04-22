@@ -430,39 +430,54 @@ void Environment::adjustAgentsRules()
 		
 		//Ajustar la primera vez que utlizará el teléfono
 		agent->setNextTimeUsePhone();
+		
+		//A todos los agentes se les asigna datos de su zona segura
+		//El metodo setSafeZoneAttribAgent() discrimina si el dato
+		//se puede utilizar por el agente (residente) o no (visitante II)
+		//Para los visitantes II, los datos de la zona segura se utilizan
+		//para determinar algunas variables de salida (distancia a la zona segura
+		//mas cercana, etc)
+		if(agent->safeZone() == nullptr){ //El agente no tiene su zona segura asignada				
+			this->setSafeZoneAttribAgent(agent);
 
-		switch(agent->model()) {
+			if( !agent->safeZoneDataIsFake() ){
+				auto response = this->getRouter()->route(agent->position(),agent->getTargetPos());
+				agent->_route = response.path();
+			}
+			
+		}
+
+		/*switch(agent->model()) {
 			case Residents: {				
 				if(agent->safeZone() == nullptr){ //El agente no tiene su zona segura asignada				
 					this->setSafeZoneAttribAgent(agent);
 
 					auto response = this->getRouter()->route(agent->position(),agent->getTargetPos());
 					agent->_route = response.path();
-					
-					/*
+										
 					//Aprovecha de asignar la zona Segura y el punto objetivo
 					//a sus vecinos
-					
+					//
 					//IDEA: los agentes Residentes que sean vecinos deben tener la misma zona.
+					//
+					//this->setNeighborsOf(agent->id(), g_attractionRadius);
+					//
+					//for(auto &fooAg : agent->getAgentNeighbors()) {
+					//	if(fooAg->model() == Residents){
+					//
+					//		fooAg->setSafeZoneID( agent->getSafeZoneID() );
+					//		fooAg->safeZone( agent->safeZone() );
+					//				
+					//		//Opcion 1) copiar targetPos 
+					//		fooAg->setTargetPos( agent->getTargetPos() );
+					//		fooAg->_route = agent->_route;									
+					//
+					//		//Opcion 2) buscar otro targetPost 
+					//		//fooAg->setTargetPos( fooAg->safeZone()->generate() );								
+					//
+					//	}
+					//}
 					
-					this->setNeighborsOf(agent->id(), g_attractionRadius);
-		
-					for(auto &fooAg : agent->getAgentNeighbors()) {
-						if(fooAg->model() == Residents){
-				
-							fooAg->setSafeZoneID( agent->getSafeZoneID() );
-							fooAg->safeZone( agent->safeZone() );
-									
-							//Opcion 1) copiar targetPos 
-							fooAg->setTargetPos( agent->getTargetPos() );
-							fooAg->_route = agent->_route;									
-				
-							//Opcion 2) buscar otro targetPost 
-							//fooAg->setTargetPos( fooAg->safeZone()->generate() );								
-
-						}
-					}
-					*/
 							
 				}//Fin if
 
@@ -478,7 +493,7 @@ void Environment::adjustAgentsRules()
 				std::cerr << "error::simulator_constructor::unknown_mobility_model::\"" << agent->model() << "\"" << std::endl;
 				exit(EXIT_FAILURE);
 			}
-		}
+		}*/
 
 	}
 }
@@ -527,9 +542,29 @@ void Environment::setSafeZoneAttribAgent(Agent* agent)
 			agent->setTargetPos(fooTarget);
 			agent->distanceToTargetPos(distance);
 			agent->setSafeZoneID(safeZoneNameID);
-			agent->safeZone(&reference_zone);													
+			agent->safeZone(&reference_zone);
+			
+			//Los datos de la zona segura son falsos
+			//solo para los visitantes tipo II
+			//Para los visitantes II, los datos de la zona segura se utilizan
+			//para determinar algunas variables de salida (distancia a la zona segura
+			//mas cercana, etc).
+			//Si durante la simulación logran determinar datos de zona segura a través 
+			//de otros agentes cuyos
+			//datos sean válidos, por transitividad consideran válidos
+			if(agent->model() == Visitors_II){
+				agent->safeZoneDataIsFake(true);
+			}								
+			else{
+				agent->safeZoneDataIsFake(false);
+			}					
 		}
 	}//Fin for
+	
+	//El agente pertenece a los agentes designados
+	//de la zona asignada.
+	agent->safeZone()->addAgentAssigned(agent->id());
+	
 }
 
 
@@ -606,8 +641,9 @@ void Environment::updateStats()
 			
 			bool isInside = reference_zone->pointIsInside(agent->position(), g_closeEnough);
 			
+			//Si el agente está dentro de su Zona Segura
 			if(isInside) {
-				
+				//Si el agente no está marcado como "en zona segura"
 				if(!agent->inSafeZone()){
 					agent->inSafeZone(true);
 					agent->evacuationTime(g_currTimeSim);
@@ -616,7 +652,7 @@ void Environment::updateStats()
 					reference_zone->updateAgentsDensity();
 				}
 			} else {
-				agent->inSafeZone(false);				
+				//agent->inSafeZone(false);				
 			}	
 		}
 	

@@ -11,6 +11,7 @@ private:
 	CDT                  _cdt;
 
 	std::set<uint32_t> _agentsInZone;
+	std::set<uint32_t> _agentsAssignedInZone;
 	double             _agentsDensity;
 
 public:
@@ -22,8 +23,15 @@ public:
 	Zone& operator=(const Zone&);
 
 	bool pointIsInside(const Point2D& testPoint, const double& bias);
+	
 	void addAgent(const uint32_t& idAgent);
 	void deleteAgent(const uint32_t& idAgent);
+	const std::set<uint32_t>& agentsInZone(void);
+	
+	void addAgentAssigned(const uint32_t& idAgent);
+	void deleteAgentAssigned(const uint32_t& idAgent);
+	const std::set<uint32_t>& agentsAssignedInZone(void);
+	
 	void updateAgentsDensity(void);
 	uint32_t getTotalAgents(void);
 	double getAgentsDensity(void);

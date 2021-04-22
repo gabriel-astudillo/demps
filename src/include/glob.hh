@@ -12,6 +12,7 @@
 #include <string>
 #include <mutex>
 #include <list>
+#include <map> 
 #include <random>
 #include <omp.h>
 #include <iomanip>
@@ -19,6 +20,7 @@
 #include <chrono>
 #include <cmath>
 #include <cassert>
+#include <algorithm>
 
 #include <json.hpp>
 #include <progressBar.hpp>

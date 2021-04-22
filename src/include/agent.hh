@@ -18,16 +18,19 @@ private:
 	uint32_t _id;
 	
 	std::string  _initialZoneNameID;
-	
-	// Para los agentes que conocen donde su meta
-	std::string  _safeZoneNameID;
-	Zone*        _safeZone;
-	Point2D      _targetPos;
-	double       _distanceToTargetPos;
-	
+	model_t  _model;
 	double   _radius;
 	uint32_t _groupAge;
 	double   _density; //Densidad de personas alrededor del agente
+	
+	// Datos de la zona segura
+	struct s_safeZoneData{
+		std::string  safeZoneNameID;
+		Zone*        safeZone;
+		Point2D      targetPos;
+		double       distanceToTargetPos;
+		bool         isFake; //false para residentes y visitantes I. true para visitantes II.
+	} _safeZoneData;	
 	
 	struct s_initSpeedRange{
 		double   min;
@@ -64,21 +67,19 @@ private:
 
 		}
 	} _ageRange;
-	
-
-	model_t  _model;
+		
+	Neighbors _agentNeighbors;
 
 	uint32_t _quad;
-	
-	Neighbors _agentNeighbors;
-	
 	Point2D  _position;
 	Vector2D _direction;
 	Vector2D _currVelocity;
 	
-	bool   _inSafeZone;
-	double _evacuationTime;
-	double _travelDistance;
+	struct s_evacuationData{
+		bool   inSafeZone;
+		double evacuationTime;
+		double travelDistance;
+	} _evacuationData;
 
 	//Variables exclusivas para el modelo de Fuerza social
 	//Helbing, D., & Molnar, P. (1998).
@@ -177,6 +178,9 @@ public:
 	
 	const double  distanceToTargetPos();
 	void          distanceToTargetPos(const double& dist);
+	
+	void          safeZoneDataIsFake(const bool& b);
+	bool          safeZoneDataIsFake();
 
 	const Point2D  position(void) const;
 	const Vector2D currVelocity(void);
@@ -187,6 +191,8 @@ public:
 	
 	void     evacuationTime(uint32_t& currTick);
 	double   evacuationTime();
+	
+	double   travelDistance();
 
 	void     showPosition();
 	uint32_t determineQuad();

@@ -16,6 +16,9 @@ Simulator::Simulator(void)
 
 }
 
+////////////////////////////////////////////////////////
+//	Simulator::simulator()
+//
 Simulator::Simulator(const json &fsettings,const json &finitial_zones,const json &freference_zones, const json &fmap_zone,const std::string &map_osrm)
 {
 	static thread_local std::random_device device;
@@ -39,7 +42,7 @@ Simulator::Simulator(const json &fsettings,const json &finitial_zones,const json
 	
 	std::string outputBaseDir = _fsettings["output"]["directory"].get<std::string>() + "/";
 	
-	_saveToDisk      = _fsettings["output"]["agents-out"].get<bool>();
+	_agentsOut      = _fsettings["output"]["agents-out"].get<bool>();
 	_interval        = (uint32_t)(_fsettings["output"]["interval"].get<uint32_t>() /  g_deltaT);
 	
 	_filesimPrecision = _fsettings["output"]["agents-precision"].get<uint32_t>();
@@ -49,8 +52,9 @@ Simulator::Simulator(const json &fsettings,const json &finitial_zones,const json
 	
 	_statsOut        = _fsettings["output"]["stats-out"].get<bool>();
 	_statsInterval   = (uint32_t)(_fsettings["output"]["stats-interval"].get<uint32_t>() /  g_deltaT);
-	
 	_statsPath       = g_baseDir + outputBaseDir +  _fsettings["output"]["stats-path"].get<std::string>();
+	
+	_samplingInterval = 100;
 
 	_animConfig      = g_baseDir + outputBaseDir + _fsettings["output"]["anim-config"].get<std::string>();
 
@@ -178,6 +182,9 @@ Simulator::Simulator(const json &fsettings,const json &finitial_zones,const json
 	}
 }
 
+////////////////////////////////////////////////////////
+//	Simulator::calibrate()
+//
 void Simulator::calibrate(void)
 {
 
@@ -211,6 +218,9 @@ void Simulator::calibrate(void)
 	}
 }
 
+////////////////////////////////////////////////////////
+//	Simulator::run()
+//
 void Simulator::run()
 {
 	g_logUsePhone.resize(_duration+1);
@@ -224,13 +234,16 @@ void Simulator::run()
 	ProgressBar pg;
 	pg.start(_duration-1);
 	
+	//////////////////////////////////////////////
 	//Tiempo 0 equivale a las posiciones iniciales
 	g_currTimeSim = 0;
 	
-	if( _saveToDisk ) {
+	if( _agentsOut ) {
 		this->savePositionAgents();
 	}
 
+	//////////////////////////////////////////////////////////////////////
+	// Ciclo de simulación
 	for(g_currTimeSim = 1; g_currTimeSim <= _duration; g_currTimeSim++) {
 
 		if(g_showProgressBar) {
@@ -247,13 +260,17 @@ void Simulator::run()
 		g_timeExecSim += elapsed.count();
 		
 		
-		if(_saveToDisk && ((g_currTimeSim % _interval) == 0)) {
+		if(_agentsOut && ((g_currTimeSim % _interval) == 0)) {
 			this->savePositionAgents();
 		}
 
 		if(_statsOut && ((g_currTimeSim % _statsInterval) == 0)) {
 			_env->updateStats();
 			this->saveStats();
+		}
+		
+		if( (g_currTimeSim % _samplingInterval) == 0 ){
+			this->samplingSim();
 		}
 
 	}
@@ -265,145 +282,12 @@ void Simulator::run()
 	this->executionSummary();
 
 	if( _statsOut) {
-		std::string pathFile01;
-		std::string pathFile02;
-		
-		
-		std::string nameSuffix = this->getNameSuffix();
-		
-		/*
-		**	zonesDensity
-		*/
-		pathFile01 = _statsPath + "/zonesDensity" +  nameSuffix;
-		std::ofstream ofs01(pathFile01);
-		for(auto& item : g_logZonesDensity) {
-			
-			if( _numExperiment >= 0){
-				ofs01 << _numExperiment << ":";
-			}
-			
-			ofs01 << item << std::endl;
-		}
-		ofs01.close();
-		
-		/*
-		**	usePhone
-		*/
-		pathFile01 = _statsPath + "/usePhone" + nameSuffix ;
-		ofs01.open(pathFile01);
-			
-		
-		if( _numExperiment >= 0){
-			ofs01 << "numExperiment:" ;
-		}
-		
-		ofs01 << "timeStamp:usePhone" << std::endl;		
-		
-		
-		for(uint32_t tick = 0; tick <= _duration; tick += _statsInterval){
-			uint32_t timeSim = tick * g_deltaT;
-			
-			if( _numExperiment >= 0){
-				ofs01 << _numExperiment << ":";
-			}
-			
-			ofs01 << std::to_string(timeSim) << ":" << std::to_string(g_logUsePhone[tick]) << std::endl;
-		}
-		ofs01.close();
-		
-		/*
-		**	velocity
-		*/
-		pathFile01 = _statsPath + "/velocity" + nameSuffix ;
-		ofs01.open(pathFile01);
-		
-		if( _numExperiment >= 0){
-			ofs01 << "numExperiment:" ;
-		}
-		
-		ofs01 << "id:model:groupAge:";
-		for(uint32_t tick = 0; tick <= _duration; tick += _statsInterval){
-			uint32_t timeSim = tick * g_deltaT;
-		
-			ofs01 << std::to_string(timeSim) << ":";
-		}
-		
-		ofs01 << std::endl;
-		
-		ofs01 << "Coming soon..." <<std::endl;
-		
-		/*
-		for(auto& fooAgent : _env->getAgents()){
-			ofs01 << std::to_string(fooAgent->id()) << ":";
-			ofs01 << std::to_string(fooAgent->model()) << ":" ;
-			ofs01 << std::to_string(fooAgent->groupAge()) << ":";
-			ofs01 << g_logVelocity[fooAgent->id()] << std::endl;
-		}
-		*/
-		
-		ofs01.close();
-		
-		/*
-		**	summary
-		*/
-		pathFile01 = _statsPath + "/summary" + nameSuffix ;
-		ofs01.open(pathFile01);
-		
-		if( _numExperiment >= 0){
-			ofs01 << "numExperiment:" ;
-		}
-		
-		std::random_device _randomDevice;
-		//std::uniform_real_distribution<> unifDistro(-(float)_interval/2.0, (float)_interval/2.0);	 
-		std::uniform_real_distribution<> unifDistro(-(float)_interval*g_deltaT/2.0, (float)_interval*g_deltaT/2.0); //2020-10-09
-
-		ofs01 << "id:model:groupAge:safeZone:distanceToTargetPos:responseTime:evacTime:initialZone" << std::endl;		
-		for(auto& fooAgent : _env->getAgents()){
-			if( _numExperiment >= 0){
-				ofs01 << _numExperiment << ":";
-			}
-			
-			//aleatorizar el tiempo de evacuación para que esté 
-			//en un rango tevac +/- (_interval)/2
-			double evacTime = fooAgent->evacuationTime();
-			//if( fooAgent->evacuationTime() > 0 ){
-			//if( fooAgent->evacuationTime() > (fooAgent->responseTime() + _interval/2.0) ){
-			//if( fooAgent->evacuationTime() >  (float)_interval/2.0 ){
-			if( fooAgent->evacuationTime() >  (float)_interval*g_deltaT/2.0 ){ //2020-10-09
-				evacTime +=  unifDistro(_randomDevice) ; 
-				
-				/*if(evacTime < fooAgent->responseTime() ){
-					evacTime = fooAgent->evacuationTime();
-					evacTime +=  std::abs(unifDistro(_randomDevice)) ; 
-				}*/
-			}
-			
-			
-			//Para todos los visitantes II que no alcanzaron a evacuar
-			//debido a que nunca supuieron donde estaba su zona segura
-			//más cercana, determinar su zona segura y calcula a qué
-			//distancia quedaron.
-			if(fooAgent->safeZone() == nullptr && fooAgent->model() == Visitors_II){
-				_env->setSafeZoneAttribAgent(fooAgent);
-			}
-			
-			
-			ofs01 << std::to_string(fooAgent->id()) << ":"  
-				<< fooAgent->model() << ":" 
-				<< std::to_string(fooAgent->groupAge()) << ":" 
-				<< fooAgent->getSafeZoneID() << ":" 
-				<< std::to_string(fooAgent->distanceToTargetPos()) << ":" 
-				<< std::to_string(fooAgent->responseTime()) << ":" 
-				<< std::to_string(evacTime) << ":"
-				<< fooAgent->getInitialZoneID()
-				<< std::endl;	
-		}
-		ofs01.close();
-		
+		this->makeStats();
 	}
 	
-	if(_saveToDisk){
-		//Crea el archivo JSON de la animación de la simulación
+	////////////////////////////////////////////////////////
+	//  Crear el archivo JSON de la animación de la simulación
+	if(_agentsOut){
 		json animacionConfig = {
 			{"pathFileSim", "agents/"},
 			{"frameMin", 0},
@@ -424,11 +308,15 @@ void Simulator::run()
 	}
 }
 
+
 Simulator::~Simulator(void)
 {
 	;
 }
 
+////////////////////////////////////////////////////////
+//	Simulator::savePositionAgents()
+//
 void Simulator::savePositionAgents()
 {
 	std::ostringstream ss;
@@ -476,6 +364,9 @@ void Simulator::savePositionAgents()
 
 }
 
+////////////////////////////////////////////////////////
+//	Simulator::saveStats()
+//
 void Simulator::saveStats()
 {
 	std::string logString;
@@ -490,6 +381,9 @@ void Simulator::saveStats()
 	g_logZonesDensity.push_back(logString);
 }
 
+////////////////////////////////////////////////////////
+//	Simulator::executionSummary()
+//
 void Simulator::executionSummary()
 {
 	std::string pathFile01;
@@ -526,6 +420,191 @@ void Simulator::executionSummary()
 	ofs01.close();
 }
 
+////////////////////////////////////////////////////////
+//	Simulator::makeStats()
+//
+void Simulator::makeStats()
+{
+	std::string pathFile01;
+	std::string pathFile02;
+	
+	
+	std::string nameSuffix = this->getNameSuffix();
+	
+	////////////////////////////////////////////////////////
+	//	zonesDensity
+	//
+	pathFile01 = _statsPath + "/zonesDensity" +  nameSuffix;
+	std::ofstream ofs01(pathFile01);
+	for(auto& item : g_logZonesDensity) {
+		
+		if( _numExperiment >= 0){
+			ofs01 << _numExperiment << ":";
+		}
+		
+		ofs01 << item << std::endl;
+	}
+	ofs01.close();
+	
+	////////////////////////////////////////////////////////
+	//	usePhone
+	//
+	pathFile01 = _statsPath + "/usePhone" + nameSuffix ;
+	ofs01.open(pathFile01);
+		
+	
+	if( _numExperiment >= 0){
+		ofs01 << "numExperiment:" ;
+	}
+	
+	ofs01 << "timeStamp:usePhone" << std::endl;		
+	
+	
+	for(uint32_t tick = 0; tick <= _duration; tick += _statsInterval){
+		uint32_t timeSim = tick * g_deltaT;
+		
+		if( _numExperiment >= 0){
+			ofs01 << _numExperiment << ":";
+		}
+		
+		ofs01 << std::to_string(timeSim) << ":" << std::to_string(g_logUsePhone[tick]) << std::endl;
+	}
+	ofs01.close();
+	
+	////////////////////////////////////////////////////////
+	//	velocity
+	//
+	pathFile01 = _statsPath + "/velocity" + nameSuffix ;
+	ofs01.open(pathFile01);
+	
+	if( _numExperiment >= 0){
+		ofs01 << "numExperiment:" ;
+	}
+	
+	ofs01 << "id:model:groupAge:";
+	for(uint32_t tick = 0; tick <= _duration; tick += _statsInterval){
+		uint32_t timeSim = tick * g_deltaT;
+	
+		ofs01 << std::to_string(timeSim) << ":";
+	}
+	
+	ofs01 << std::endl;
+	
+	ofs01 << "Coming soon..." <<std::endl;
+	
+	/*
+	for(auto& fooAgent : _env->getAgents()){
+		ofs01 << std::to_string(fooAgent->id()) << ":";
+		ofs01 << std::to_string(fooAgent->model()) << ":" ;
+		ofs01 << std::to_string(fooAgent->groupAge()) << ":";
+		ofs01 << g_logVelocity[fooAgent->id()] << std::endl;
+	}
+	*/
+	
+	ofs01.close();
+	
+	////////////////////////////////////////////////////////
+	//	summary
+	//
+	pathFile01 = _statsPath + "/summary" + nameSuffix ;
+	ofs01.open(pathFile01);
+	
+	if( _numExperiment >= 0){
+		ofs01 << "numExperiment:" ;
+	}
+	
+	std::random_device _randomDevice;
+	std::uniform_real_distribution<> unifDistro(-(float)_interval*g_deltaT/2.0, (float)_interval*g_deltaT/2.0); //2020-10-09
+
+	ofs01 << "id:model:groupAge:safeZone:distanceToTargetPos:responseTime:evacTime:initialZone:travelDistance" << std::endl;		
+	for(auto& fooAgent : _env->getAgents()){
+		if( _numExperiment >= 0){
+			ofs01 << _numExperiment << ":";
+		}
+		
+		//aleatorizar el tiempo de evacuación para que esté 
+		//en un rango tevac +/- (_interval)/2
+		double evacTime = fooAgent->evacuationTime();
+		if( fooAgent->evacuationTime() >  (float)_interval*g_deltaT/2.0 ){ //2020-10-09
+			evacTime +=  unifDistro(_randomDevice) ; 
+		}
+		
+		ofs01 << std::to_string(fooAgent->id()) << ":"  
+			<< fooAgent->model() << ":" 
+			<< std::to_string(fooAgent->groupAge()) << ":" 
+			<< fooAgent->getSafeZoneID() << ":" 
+			<< std::to_string(fooAgent->distanceToTargetPos()) << ":" 
+			<< std::to_string(fooAgent->responseTime()) << ":" 
+			<< std::to_string(evacTime) << ":"
+			//	<< " <" << std::to_string(fooAgent->inSafeZone()) << "> :" //
+			<< fooAgent->getInitialZoneID() << ":"
+			<< std::to_string(fooAgent->travelDistance())
+			<< std::endl;	
+	}
+	ofs01.close();
+}
+
+////////////////////////////////////////////////////////
+//	Simulator::samplingSim()
+//
+void Simulator::samplingSim()
+{
+	
+	std::cout << g_currTimeSim << std::endl;
+	
+	std::vector<double> distances;
+	std::map<uint32_t, std::vector<double> > distancesByGroupAge;
+	
+	uint32_t nonEvac = 0;
+	for(auto& referenceZone : _env->getReferenceZones() ) {	
+		//Por cada Zona Segura, consultar por los agentes aque están asignados a ella
+		std::set<uint32_t> idsAgentsAssigned = referenceZone.agentsAssignedInZone();
+		
+		distances.clear();
+		
+		//No se puede asumir que siempre existen los 4 grupos etarios
+		// Acceder al map mediante key-value
+		for (auto& [key, value] : distancesByGroupAge) {
+			value.clear();
+		}
+		
+		
+		for(auto& idAg : idsAgentsAssigned){
+			auto fooAg = _env->getAgent(idAg);
+			
+			if(!fooAg->inSafeZone()){
+				distances.push_back(fooAg->distanceToTargetPos());
+			
+				//if(fooAg->evacuationTime() < 0 && fooAg->model() == Visitors_II)
+				distancesByGroupAge[fooAg->groupAge()].push_back(fooAg->distanceToTargetPos());
+			}
+		}
+		
+		std::cout << "> Safe Area:" << referenceZone.getNameID() << " totalAssigned:" << idsAgentsAssigned.size() << "\n";
+		for (const auto& [key, value] : distancesByGroupAge) {
+			std::cout << ">> G" << key << " => total: " << value.size()  << ",";
+			nonEvac += value.size();
+			
+			double minDist, maxDist;
+			minDist=maxDist=0;
+			
+			if(value.size() > 0){
+				auto [minDistG, maxDistG] = std::minmax_element(begin(value), end(value));
+				minDist = *minDistG;
+				maxDist = *maxDistG;
+			}
+				
+			std::cout << " minDist:" << minDist << ", maxDist:" << maxDist << "\n";		
+		}	
+	}
+	std::cout << ">> Non-Evacuated: " << nonEvac << "\n";
+	
+	
+}
+
+////////////////////////////////////////////////////////
+//	Simulator::getNameSuffix()
+//
 std::string Simulator::getNameSuffix()
 {
 	std::string nameSuffix = "";

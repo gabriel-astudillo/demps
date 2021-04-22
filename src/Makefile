@@ -9,7 +9,7 @@ INCLUDES=-I/usr/local/include -I/usr/local/include/osrm -I./include -I/usr/inclu
 LDFLAGS=-L/usr/local/lib -L/usr/lib
 LDLIBS=-lGeographic -losrm -lboost_system -lboost_filesystem -lboost_iostreams -lboost_thread -lrt -lpthread -fopenmp -lgmp
 
-CXXFLAGS=-std=c++14 -Wall -O2 -fopenmp
+CXXFLAGS=-std=c++17 -Wall -O3 -fopenmp
 
 DIR_OBJ=objs
 

@@ -50,11 +50,11 @@ Agent::Agent(const uint32_t &id, \
 	_model     = model;
 	_position  = position;
 	
-	_safeZoneNameID = "NA"; // Por omisión, la zona de seguridad no está asignada, se asigna después.
-	_safeZone = nullptr;
+	_safeZoneData.safeZoneNameID = "NA"; // Por omisión, la zona de seguridad no está asignada, se asigna después.
+	_safeZoneData.safeZone = nullptr;
+	_safeZoneData.targetPos = Point2D(-666.6,-666.6);
+	_safeZoneData.distanceToTargetPos = -1.0;
 	
-	_targetPos = Point2D(-666.6,-666.6);
-	_distanceToTargetPos = -1.0;
 	
 	_direction = Vector2D(0.0,0.0);
 	_currVelocity = Vector2D(0.0,0.0);
@@ -67,9 +67,9 @@ Agent::Agent(const uint32_t &id, \
 		_radius = 0.45;
 	}
 	
-	_inSafeZone     = false;
-	_evacuationTime = -1;
-	_travelDistance = 0;
+	_evacuationData.inSafeZone     = false;
+	_evacuationData.evacuationTime = -1;
+	_evacuationData.travelDistance = 0;
 
 	
 	_quad = this->determineQuad(); 
@@ -123,22 +123,22 @@ Agent::~Agent(void)
 
 void Agent::setTargetPos(const Point2D& tposition)
 {
-	_targetPos = tposition;
+	_safeZoneData.targetPos = tposition;
 }
 
 const Point2D Agent::getTargetPos(void) const
 {
-	return(this->_targetPos);
+	return(this->_safeZoneData.targetPos);
 }
 
 void Agent::setSafeZoneID(const std::string& safeZoneNameID)
 {
-	_safeZoneNameID = safeZoneNameID;
+	_safeZoneData.safeZoneNameID = safeZoneNameID;
 }
 
 std::string Agent::getSafeZoneID()
 {
-	return(_safeZoneNameID);
+	return(_safeZoneData.safeZoneNameID);
 }
 
 std::string Agent::getInitialZoneID()
@@ -148,22 +148,32 @@ std::string Agent::getInitialZoneID()
 
 void Agent::safeZone(Zone* safeZonePtr)
 {
-	_safeZone = safeZonePtr;
+	_safeZoneData.safeZone = safeZonePtr;
 }
 
 Zone* Agent::safeZone()
 {
-	return(_safeZone);
+	return(_safeZoneData.safeZone);
 }
 
 const double Agent::distanceToTargetPos()
 {
-	return(_distanceToTargetPos);
+	return(_safeZoneData.distanceToTargetPos);
 }
 
 void Agent::distanceToTargetPos(const double& dist)
 {
-	_distanceToTargetPos = dist;
+	_safeZoneData.distanceToTargetPos = dist;
+}
+
+void Agent::safeZoneDataIsFake(const bool& b)
+{
+	_safeZoneData.isFake = b;
+}
+
+bool Agent::safeZoneDataIsFake()
+{
+	return(_safeZoneData.isFake);
 }
 
 const Point2D Agent::position(void) const
@@ -183,29 +193,34 @@ void Agent::currVelocity(const Vector2D& velocity)
 
 bool Agent::inSafeZone()
 {
-	return(_inSafeZone);
+	return(_evacuationData.inSafeZone);
 }
 
 void Agent::inSafeZone(bool in)
 {
-	_inSafeZone = in;
+	_evacuationData.inSafeZone = in;
 }
 
 
 void Agent::evacuationTime(uint32_t& currTick)
 {
 	if(currTick * g_deltaT <= _responseTimeEngine.tau){ //El agente ya está en zona segura antes de tau
-		_evacuationTime = 0;
+		_evacuationData.evacuationTime = 0;
 	}
 	else{
-		_evacuationTime = currTick * g_deltaT - _responseTimeEngine.tau;
+		_evacuationData.evacuationTime = currTick * g_deltaT - _responseTimeEngine.tau;
 	}
 	
 }
 
 double Agent::evacuationTime()
 {
-	return(_evacuationTime);
+	return(_evacuationData.evacuationTime);
+}
+
+double Agent::travelDistance()
+{
+	return(_evacuationData.travelDistance);
 }
 
 void Agent::showPosition()
@@ -359,8 +374,8 @@ void Agent::update()
 	}
 	
 	//Una vez que avanza, se calcula la distancia que le falta para llegar a su targetPos
-	if( _safeZone != nullptr && !_route.empty() ){ //_safeZone
-		_distanceToTargetPos = sqrt(CGAL::squared_distance(_position, this->getTargetPos() ));	
+	if( _safeZoneData.safeZone != nullptr && !_route.empty() ){ //_safeZone
+		_safeZoneData.distanceToTargetPos = sqrt(CGAL::squared_distance(_position, this->getTargetPos() ));	
 	}
 	
 
@@ -386,7 +401,14 @@ void Agent::randomWalkway()
 	
 	//si el agente copia la ruta de otro, yo no
 	//entra en el ciclo de más abajo
-	if(this->getTargetPos() != Point2D(-666.6,-666.6) ){
+	//if(this->getTargetPos() != Point2D(-666.6,-666.6) ){
+	/*if(this->safeZone() != nullptr ){
+		this->followPath();
+		return;
+	}*/
+	
+	//if(this->safeZone() != nullptr && !this->safeZoneDataIsFake() ){
+	if( !this->safeZoneDataIsFake() ){
 		this->followPath();
 		return;
 	}
@@ -406,15 +428,24 @@ void Agent::randomWalkway()
 	if(neighborsTofollow.size() >= 5){
 		_model = Visitors_I; 
 		_route.clear();
+		
+		/////////////////////////////////////////////////////////////
+		//Se elimina el agente actual de la zona asignada previamente
+		this->safeZone()->deleteAgentAssigned(this->id());
 
 		this->setTargetPos( neighborsTofollow[1]->getTargetPos() );
 		this->currVelocity( neighborsTofollow[1]->currVelocity() );
 		this->direction( neighborsTofollow[1]->direction() );
 		this->setSafeZoneID( neighborsTofollow[1]->getSafeZoneID() );
 		this->safeZone( neighborsTofollow[1]->safeZone() );
+		this->safeZoneDataIsFake(false);
 		
 		auto response = _myEnv->getRouter()->route(this->position(), this->getTargetPos() );
 		this->_route = response.path();	
+		
+		////////////////////////////////////////////////////////
+		//Se agrega el agente actual a la nueva la zona asignada
+		this->safeZone()->addAgentAssigned(this->id());
 	}
 	
 	this->followPath();
@@ -539,6 +570,9 @@ void Agent::followPath()
 
 		//Finalmente, se actualiza la posición del agente
 		_position += _currVelocity * g_deltaT;
+		
+		//Se actualiza la distancia que ha recorrido el agente
+		_evacuationData.travelDistance += sqrt( _currVelocity.squared_length() ) * g_deltaT;
 		
 		//Actualizar el vector _direction
 		dist = sqrt(CGAL::squared_distance(_position, dst));
