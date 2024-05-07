@@ -36,6 +36,10 @@ $(DIR_OBJ)/%.o: %.cc
 	@mkdir -p $(DIR_OBJ)
 	@eval $(CXX) -c -o $@ $< $(CXXFLAGS) $(INCLUDES)
 
+install:
+	@echo Install demps to $(DIR_INSTALL)
+	@$(CP) $(TARGET) $(DIR_INSTALL)/$(TARGET)
+
 clean:
 	@$(RM) -r $(DIR_OBJ)
 	@$(RM) *~ core
