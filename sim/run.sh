@@ -250,7 +250,7 @@ if [[  $DEMPS_CONFIG == "null" ]]; then
 	usage >&2 && exit 99
 fi
 
-DEMPS_PATH=$BASEDIR/$DEMPS_BIN 
+DEMPS_PATH=$DEMPS_BIN 
 
 if [[ ! -f $DEMPS_PATH  ]]; then
 	echo "Error: $DEMPS_PATH no existe"
