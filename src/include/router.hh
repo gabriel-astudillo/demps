@@ -2,7 +2,11 @@
 #define _ROUTER_H_
 #include <glob.hh>
 
+class Environment;
+
 class Router {
+public:
+	static std::shared_ptr<Environment> _myEnv;
 
 private:
 	osrm::EngineConfig          _config;
@@ -59,13 +63,13 @@ public:
 
 	Router(void);
 	Router(const Router&);
-	Router(const json&,const std::string&);
+	Router(const std::string&);
 	~Router(void);
 
 	Router& operator=(const Router&);
 
 	Response route(const Point2D&,const Point2D&);
-	Response route(const Point2D&,const double&);
+	Response route(const Point2D&,const double&, bool radiusFixed = false);
 
 	double distance(const Point2D&, const Point2D&);
 

@@ -10,7 +10,16 @@ public:
 	typedef std::vector<Agent*> Neighbors;
 	static std::shared_ptr<Environment> _myEnv;
 
-	std::list<Point2D> _route; // Primer intento. Debe ser un atributo privado.
+	std::list<Point2D> _route, _routeOld; // Primer intento. Debe ser un atributo privado.
+	
+	static struct panicState_s {
+		enum code {
+			susceptible = 0,
+			infected    = 1,
+			recovered   = 2
+		};
+	} panicState;
+	typedef panicState_s::code panicState_t;
 
 private:
 	//std::random_device _randomDevice;
@@ -22,6 +31,10 @@ private:
 	double   _radius;
 	uint32_t _groupAge;
 	double   _density; //Densidad de personas alrededor del agente
+	//int32_t  _elevation;
+	double   _gradient;
+	
+	//bool     _newRouteByDebris;
 	
 	// Datos de la zona segura
 	struct s_safeZoneData{
@@ -71,14 +84,26 @@ private:
 	Neighbors _agentNeighbors;
 
 	uint32_t _quad;
+	uint32_t _quadOld;
+	
+	
 	Point2D  _position;
 	Vector2D _direction;
 	Vector2D _currVelocity;
 	
 	struct s_evacuationData{
 		bool   inSafeZone;
+		bool   arrivedAtDestinationPoint;
 		double evacuationTime;
 		double travelDistance;
+		
+		bool   isWaiting;
+		bool   isMoving;
+		bool   isAlive;
+		bool   isMovingRandomDueDebris;
+		bool   isRouteRandom;
+		
+		int    timeLived;
 	} _evacuationData;
 
 	//Variables exclusivas para el modelo de Fuerza social
@@ -151,6 +176,66 @@ private:
 		}
 	
 	} _responseTimeEngine;
+	
+	struct s_panic{
+	
+		Agent::panicState_t stateCode;
+		double susceptibleTime;
+		double infectedTime;
+		double recoveredTime;
+		
+		struct s_params{
+			double emotionMinValue;
+			double emotionThreshold;
+			double probInfectedToRecovered;
+			double probRecoveredToSusceptible;
+			double meanTimeInInfected;
+			double sdTimeInInfected;
+			double timeInInfected;
+			double meanTimeInRecovered; 
+			double sdTimeInRecovered; 
+			double timeInRecovered;
+		} params;
+
+		struct s_emotion{
+			double combined; // Para modelo de calculo de nivel de emocion nro 3.
+			double strength;
+			double expression;
+			double recv;
+			double send;
+		} emotionOrig, emotion;
+		
+		
+		std::map<panicState_s::code, std::string> codenames = {\
+			{Agent::panicState.susceptible, "susceptible"},\
+			{Agent::panicState.infected   , "infected"},\
+			{Agent::panicState.recovered  , "recovered"}
+		};
+		
+		s_panic(){
+			std::random_device device;
+			std::uniform_real_distribution<> intensity(0.01, 1.0);
+			
+			//params      = {0.6, 0.7, 0.3, 300, 300};
+			emotionOrig = {0.0, 0.0, intensity(device), intensity(device), intensity(device) };
+			emotion     = emotionOrig;
+			
+			susceptibleTime = 0.0;
+			infectedTime  = 0.0;
+			recoveredTime = 0.0;
+			stateCode = Agent::panicState.susceptible;
+		}
+		
+		std::string stateName(){
+			return(codenames[stateCode]);
+		}
+	} _panic;
+
+public:
+	typedef s_panic panic_t;
+	typedef s_evacuationData evacuationData_t;
+	typedef s_SFM SFM_t;
+
 
 public:
 	Agent(void);
@@ -161,6 +246,7 @@ public:
 		const json& ageRange,\
 		const json& phoneUse,\
 		const json& SocialForceModel,\
+		const json& panicModel,\
 		const json& responseTime);
 	//Agent& operator=(const Agent&);
 
@@ -183,23 +269,40 @@ public:
 	bool          safeZoneDataIsFake();
 
 	const Point2D  position(void) const;
+	void           position(const Point2D& position);
 	const Vector2D currVelocity(void);
 	void           currVelocity(const Vector2D& velocity);
 	
 	bool     inSafeZone();
 	void     inSafeZone(bool in);
+	void     isMoving(bool m);
+	bool     isWaiting();
+	void     isWaiting(bool w);
+	bool     isMovingRandomDueDebris();
+	void     isMovingRandomDueDebris(bool d);
+	bool     isRouteRandom();
+	void     isRouteRandom(bool r);
+	void     isAlive(bool i);
+	bool     isAlive();
+	
+	
 	
 	void     evacuationTime(uint32_t& currTick);
-	double   evacuationTime();
-	
-	double   travelDistance();
+	//double   evacuationTime();
+	//double   travelDistance();
 
 	void     showPosition();
-	uint32_t determineQuad();
+	void     showPanic();
+	//uint32_t determineQuad();
 	void     setQuad();
 	void     setQuad(uint32_t idQuad);
 	uint32_t getQuad() const;
 	void     updateQuad();
+	void     updateGradient(uint32_t curPatch, uint32_t newPatch);
+	
+	//void newRouteByDebris(bool d);
+	//bool newRouteByDebris();
+	
 	Vector2D direction(void) const;
 	void     direction(const Vector2D& direction);
 
@@ -209,6 +312,13 @@ public:
 	uint32_t groupAge() const;
 	double getDensity(void) const;
 	void   setDensity(const double& density);
+	
+	//int32_t getElevation() const;
+	//void    setElevation(const int32_t elevation);
+	
+	double  getGradient() const;
+	void    setGradient(const double gradient);
+	
 	double  responseTime(void) const;
 
 	void update();
@@ -234,6 +344,13 @@ public:
 	void addAgentNeighbors(Agent* ag);
 	Neighbors& getAgentNeighbors();
 	int  getAgentNeighborsSize();
+	
+	Agent::panic_t getPanicStruct();
+	Agent::evacuationData_t getEvacuationDataStruct();
+	void setEvacuationDataStruct(Agent::evacuationData_t eData);
+	
+	Agent::SFM_t getSFMstruct();
+	
 	
 };
 
