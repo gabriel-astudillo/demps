@@ -1,21 +1,26 @@
 #include <router.hh>
+#include <environment.hh>
+
+std::shared_ptr<Environment> Router::_myEnv;
+
 Router::Router(void)
 {
 	;
 }
 Router::Router(const Router &_router)
 {
-	this->_config=_router._config;
-	this->_projector=_router._projector;
-	this->_osrm=std::make_shared<osrm::OSRM>(this->_config);
+	_config=_router._config;
+	_projector=_router._projector;
+	_osrm=std::make_shared<osrm::OSRM>(this->_config);
 }
-Router::Router(const json &_freference_point,const std::string &_map_osrm)
-{
-	this->_config.storage_config= {_map_osrm};
-	this->_config.use_shared_memory=false;
-	this->_osrm=std::make_shared<osrm::OSRM>(this->_config);
 
-	this->_projector=LocalCartesian(_freference_point["features"][0]["geometry"]["coordinates"][1],_freference_point["features"][0]["geometry"]["coordinates"][0],0,Geocentric::WGS84());
+Router::Router(const std::string& _map_osrm)
+{
+	_config.storage_config= {_map_osrm};
+	_config.use_shared_memory=false;
+	_osrm=std::make_shared<osrm::OSRM>(this->_config);
+	
+	_projector = _myEnv->getProjector();
 
 }
 Router::~Router(void)
@@ -24,9 +29,9 @@ Router::~Router(void)
 }
 Router& Router::operator=(const Router &_router)
 {
-	this->_config=_router._config;
-	this->_projector=_router._projector;
-	this->_osrm=std::make_shared<osrm::OSRM>(this->_config);
+	_config=_router._config;
+	_projector=_router._projector;
+	_osrm=std::make_shared<osrm::OSRM>(this->_config);
 
 
 	return(*this);
@@ -87,7 +92,7 @@ Router::Response Router::route(const Point2D &_src,const Point2D &_dst)
 	return(response);
 }
 
-Router::Response Router::route(const Point2D &_src,const double &_radius)
+Router::Response Router::route(const Point2D &_src,const double &_radius, bool radiusFixed)
 {
 	static thread_local std::random_device device;
 	static thread_local std::mt19937 rng(device());
@@ -98,7 +103,13 @@ Router::Response Router::route(const Point2D &_src,const double &_radius)
 	std::uniform_real_distribution<double> angle(0.0,2.0*M_PI);
 
 	do {
-		double r=radius(rng);
+		double r;
+		if(radiusFixed){
+			r=_radius;
+		}
+		else{
+			r=radius(rng);
+		}
 		double a=angle(rng);
 		Point2D dst(_src[0]+(r*cos(a)),_src[1]+(r*sin(a)));
 		response=this->route(_src,dst);

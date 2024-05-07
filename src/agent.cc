@@ -15,6 +15,7 @@ Agent::Agent(const uint32_t &id, \
 	const json& ageRange,\
 	const json& phoneUse,\
 	const json& SocialForceModel,\
+	const json& panicModel,\
 	const json& responseTime)
 {
 	_id = id;
@@ -68,11 +69,27 @@ Agent::Agent(const uint32_t &id, \
 	}
 	
 	_evacuationData.inSafeZone     = false;
+	_evacuationData.arrivedAtDestinationPoint = false;
 	_evacuationData.evacuationTime = -1;
 	_evacuationData.travelDistance = 0;
+	_evacuationData.isWaiting = true;
+	_evacuationData.isMoving = false;
+	_evacuationData.isAlive = true;
+	_evacuationData.isMovingRandomDueDebris = false;
+	_evacuationData.isRouteRandom = false;
+	_evacuationData.timeLived = -1;
+	
+	
 
 	
-	_quad = this->determineQuad(); 
+	//_quad = this->determineQuad(); 
+	_quad = _myEnv->getQuadId(this->position());
+	_quadOld = _quad ;
+	
+	//_elevation = _myEnv->getPatchAgent(_quad)->getElevation();
+	_gradient  = 0;
+	
+	//_newRouteByDebris = false;
 	
 	//Establecer el tiempo de respuesta del agente
 	// Para tiempo de respuesta, se utiliza una distribución Rayleigh.
@@ -93,7 +110,9 @@ Agent::Agent(const uint32_t &id, \
 	_responseTime = _responseTimeEngine.getRayleigh();
 	
 	//Parametros para la simulación de Makinoshima (2018)
-	//_responseTime = _responseTimeEngine.getLogNormalNumber(6.383,0.1655);
+	//_responseTime = _responseTimeEngine.getLogNormalNumber(6.383, 0.1655); // dt=1.00 <- Makinoshima
+	//_responseTime = _responseTimeEngine.getLogNormalNumber(6.443, 0.1355); // dt=1.00 <- demps
+	//_responseTime = _responseTimeEngine.getLogNormalNumber(6.403, 0.1055); // dt=0.01 <- demps
 	
 	_expo.lambda = 1.0/phoneUse["meanTimeTakePhone"].get<double>();
 	
@@ -101,19 +120,40 @@ Agent::Agent(const uint32_t &id, \
 	_usePhone.usingPhone = 0;
 	_usePhone.probPhoneUse = 0.0;
 	
+	////////////////////////////////////////////
 	//Establecer la velocidad inicial del agente
 	static thread_local std::random_device device;
 	static thread_local std::mt19937 rng(device());
 	std::uniform_real_distribution<double> speed(_initSpeedRange.min,_initSpeedRange.max);
 
+	////////////////////////////////////////////////
+	// Cargar parámatros del modelo de fuerza social
 	_SFM.disiredSpeed = speed(rng);
 	_SFM.maxDisiredSpeed = 1.3 * this->_SFM.disiredSpeed;
 	_SFM.timeRelax = SocialForceModel["timeRelax"].get<double>();//[s]
 	_SFM.sigma = SocialForceModel["sigma"].get<double>();//[m]
 	_SFM.strengthSocialRepulsiveForceAgents = SocialForceModel["repulsiveForceAgents"].get<double>(); //[m^2/s^2]
 	_SFM.cosPhi = SocialForceModel["cosphi"].get<double>();//cos(200º)
-
 	
+	/////////////////////////////////////////
+	// Cargar parámetros del modelo de pánico
+	_panic.params.emotionThreshold           = panicModel["emotionThreshold"].get<double>();
+	_panic.params.probInfectedToRecovered    = panicModel["probInfectedToRecovered"].get<double>();
+	_panic.params.probRecoveredToSusceptible = panicModel["probRecoveredToSusceptible"].get<double>();
+    _panic.params.meanTimeInInfected         = panicModel["meanTimeInInfected"].get<double>();
+	_panic.params.sdTimeInInfected           = panicModel["sdTimeInInfected"].get<double>();
+	_panic.params.meanTimeInRecovered        = panicModel["meanTimeInRecovered"].get<double>();
+	_panic.params.sdTimeInRecovered          = panicModel["sdTimeInRecovered"].get<double>();
+	
+	std::random_device rd{};
+	std::mt19937 gen{rd()};
+	
+	std::normal_distribution<> rTimeInInfected{_panic.params.meanTimeInInfected, _panic.params.sdTimeInInfected};
+	std::normal_distribution<> rTimeInIRecovered{_panic.params.meanTimeInRecovered, _panic.params.sdTimeInRecovered};
+	
+	_panic.params.timeInInfected  = rTimeInInfected(gen);
+	_panic.params.timeInRecovered = rTimeInIRecovered(gen);
+		
 }
 
 Agent::~Agent(void)
@@ -181,6 +221,11 @@ const Point2D Agent::position(void) const
 	return(_position);
 }
 
+void Agent::position(const Point2D& position)
+{
+	_position = position;
+}
+
 const Vector2D Agent::currVelocity(void)
 {
 	return(_currVelocity);
@@ -201,6 +246,50 @@ void Agent::inSafeZone(bool in)
 	_evacuationData.inSafeZone = in;
 }
 
+void Agent::isMoving(bool m)
+{
+	_evacuationData.isMoving = m;
+}
+
+bool Agent::isWaiting()
+{
+	return(_evacuationData.isWaiting);
+}
+
+void Agent::isWaiting(bool w)
+{
+	_evacuationData.isWaiting = w;
+}
+
+bool Agent::isMovingRandomDueDebris()
+{
+	return(_evacuationData.isMovingRandomDueDebris);
+}
+
+void Agent::isMovingRandomDueDebris(bool d)
+{
+	_evacuationData.isMovingRandomDueDebris = d;
+}
+
+bool Agent::isRouteRandom()
+{
+	return(_evacuationData.isRouteRandom);
+}
+
+void Agent::isRouteRandom(bool r)
+{
+	_evacuationData.isRouteRandom = r;
+}
+
+void Agent::isAlive(bool i)
+{
+	_evacuationData.isAlive = i;
+}
+
+bool Agent::isAlive()
+{
+	return(_evacuationData.isAlive);
+}
 
 void Agent::evacuationTime(uint32_t& currTick)
 {
@@ -208,12 +297,12 @@ void Agent::evacuationTime(uint32_t& currTick)
 		_evacuationData.evacuationTime = 0;
 	}
 	else{
-		_evacuationData.evacuationTime = currTick * g_deltaT - _responseTimeEngine.tau;
+		_evacuationData.evacuationTime = currTick * g_deltaT;// - _responseTimeEngine.tau;
 	}
 	
 }
 
-double Agent::evacuationTime()
+/*double Agent::evacuationTime()
 {
 	return(_evacuationData.evacuationTime);
 }
@@ -221,17 +310,47 @@ double Agent::evacuationTime()
 double Agent::travelDistance()
 {
 	return(_evacuationData.travelDistance);
-}
+}*/
 
 void Agent::showPosition()
 {
+	std::cout << "\x1B[0;90m";
 	std::cout << "t:" << g_currTimeSim << ", id:" << this->_id <<
 	          ", x:" << this->_position[0] <<
 	          ", y:" << this->_position[1] <<
 	          ", Quad:" << this->getQuad() <<
 	          ", AgentsInQuad:" <<  _myEnv->getPatchAgent(this->getQuad())->getAgents().size() << std::endl;
+	
+	std::cout << "\x1B[0m" << std::endl;
 }
 
+void Agent::showPanic()
+{
+	std::cout << "\x1B[0;90m";
+	std::cout << "t:" << g_currTimeSim << ", id:" << this->_id  << std::endl;
+	std::cout << "Panic model enable : " << g_panicModelEnable << std::endl;
+	std::cout << "Panic state" << std::endl;
+	std::cout << "\t panic.state     : " << _panic.stateName() << std::endl;
+	std::cout << "Panic params" << std::endl;
+	std::cout << "\t panic.params.emotionThreshold           : " << _panic.params.emotionThreshold << std::endl;
+	std::cout << "\t panic.params.probInfectedToRecovered    : " << _panic.params.probInfectedToRecovered << std::endl;
+	std::cout << "\t panic.params.probRecoveredToSusceptible : " << _panic.params.probRecoveredToSusceptible << std::endl;
+	std::cout << "\t panic.params.meanTimeInInfected          : " << _panic.params.meanTimeInInfected << std::endl;
+	std::cout << "\t panic.params.meanTimeInRecovered         : " << _panic.params.meanTimeInRecovered << std::endl;
+	std::cout << "Panic level (original)" << std::endl;
+	std::cout << "\t panic.emotionOrig.strength  : " << _panic.emotionOrig.strength << std::endl;
+	std::cout << "\t panic.emotionOrig.expression: " << _panic.emotionOrig.expression << std::endl;
+	std::cout << "\t panic.emotionOrig.recv      : " << _panic.emotionOrig.recv << std::endl;
+	std::cout << "\t panic.emotionOrig.send      : " << _panic.emotionOrig.send << std::endl;
+	std::cout << "Panic level (current)" << std::endl;
+	std::cout << "\t panic.emotion.strength  : " << _panic.emotion.strength << std::endl;
+	std::cout << "\t panic.emotion.expression: " << _panic.emotion.expression << std::endl;
+	std::cout << "\t panic.emotion.recv      : " << _panic.emotion.recv << std::endl;
+	std::cout << "\t panic.emotion.send      : " << _panic.emotion.send << std::endl;
+	std::cout << "\x1B[0m" << std::endl;
+}
+
+/*
 uint32_t Agent::determineQuad()
 {
 	uint32_t idQuad;
@@ -242,10 +361,11 @@ uint32_t Agent::determineQuad()
 
 	return(idQuad);
 }
-
+*/
 void Agent::setQuad()
 {
-	_quad = this->determineQuad();
+	//_quad = this->determineQuad();
+	_quad = _myEnv->getQuadId(this->position());
 }
 
 void Agent::setQuad(uint32_t idQuad)
@@ -263,18 +383,90 @@ void Agent::updateQuad()
 	uint32_t currQuad, newQuad;
 
 	currQuad = this->getQuad();
-	newQuad = this->determineQuad();
+	//newQuad = this->determineQuad();
+	newQuad = _myEnv->getQuadId(this->position());
+	
 
 	if(currQuad != newQuad) { //Cambio de cuadrante
-			
+		//int32_t currElevation = this->getElevation();
+		//int32_t newElevation  = _myEnv->getPatchAgent(newQuad)->getElevation();
+		
 		_myEnv->getPatchAgent(currQuad)->delAgent( this->id() );
 
+		_quadOld = this->getQuad();
 		this->setQuad(newQuad);
 
 		_myEnv->getPatchAgent(newQuad)->addAgent( this->id() );
+		
+		// Actualizar gradiente.
+		this->updateGradient(currQuad, newQuad);
+		/*
+		if(newElevation >= 0){
+			double m;
+			
+			m  = (double)(newElevation - currElevation);
+			m /= (double)_myEnv->getGrid()._quadSize/2.0;
+			this->setGradient(m);
+			//if(this->id() == 10000){
+			//	std::cout << g_currTimeSim << "\tm:" << m;
+			//	std::cout << ", currQuad: " << currQuad;
+			//	std::cout << ", newQuad: " << newQuad;
+			//	std::cout << ", currElevation:" << currElevation;
+			//	std::cout << ", newElevation:" << newElevation;
+			//	std::cout << std::endl; 
+			//}
+			
+			this->setElevation(newElevation);
+		}
+		// Si es menor que 0, no se tiene info sobre la elevación
+		// del patch, por lo que se mantiene la elevación y el gradiente del agente.
+		*/
 	}
 }
 
+/*
+	Actualizar la gradiente percibida por el agente.
+	Este método es llamado por this->updateQuad()
+*/
+void Agent::updateGradient(uint32_t curPatch, uint32_t newPatch)
+{
+	int32_t curElevation = _myEnv->getPatchAgent(curPatch)->getElevation();
+	int32_t newElevation = _myEnv->getPatchAgent(newPatch)->getElevation();
+	
+	if(newElevation >= 0){
+		double m;
+		
+		m  = (double)(newElevation - curElevation);
+		m /= (double)_myEnv->getGrid()._quadSize/2.0;
+		this->setGradient(m);
+		/*if(this->id() == 10000){
+			std::cout << g_currTimeSim << "\tm:" << m;
+			std::cout << ", curQuad: " << curQuad;
+			std::cout << ", newQuad: " << newQuad;
+			std::cout << ", currElevation:" << currElevation;
+			std::cout << ", newElevation:" << newElevation;
+			std::cout << std::endl; 
+		}*/
+		
+		//this->setElevation(newElevation);
+	}
+	// Si es menor que 0, no se tiene info sobre la elevación
+	// del patch, por lo que se mantiene la elevación y el gradiente del agente.
+	
+}
+
+/*
+void Agent::newRouteByDebris(bool d)
+{
+	_newRouteByDebris = d;
+}
+*/
+/*
+bool Agent::newRouteByDebris()
+{
+	return(_newRouteByDebris);
+}
+*/
 
 Vector2D Agent::direction(void) const
 {
@@ -316,6 +508,26 @@ void Agent::setDensity(const double& density)
 	_density = density;
 }
 
+/*
+int32_t Agent::getElevation() const
+{
+	return(_elevation);
+}
+void Agent::setElevation(const int32_t elevation)
+{
+	_elevation = elevation;
+}
+*/
+
+double Agent::getGradient() const
+{
+	return(_gradient);
+}
+void Agent::setGradient(const double gradient)
+{
+	_gradient = gradient;
+}
+
 double Agent::responseTime(void) const
 {
 	return(_responseTime);
@@ -323,60 +535,151 @@ double Agent::responseTime(void) const
 
 void Agent::update()
 {
-	// El agente debe avanzar según su modelo de movilidad si ya
-	// ha pasado su tiempo de respuesta
-	
-	if( g_currTimeSim >= (_responseTimeEngine.tau + _responseTime) ){//  && !this->inSafeZone()
-		switch(this->model()) {
-			case Residents: {
-				this->shortestPath();
-				break;
-			}
-			case Visitors_II: {
-				this->randomWalkway();
-				break;
-			}
-			case Visitors_I: {
-				this->followTheCrowd();
-				break;
-			}
+	/*if(_id == 1000){
+		std::cout << g_currTimeSim << ":\t";
+		//std::cout << "emotion.strength: " << _panic.emotion.strength;
+		std::cout << ", deceased: " << !_evacuationData.isAlive;
+		std::cout << ", waiting: " << _evacuationData.isWaiting;
+		std::cout << ", moving: " << _evacuationData.isMoving;
+		std::cout << ", safed: " << _evacuationData.inSafeZone;
+		//std::cout << ", panic state: " <<  _panic.stateName();
+		std::cout << std::endl;
+	}*/
+	if(_myEnv->getFloodParams().enable && this->isAlive() && !this->inSafeZone() ){
+		// Verificar si el patch está inundado.
+		// Si su nivel de inundación es mayor o igual que el nivel crítico,
+		// el agente no sigue evacuando y se considera fallecido.
+		uint32_t patchId = this->getQuad();
+		PatchAgent* pAgent = _myEnv->getPatchAgent(patchId);
+		if( pAgent->getLevelFlood() >= _myEnv->getFloodParams().criticalLevel ){
+			this->isAlive(false);
+			this->isMoving(false);
+			this->isWaiting(false);
+			this->inSafeZone(false);
+			_evacuationData.timeLived =  g_currTimeSim*g_deltaT;
 		}
 	}
 	
-	//Determina cuándo es el instante de tiempo
-	//que debe "pensar" en utilizar su telefóno
-	if( g_currTimeSim >= _usePhone.nextTimeUsePhone ){
-		//Saca el telefono
-			
-		//La probabilidad de usar el telefono depende inversamente
-		//de la cantidad de vecinos
-		_usePhone.probPhoneUse = exp(-(double)_agentNeighbors.size() / _usePhone.probPhoneUseConst);
+	if(this->isAlive()){
+		if( g_currTimeSim*g_deltaT >= (_responseTimeEngine.tau + _responseTime) ){
+			if(this->inSafeZone()){
+				this->isMoving(false);
+				this->isWaiting(false);	
+			}
+			else{
+				this->isMoving(true);
+				this->isWaiting(false);	
+			}
+		}
+		else{
+			if(this->inSafeZone()){
+				this->isMoving(false);
+				this->isWaiting(false);	
+			}
+			else{
+				this->isMoving(false);
+				this->isWaiting(true);
+			}		
+		}
 		
-		std::random_device _randomDevice;
-		std::uniform_real_distribution<> unifDistro(0.0, 1.0);
-		double unifNumber = unifDistro(_randomDevice); 
+		if(!_evacuationData.isWaiting){
+			
+			if(g_debrisModelEnable){
+				//if(this->newRouteByDebris() && this->_route.empty() ){
+				if(this->isMovingRandomDueDebris() && !this->isRouteRandom() ){
+					//       |                                      |
+					//       V                                      V
+					//   es true cuando el agente            es true cuando el agente
+					//   se encuentra con una celda          ya tiene una ruta aleatoria
+					//   con escombros y no la               asignada debido a la condición
+					//   puede atravesar.                    de la izquierda. Es para evitar
+					//                                       que solicite más rutas aleatorias.
+					//                                       Sólo puede pedir nuevamente cuando la
+					//                                       ruta aleatoria asignada se acabe.
+					
+					// mover el agente al cuadrante anterior
+					PatchAgent* pAgentOld = _myEnv->getPatchAgent(_quadOld);
+					PatchAgent::quad_t quadOldInfo = pAgentOld->getQuadInfo();
+					
+					Point2D newPosition = Point2D(quadOldInfo.xc, quadOldInfo.yc);
+					
+					this->position(newPosition);
+					
+					this->isRouteRandom(true);
+						
+					auto response = _myEnv->getRouter()->route(this->position(), g_randomWalkwayRadius, true);
+					//auto response = _myEnv->getRouter()->route(this->position(),this->getTargetPos());
+					this->_route = response.path();	
+					
+					//std::cout << g_currTimeSim <<  "\t: " << this->id()  << "\t, ";
+					//std::cout << "isMovingRandomDueDebris: " << this->isMovingRandomDueDebris() << ", ";
+					//std::cout << "isRouteRandom: " << this->isRouteRandom() << " --> ";
+					//std::cout << "new random route asigned due to debris";
+					//std::cout << std::endl;								
+				}
+			}
+			
+			switch(this->model()) {
+				case Residents: {
+					this->shortestPath();
+					break;
+				}
+				case Visitors_II: {
+					this->randomWalkway();
+					break;
+				}
+				case Visitors_I: {
+					this->followTheCrowd();
+					break;
+				}
+			}
+		}
+		
+		//Determina cuándo es el instante de tiempo
+		//que debe "pensar" en utilizar su telefóno
+		if( g_currTimeSim*g_deltaT >= _usePhone.nextTimeUsePhone ){
+			//Saca el telefono
+			
+			//La probabilidad de usar el telefono depende inversamente
+			//de la cantidad de vecinos
+			_usePhone.probPhoneUse = exp(-(double)_agentNeighbors.size() / _usePhone.probPhoneUseConst);
+		
+			std::random_device _randomDevice;
+			std::uniform_real_distribution<> unifDistro(0.0, 1.0);
+			double unifNumber = unifDistro(_randomDevice); 
 
 		
-		//Ve si realmente lo va a utilizar
-		if(unifNumber <= _usePhone.probPhoneUse && !_route.empty() ) {
-			_usePhone.usingPhone = 1;
+			//Ve si realmente lo va a utilizar
+			if(unifNumber <= _usePhone.probPhoneUse && !_route.empty() ) {
+				_usePhone.usingPhone = 1;
+			}
+			else{
+				_usePhone.usingPhone = 0;
+			}
+		
+			//Actualiza el instante de tiempo cuando debe sacar el telefono
+			this->setNextTimeUsePhone();
+		
 		}
 		else{
 			_usePhone.usingPhone = 0;
 		}
-		
-		//Actualiza el instante de tiempo cuando debe sacar el telefono
-		this->setNextTimeUsePhone();
-		
-	}
-	else{
-		_usePhone.usingPhone = 0;
-	}
 	
-	//Una vez que avanza, se calcula la distancia que le falta para llegar a su targetPos
+		// Finalmente, se calcula la distancia que le falta para llegar a su targetPos, o
+		// donde quedó de su targetPost si falleció :(
+		if( _safeZoneData.safeZone != nullptr && !_route.empty() ){ //_safeZone
+			_safeZoneData.distanceToTargetPos = sqrt(CGAL::squared_distance(_position, this->getTargetPos() ));	
+		}
+	
+	}	
+	
+	/*
+	// Finalmente, se calcula la distancia que le falta para llegar a su targetPos, o
+	// donde quedó de su targetPost si falleció :(
 	if( _safeZoneData.safeZone != nullptr && !_route.empty() ){ //_safeZone
 		_safeZoneData.distanceToTargetPos = sqrt(CGAL::squared_distance(_position, this->getTargetPos() ));	
 	}
+	*/
 	
 
 }
@@ -391,7 +694,11 @@ void Agent::shortestPath()
 
 void Agent::randomWalkway()
 {
-
+	/*
+	if( this->inSafeZone() ){
+		return;
+	}*/
+	
 	if(this->_route.empty()) {
 		auto response = _myEnv->getRouter()->route(this->position(), g_randomWalkwayRadius);
 		this->_route = response.path();
@@ -399,16 +706,9 @@ void Agent::randomWalkway()
 		return;
 	}
 	
-	//si el agente copia la ruta de otro, yo no
-	//entra en el ciclo de más abajo
-	//if(this->getTargetPos() != Point2D(-666.6,-666.6) ){
-	/*if(this->safeZone() != nullptr ){
-		this->followPath();
-		return;
-	}*/
 	
 	//if(this->safeZone() != nullptr && !this->safeZoneDataIsFake() ){
-	if( !this->safeZoneDataIsFake() ){
+	if( !this->safeZoneDataIsFake()  ){
 		this->followPath();
 		return;
 	}
@@ -453,135 +753,395 @@ void Agent::randomWalkway()
 }
 
 void Agent::followPath()
-{
-
-	if(_route.empty()) {
-		return;
+{	
+	if( this->inSafeZone() ){
+		this->_panic.stateCode = Agent::panicState.susceptible;
+		
+		// Seguir sólo si se está visualizando la simulación
+		if(g_agentsOut == false){
+			return;
+		}
+	}
+	
+	if(_myEnv->getFloodParams().enable){
+		if(! this->isAlive()){
+			return;
+		}
 	}
 
-	double agentFactor = 1.0;
+	if(_route.empty()) {
+		if(g_panicModelEnable){
+			if(this->_panic.stateCode == Agent::panicState.infected && _evacuationData.isMoving ){
+				auto response = _myEnv->getRouter()->route(this->position(), g_randomWalkwayRadius);
+				this->_route = response.path();
+			}
+		}
+		else if( g_debrisModelEnable && this->isMovingRandomDueDebris() ){
+			this->isMovingRandomDueDebris(false);
+			this->isRouteRandom(false);
+			
+			// Vuelve a la ruta
+			auto response = _myEnv->getRouter()->route(this->position(),this->getTargetPos());
+			this->_route = response.path();	
+			
+			//std::cout << g_currTimeSim <<  "\t: " << this->id()  << "\t, ";
+			//std::cout << "isMovingRandomDueDebris: " << this->isMovingRandomDueDebris() << ", ";
+			//std::cout << "isRouteRandom: " << this->isRouteRandom() << " --> ";
+			//std::cout << "new fixed route asigned to safe zone";
+			//std::cout << std::endl;			
+		}
+		else /*if(!_evacuationData.isWaiting)*/{
+			return;
+		}
+	}
+	
 
-	while(!_route.empty()) {
-		Point2D dst = _route.front();
-		double dist = sqrt(CGAL::squared_distance(_position, dst));
+	Point2D dst = Point2D(0.0, 0.0);
+	double agentFactor = 1.0;
+	double dist = 0.0;
+	
+	Vector2D drivingForce = Vector2D(0.0,0.0);
+	Vector2D totalRepulsiveEfect = Vector2D(0.0,0.0);
+	Vector2D totalForce = Vector2D(0.0,0.0);
+	
+	/*if(std::isnan(_currVelocity[1] ) ){
+		std::cout << g_currTimeSim << "\t" << this->id() << "\t, init) _currVelocity=" << _currVelocity << std::endl;
+	}*/
+	
+	// Los vecinos son los que están a una distancia menor que 'g_attractionRadius'
+	// y que estén vivos
+	_myEnv->setNeighborsOf(this->id(), g_attractionRadius);
+	
+	if(!_route.empty() && !_evacuationData.isWaiting) { 
+		dst = _route.front();
+
+		dist = sqrt(CGAL::squared_distance(_position, dst));
 
 		Transformation scale(CGAL::SCALING, 1.0, dist);
 		Vector2D direction(_position, dst);
 
 		_direction = scale(direction);
-
-		Vector2D drivingForce = Vector2D(0.0,0.0);
-		Vector2D totalRepulsiveEfect = Vector2D(0.0,0.0);
-		Vector2D totalForce = Vector2D(0.0,0.0);
 		
-		//Eq (2) Helbing, D., & Molnar, P. (1998).
-		//	Social Force Model for Pedestrian Dynamics. Physical Review E, 51(5), 4282–4286.
-		drivingForce = (_SFM.disiredSpeed * _direction - _currVelocity) / _SFM.timeRelax;
-		
-
 		// Si a la actual velocidad, el agente va llegar al destino del tramo en menos
 		// de g_deltaT tiempo, entonces se descarta el destino del tramo y se continua con el siguiente
 		// destino de la ruta.
 		if( dist / sqrt(_currVelocity.squared_length()) < g_deltaT ){
 			_route.pop_front();
-			continue;
+			//continue;						
 		}
+			
+		//Eq (2) Helbing, D., & Molnar, P. (1998).
+		//	Social Force Model for Pedestrian Dynamics. Physical Review E, 51(5), 4282–4286.
+		drivingForce = (_SFM.disiredSpeed * _direction - _currVelocity) / _SFM.timeRelax;
 		
-		_myEnv->setNeighborsOf(this->id(), g_attractionRadius); //Ya se actualizó en this->update();
 		
 		//Actualizar densidad de vecinos del agente
-		this->setDensity(
-			 (double)_agentNeighbors.size() / ( 3.14*(g_attractionRadius-this->radius())*(g_attractionRadius-this->radius()) )
-				 );
+		_myEnv->setDensityOf(this);
+	}
 		
-		//std::cout << g_currTimeSim << ": " <<  this->id() << ", Neighbors=>" << _agentNeighbors.size() << std::endl;
 
-		/**/
-		if( _agentNeighbors.size() > 0 ){
-			// Si hay vecinos, se debe considerar la RepulsiveForce
+	if(g_panicModelEnable){
+		switch(this->_panic.stateCode){
+			case Agent::panicState.susceptible:{
+				this->_panic.emotion.expression = 0.6 * this->_panic.emotionOrig.expression;
+				this->_panic.emotion.send       = 0.8 * this->_panic.emotionOrig.send;
+				this->_panic.emotion.recv       = 0.8 * this->_panic.emotionOrig.recv;
+				break;
+			}
+		
+			case Agent::panicState.infected:{
+				this->_panic.emotion.expression = this->_panic.emotionOrig.expression;
+				this->_panic.emotion.send       = this->_panic.emotionOrig.send;
+				this->_panic.emotion.recv       = this->_panic.emotionOrig.recv;		
+				break;
+			}
+		
+			case Agent::panicState.recovered:{
+				this->_panic.emotion.expression = 0.8 * this->_panic.emotionOrig.expression;
+				this->_panic.emotion.send       = 0.6 * this->_panic.emotionOrig.send;
+				this->_panic.emotion.recv       = 0.8 * this->_panic.emotionOrig.recv;		
+				break;
+			}
+		
+		}
+	}
+		
+
+	if( _agentNeighbors.size() > 0 ){
+		// Si hay vecinos, se debe considerar:
+		//   1) el contagio de pánico
+		//   2) el cálculo de fuerzas del modelo SFM
+
+		double newStrengthFactor = 0.0;
+		for(auto& fooAgent : _agentNeighbors) {
+
+			if( fooAgent == NULL || fooAgent == this || fooAgent->position() == this->position()) {
+				continue;
+			}
 			
-			// Determinar el efecto repulsivo por cada
-			// vecino cercano, y agregarlo al total
-			for(auto& fooAgent : _agentNeighbors) {
+			//////////////////////////////////////////////
+			// Modelo de contagio de pánico
+			// parte 1: contagio
+			if(g_panicModelEnable){
+				//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+				// El nivel emocional depende del receptor depende de: a) la distancia entre ellos
+				//                                                     b) el nivel de expresión del agente emisor
+				//                                                     c) el nivel de receptividad del agente receptor
+				//                                                     d) el nivel emocional del agente emisor
+				double distance   = distanceTo(fooAgent);
+				double distFactor =( 1 - 1/(1+exp(-distance))) * 0.15;
+				double emotionFactor = fooAgent->_panic.emotion.expression * this->_panic.emotion.recv;// * fooAgent->_panic.emotion.send;
+				
+				double deltaStrength = distFactor*emotionFactor;
 
-				if( fooAgent == NULL || fooAgent == this ) {
-					continue;
+				// Si el modelo de inundación está habilitado, entonces
+				// la variación del nivel emocional se incrementa en forma
+				// lineal
+				/*
+				if(_myEnv->getFloodParams().enable){
+					double floodFactor = 1.0;
+					
+					uint32_t patchId = this->getQuad();
+					PatchAgent* pAgent = _myEnv->getPatchAgent(patchId);
+
+					floodFactor = 1 + pAgent->getLevelFlood() / _myEnv->getFloodParams().criticalLevel;
+					
+					if(floodFactor > 2.0){
+						floodFactor = 2.0;
+					}
+					
+					deltaStrength *= floodFactor;
 				}
+				*/
+				
+				if(fooAgent->_panic.emotion.strength > 0){
+				   newStrengthFactor += deltaStrength*fooAgent->_panic.emotion.strength;
+				}else{
+				   newStrengthFactor += deltaStrength;
+				}
+				
+				
+			}
+			
 
+			//////////////////////////////////////////////
+			// Modelo de movilidad basado en fuerza social
+			// parte 1: cálculo de fuerzas
+			if(!this->isWaiting()){
 				Vector2D repulsiveEfect = Vector2D(0.0,0.0);
 				double   distance = distanceTo(fooAgent);
 
 				Vector2D directionAgents(fooAgent->position(), _position);
+				double directionAgentsMag = sqrt(directionAgents.squared_length());
+				
 				Vector2D directionAgentsUnit;
 
+				if(directionAgentsMag > 0){
+					directionAgentsUnit = directionAgents / directionAgentsMag;
 
-				directionAgentsUnit = directionAgents / sqrt(CGAL::scalar_product(directionAgents, directionAgents));
+					//Helbing, D., & Molnar, P. (1998).
+					//Social Force Model for Pedestrian Dynamics. Physical Review E, 51(5), 4282–4286.
+					// Determinar directionDependentWeight, Eq (8)
 
-				//Helbing, D., & Molnar, P. (1998).
-				//Social Force Model for Pedestrian Dynamics. Physical Review E, 51(5), 4282–4286.
-				// Determinar directionDependentWeight, Eq (8)
+					double strengthRepulsiveEfect = _SFM.strengthSocialRepulsiveForceAgents * exp(-distance/_SFM.sigma);
 
-				double strengthRepulsiveEfect = _SFM.strengthSocialRepulsiveForceAgents * exp(-distance/_SFM.sigma);
-
-				repulsiveEfect = -strengthRepulsiveEfect * directionAgentsUnit;
+					repulsiveEfect = -strengthRepulsiveEfect * directionAgentsUnit;
 				
-				
-				// Determinar directionDependentWeight
-				uint8_t directionDependentWeight = 1;
+					//////////////////////////////////////
+					// Determinar directionDependentWeight
+					uint8_t directionDependentWeight = 1;
 
-				//if(CGAL::scalar_product(_direction, -repulsiveEfect) >= strengthRepulsiveEfect*_cosPhi) {
-				//REVISAR ESTO ...OK
-				if(CGAL::scalar_product(_direction, repulsiveEfect) >= strengthRepulsiveEfect * _SFM.cosPhi) {
-					directionDependentWeight = 1;
-				} else {
-					directionDependentWeight = 0.5; 
+					if(CGAL::scalar_product(_direction, repulsiveEfect) >= -strengthRepulsiveEfect * _SFM.cosPhi) {
+						directionDependentWeight = 1;
+					} else {
+						directionDependentWeight = 0.5; 
+					}
+					totalRepulsiveEfect += repulsiveEfect * directionDependentWeight;	
 				}
-				totalRepulsiveEfect += repulsiveEfect * directionDependentWeight;
-				//totalRepulsiveEfect += repulsiveEfect;
+							
 			}
 			
-			//std::cout << g_currTimeSim << ": " <<  this->id() << ", totalRepulsiveEfect=>" << totalRepulsiveEfect << std::endl;
+		} // fin for(auto& fooAgent : _agentNeighbors)
+		
+		if(g_panicModelEnable){
+			this->_panic.emotion.strength += newStrengthFactor / (double)_agentNeighbors.size();	
+		}
+	}
+		
+	///////////////////////////////////////////////////////
+	// Modelo de contagio de pánico
+	// parte 2: transiciones
+	if(g_panicModelEnable){
+		//Normalizar el nivel de emocion
+		double strengthNorm = this->_panic.emotion.strength / (1 +  this->_panic.emotion.strength);
+		
+		if(this->_panic.stateCode == Agent::panicState.susceptible){
+			if(!this->inSafeZone()){
+				this->_panic.susceptibleTime += g_deltaT;
 
+				if(strengthNorm >= this->_panic.params.emotionThreshold){
+					this->_panic.stateCode        = Agent::panicState.infected;
+					this->_panic.susceptibleTime  = 0.0;
+					//this->_panic.emotion.strength = 0.0;
+					this->_panic.infectedTime     = 0.0;
+					this->_panic.recoveredTime    = 0.0;
+		
+					// Cuando se infecta, se le olvida la ruta y camina en forma aleatoria
+					if(!_evacuationData.isWaiting){
+						auto response = _myEnv->getRouter()->route(this->position(), g_randomWalkwayRadius);
+						this->_route = response.path();
+					}
+				}
+			}
+		}
+		else
+		if(this->_panic.stateCode == Agent::panicState.infected){
+			std::random_device device;
+			std::uniform_real_distribution<> unifNumber(0.01, 1.0);
+		
+			// Condición para salir del estado INFECTED y pasar a RECOVERED
+			if(this->_panic.infectedTime > this->_panic.params.timeInInfected &&
+			    unifNumber(device) < this->_panic.params.probInfectedToRecovered){
+	   			this->_panic.stateCode        = Agent::panicState.recovered;
+				this->_panic.susceptibleTime  = 0.0;
+	   			this->_panic.emotion.strength = 0.0;
+	   			this->_panic.infectedTime     = 0.0;
+	   			this->_panic.recoveredTime    = 0.0;	
+			
+				// Cuando se recupera, recalcula la ruta a su zona segura
+				if(!_evacuationData.isWaiting){
+					auto response = _myEnv->getRouter()->route(this->position(),this->getTargetPos());
+					this->_route = response.path();		
+				}	
+			}
+			else{
+				this->_panic.infectedTime += g_deltaT;
+			}
+		}
+		else
+		if(this->_panic.stateCode == Agent::panicState.recovered){
+			std::random_device device;
+			std::uniform_real_distribution<> unifNumber(0.01, 1.0);
+		
+			if(this->_panic.recoveredTime > this->_panic.params.timeInRecovered &&
+			    unifNumber(device) < this->_panic.params.probRecoveredToSusceptible){
+	   			this->_panic.stateCode        = Agent::panicState.susceptible;
+				this->_panic.susceptibleTime  = 0.0;
+	   			this->_panic.emotion.strength = 0.0;
+	   			this->_panic.infectedTime     = 0.0;
+	   			this->_panic.recoveredTime    = 0.0;	
+			
+			}
+			else{
+				this->_panic.recoveredTime += g_deltaT;
+			}
+		}
+	}
+		
+	if(!_route.empty() && !_evacuationData.isWaiting) {
+		// Orden original
+		//  _myEnv->setGradientVelocityOf(this)
+		//  SFM
+		//  _myEnv->setFloodVelocityOf(this);
+		//  _myEnv->setDensityVelocityOf(this);
+		//  _myEnv->setDebrisVelocityOf(this);
+				
+
+		//////////////////////////////////////////////////////////
+		// Disminuir _currVelocity según la gradiente del terreno.
+		if(g_elevationModelEnable){
+			_myEnv->setGradientVelocityOf(this);
 		}
 		
-		/**/
+		
+		//////////////////////////////////////////////
+		// Modelo de movilidad basado en fuerza social
+		// parte 2: actualización de la posición
 		totalForce =  drivingForce + totalRepulsiveEfect;
 		_currVelocity +=  agentFactor * totalForce * g_deltaT;
+		
 
+		//////////////////////////////////////////////
 		//Se limita la velocidad según Eq (11) y (12)
 		//Helbing, D., & Molnar, P. (1998).
 		//Social Force Model for Pedestrian Dynamics. Physical Review E, 51(5), 4282–4286.
-		// REVISAR Y COMPARAR CON
-		// Chen, X., Treiber, M., Kanagaraj, V., & Li, H. (2018). Social force models for pedestrian traffic–state of the art. Transport Reviews.
-
 		if( sqrt( _currVelocity.squared_length() ) >= _SFM.maxDisiredSpeed ) {
 			_currVelocity = _SFM.maxDisiredSpeed * _currVelocity / sqrt( _currVelocity.squared_length() );
 		}
 		
+		/*
+		//////////////////////////////////////////////////////////////////////////////
 		//Disminuir _currVelocity según la densidad de personas alrededor del agente
+		if(_myEnv->getDensityParams().enable){
+			_myEnv->setDensityVelocityOf(this);
+		}
+		*/
 		
-		if(this->getDensity() >=2.0){
-			double velFactor = exp( -this->getDensity() )/exp(-2.0);
-			if(velFactor <= 0.1){ velFactor = 0.1;}
-			
-			_currVelocity *= velFactor;
+		
+		
+		if(_myEnv->getFloodParams().enable){
+			// Determinar el nivel de inundación del patch.
+			// Según este nivel, la velocidad disminuye en un factor inversamente proporcional, hasta un factor
+			// determinado de la velocidad inicial 'disiredSpeed' especificada en el modelo de Fuerza social (estructura this->_SFM)
+			_myEnv->setFloodVelocityOf(this);		
 		}
 		
-
+		
+		
+		
+		//////////////////////////////////////////////////////////////////////////////
+		// Disminuir _currVelocity según la cantidad de escombros del patch
+		if(g_debrisModelEnable ){
+			uint32_t patchId = this->getQuad();
+			PatchAgent* pAgent = _myEnv->getPatchAgent(patchId);
+			
+			
+			if( !pAgent->isDebrisFree() && !this->isMovingRandomDueDebris() && !this->isRouteRandom() ){
+				bool seekNewRoute;
+				
+				seekNewRoute = _myEnv->setDebrisVelocityOf(this);
+				
+				// Si el agente debe buscar nueva ruta debido a que se encontró 
+				// con escombros, se activa el flag 'isMovingRandomDueDebris'. En el próximo tick
+				// deberá determinar una nueva ruta.
+				this->isMovingRandomDueDebris(seekNewRoute);
+			}		
+		}
+		
+		//////////////////////////////////////////////////////////////////////////////
+		//Disminuir _currVelocity según la densidad de personas alrededor del agente
+		if(_myEnv->getDensityParams().enable){
+			_myEnv->setDensityVelocityOf(this);
+		}
+		
+		
+		
+	
+		//
+		Point2D positionOld = Point2D(0.0, 0.0);
+		positionOld = _position;
+		
+		//////////////////////////////////////////////////
 		//Finalmente, se actualiza la posición del agente
 		_position += _currVelocity * g_deltaT;
 		
+		//////////////////////////////////////////////////
 		//Se actualiza la distancia que ha recorrido el agente
-		_evacuationData.travelDistance += sqrt( _currVelocity.squared_length() ) * g_deltaT;
+		if( !this->inSafeZone() ){
+			_evacuationData.travelDistance += sqrt(CGAL::squared_distance(_position, positionOld));;
+		}
 		
+		//////////////////////////////////////////////////
 		//Actualizar el vector _direction
 		dist = sqrt(CGAL::squared_distance(_position, dst));
+
 
 		Transformation scaleNew(CGAL::SCALING, 1.0, dist);
 		Vector2D directionNew(_position, dst);
 
 		_direction = scaleNew(directionNew);
 		
+		////////////////////////////////////////////////////////////////////////////////////
 		// Si el agente se sale del área de simulación, dejarlo en el borde con velocidad 0.
 		Environment::grid_t gridData = _myEnv->getGrid();
 		if(_position[1] >= gridData._yMax || _position[1] <= gridData._yMin || _position[0] >= gridData._xMax || _position[0] <= gridData._xMin){
@@ -602,11 +1162,7 @@ void Agent::followPath()
 			}
 		}
 		
-		
-
-
-		break;
-	}
+	}	
 
 }
 
@@ -737,5 +1293,31 @@ int Agent::getAgentNeighborsSize()
 	return(_agentNeighbors.size() );
 	
 }
+
+Agent::panic_t Agent::getPanicStruct()
+{
+	return(_panic);
+}
+
+Agent::evacuationData_t Agent::getEvacuationDataStruct()
+{
+	return(_evacuationData);
+}
+
+void Agent::setEvacuationDataStruct(Agent::evacuationData_t eData)
+{
+	_evacuationData = eData;
+}
+
+
+Agent::SFM_t Agent::getSFMstruct()
+{
+	return(_SFM);
+}
+
+
+
+
+
 
 
