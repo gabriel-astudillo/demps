@@ -10,6 +10,9 @@ clean:
 	@cd $(SRC) && $(MAKE) clean
 	@rm -rf *~ core
 
+install:
+	@cd $(SRC) && $(MAKE) install
+
 distclean: clean
 	@cd $(SRC) && $(MAKE) distclean
 	@rm -rf $(RESULTS_SIM)
