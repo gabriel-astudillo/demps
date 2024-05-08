@@ -38,7 +38,7 @@ $(DIR_OBJ)/%.o: %.cc
 
 install:
 	@echo Install demps to $(DIR_INSTALL)
-	@$(CP) $(TARGET) $(DIR_INSTALL)/$(TARGET)
+	@sudo $(CP) $(TARGET) $(DIR_INSTALL)/$(TARGET)
 
 clean:
 	@$(RM) -r $(DIR_OBJ)
