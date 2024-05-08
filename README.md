@@ -32,7 +32,7 @@ make install
 ```
 El ejecutable del simulador se instala en ```/usr/local/bin/demps```
 El script que permite bajar y crear los mapas de ruteo se instala en ```/usr/local/bin/demps-map-download.py```
-El script que llama al ejecutable del simulador se deja en el directorio ```sim```. Para realizar una simulación, utilizar el script ```run.sh```.
+Para realizar una simulación, utilizar el script ```run.sh```. Este script llama al ejecutable del simulador y se localiza en el directorio ```sim```. 
 
 ```
 cd sim
