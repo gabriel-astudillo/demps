@@ -51,7 +51,7 @@ $ git clone https://github.com/mrtazz/restclient-cpp.git
 $ cd restclient-cpp
 $ ./autogen.sh
 $ ./configure --prefix=/usr/local/restclient-cpp
-$ make install
+$ sudo make install
 ```
 
 Las librerías quedan instaladas en ```/usr/local/restclient-cpp/lib``` y las bibliotecas en ```/usr/local/restclient-cpp/include```
