@@ -1,8 +1,10 @@
 CC=gcc
 CXX=g++
-RM=rm -f
+RM=/bin/rm -f
+CP=/bin/cp
 
-TARGET=../sim/demps
+TARGET=./demps
+DIR_INSTALL=/usr/local/bin/
 
 RESTCLIENT_DIR=/usr/local/restclient-cpp
 RESTCLIENT_INCLUDE=$(RESTCLIENT_DIR)/include
@@ -36,8 +38,9 @@ $(DIR_OBJ)/%.o: %.cc
 	@mkdir -p $(DIR_OBJ)
 	@eval $(CXX) -c -o $@ $< $(CXXFLAGS) $(INCLUDES)
 
+
 install:
-	@echo Install demps to $(DIR_INSTALL)
+	@echo \#\#\# Install demps to $(DIR_INSTALL)
 	@sudo $(CP) $(TARGET) $(DIR_INSTALL)/$(TARGET)
 
 clean:
