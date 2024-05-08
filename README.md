@@ -15,25 +15,9 @@ El modelo de movilidad implementado se basa en el Modelo de Fuerza Social propue
 * ```sim/input/``` : Directorio que contiene los archivos de mapas de las ciudades a simular. Cada ciudad es un subdirectorio, que contiene los archivos:
 * ```sim/input/animacion.html```: plantilla HTML para crear la animación de la simmulación. Ver sección *Visualización* más abajo.
 * ```sim/input/ciudadX/``` : Directorio de los archivos de mapas (GeoJSON) de la *ciudadX*. 
-* ```sim/input/ciudadX/area.geojson``` : zona geográfica a simular
-* ```sim/input/ciudadX/initial_zones.geojson``` : zonas iniciales donde los habitantes se crean
-* ```sim/input/ciudadX/reference_zones.geojson``` : zonas de encuentro. Son los lugares donde las personas deben llegar en caso de evacuación.
+* ```sim/input/ciudadX/zones.geojson``` : zona geográfica a simular. Incluye zonas iniciales, seguras y de inundación.
 
-# Cómo usar
 
-Para utilizar el simulador, se puede ocupar el ejecutable estático disponible dentro del directorio ```sim```. Hay que renombrarlo a ```demps```y ejecutar el script ```run.sh``` para invocarlo correctamente.
-
-```
-git clone https://github.com/gabriel-astudillo/demps.git
-cd demps
-cd sim
-mv demps.static demps
-chmod +x demps
-chmod +x run.sh
-./run.sh
-```
-
-Otra forma es proceder a compilarlo. Para esto, hay que realizar los pasos de la siguiente sección.
 
 # Compilación e instalación
 1) Verificar que su sistema tiene las [dependencias](https://github.com/gabriel-astudillo/demps/blob/master/dependiencias.md) necesarias para la compilación.
@@ -44,6 +28,7 @@ Otra forma es proceder a compilarlo. Para esto, hay que realizar los pasos de la
 git clone https://github.com/gabriel-astudillo/demps.git
 cd demps
 make
+make install
 ```
 
 El ejecutable se deja en el directorio ```sim```. Para realizar una simulación, utilizar el script ```run.sh```.
@@ -54,12 +39,11 @@ chmod +x run.sh
 ./run.sh
 ```
 
-3) Si instaló una versión de OSRM > 5.18, entonces debe procesar nuevamente los mapas de la ciudades. Por ejemplo, para procesar el mapa de iquique, se debe hacer:
+3) Si instaló una versión de OSRM > 5.18, entonces debe procesar nuevamente los mapas de la ciudades. Por ejemplo, para procesar el mapa de la ciudadX, se debe hacer:
 
 ```
-cd sim/input/iquique
-chmod +x download.py
-./download.py area.geojson
+cd sim/input/ciudadX
+demps-map-download.py zones.geojson
 ```
 
 
@@ -77,9 +61,7 @@ Los resultados de la simulación se almacenan en el directorio ```sim/output/Ciu
 ```
 
 * ```input/```: directorio con la configuración geográfica de la simulación.
-* ```input/area.geojson``` : zona geográfica a simular.
-* ```input/initial_zones.geojson``` : zonas iniciales donde los habitantes se crean.
-* ```input/reference_zones.geojson``` : zonas de encuentro. Son los lugares donde las personas deben evacuar.
+* ```input/zones.geojson``` : zona geográfica a simular.
 * ```animacion.html``` : Animación del movimiento de los peatones utilizando MapboxGL JS https://docs.mapbox.com/mapbox-gl-js/api/
 * ```animacion.config.json```: archivo de configuración utilizado por el archivo anterior.
   
