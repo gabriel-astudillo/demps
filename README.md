@@ -30,13 +30,13 @@ cd demps
 make
 make install
 ```
-
-El ejecutable se deja en el directorio ```sim```. Para realizar una simulación, utilizar el script ```run.sh```.
+El ejecutable del simulador se instala en ```/usr/local/bin/demps```
+El script que permite bajar y crear los mapas de ruteo se instala en ```/usr/local/bin/demps-map-download.py```
+El script que llama al ejecutable del simulador se deja en el directorio ```sim```. Para realizar una simulación, utilizar el script ```run.sh```.
 
 ```
 cd sim
-chmod +x run.sh
-./run.sh
+./run.sh --config vdm-pob-vergara.config --outdir output/test
 ```
 
 3) Si instaló una versión de OSRM > 5.18, entonces debe procesar nuevamente los mapas de la ciudades. Por ejemplo, para procesar el mapa de la ciudadX, se debe hacer:
