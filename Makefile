@@ -1,5 +1,13 @@
 SRC=src
+SRC_PY=src_py
+
 RESULTS_SIM=sim/output
+
+SIM_DIR=sim
+PLANET_DIR=planet.openstreetmap.org
+
+CP=/bin/cp
+RM=/bin/rf
 
 default: all
 
@@ -12,9 +20,21 @@ clean:
 
 install:
 	@cd $(SRC) && $(MAKE) install
+	@echo \#\#\# Creating symbolic link to \'sim\' and \'planet.openstreetmap.org\' in $(HOME)
+	@rm -f $(HOME)/$(SIM_DIR)
+	@rm -f $(HOME)/$(PLANET_DIR)
+	@ln -s $(PWD)/$(SIM_DIR) $(HOME)/$(SIM_DIR)
+	@ln -s $(PWD)/$(PLANET_DIR) $(HOME)/$(PLANET_DIR)
+
+	@echo \#\#\# Apply chmod +x to {sim/*.sh, src_py/*.py}
+	@chmod +x $(SIM_DIR)/*.sh
+	@chmod +x $(SRC_PY)/*.py
+
+	@echo \#\#\# Copy $(SRC_PY)/*.py to /usr/local/bin
+	sudo $(CP) $(SRC_PY)/*.py /usr/local/bin
 
 distclean: clean
 	@cd $(SRC) && $(MAKE) distclean
-	@rm -rf $(RESULTS_SIM)
+	@$(RM) -rf $(RESULTS_SIM)
 
 .PHONY: all clean distclean
