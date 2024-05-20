@@ -12,7 +12,7 @@ RESTCLIENT_LIB=$(RESTCLIENT_DIR)/lib
 RESTCLIENT_LDFLAGS=$(RESTCLIENT_LIB) -Wl,-rpath -Wl,$(RESTCLIENT_LIB)
 
 INCLUDES=-I/usr/local/include -I/usr/local/include/osrm -I./include -I. -I/usr/include -I$(RESTCLIENT_INCLUDE)
-LDFLAGS=-L/usr/local/lib -L/usr/lib -L$(RESTCLIENT_LDFLAGS) -g
+LDFLAGS=-L/usr/local/lib -L/usr/lib -L$(RESTCLIENT_LDFLAGS)
 LDLIBS=-lGeographic -losrm -lboost_system -lboost_filesystem -lboost_iostreams -lboost_thread -lrt -lpthread -fopenmp -lgmp 
 LDLIBS+=-lrestclient-cpp -luuid
 LDLIBS+=-lcurl
