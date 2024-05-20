@@ -61,7 +61,12 @@ MKDIR_CMD="$(which mkdir)"
 
 ulimit -c unlimited
 
-DEMPS_BIN="./demps"
+DEMPS_PATH="$(which demps)"
+
+if [[ ! -f $DEMPS_PATH  ]]; then
+	echo "Error: DEMPS executable no exist."
+	usage >&2 && exit 99
+fi
 
 EXPERIMENT_NUMBER=-1
 SAMPLING_LEVEL=-1
@@ -250,13 +255,6 @@ if [[  $DEMPS_CONFIG == "null" ]]; then
 	usage >&2 && exit 99
 fi
 
-DEMPS_PATH=$DEMPS_BIN 
-
-if [[ ! -f $DEMPS_PATH  ]]; then
-	echo "Error: $DEMPS_PATH no existe"
-	usage >&2 && exit 99
-fi
-
 DEMPS_CONFIG_PATH="$BASEDIR/$DEMPS_CONFIG"
 
 if [[ ! -f $DEMPS_CONFIG_PATH ]]; then
@@ -302,7 +300,8 @@ fi
 #RESULTS_DIR_PATH=$BASEDIR/$RESULTS_DIR
 
 
-echo "Eliminando resultados anteriores... $RESULTS_DIR_PATH"
+printf "####### Eliminando resultados anteriores #######\n" 
+printf "%s\n" $RESULTS_DIR_PATH
 $RM_CMD -rf $RESULTS_DIR_PATH
 
 
@@ -340,7 +339,7 @@ fi
 
 
 $MKDIR_CMD -p $RESULTS_DIR_PATH/input/
-echo $CP_CMD $INPUT_PATH/*.geojson $RESULTS_DIR_PATH/input/
+#echo $CP_CMD $INPUT_PATH/*.geojson $RESULTS_DIR_PATH/input/
 $CP_CMD $INPUT_PATH/*.geojson $RESULTS_DIR_PATH/input/
 $CP_CMD $INPUT_PATH/*.png $RESULTS_DIR_PATH/input/ 2> /dev/null
 $CP_CMD input/animacion*.html $RESULTS_DIR_PATH/
@@ -355,14 +354,11 @@ RESULTS_FILES="$AGENTS_DIR_PATH/* $STATS_DIR_PATH/*"
 
 
 #### MAIN ####
-printf "DEMPS_CONFIG_PATH=%s\n" "$DEMPS_CONFIG_PATH"
+printf "############### CONFIG FILE PATH ###############\n"
+printf "%s\n" "$DEMPS_CONFIG_PATH"
 
 
-
-echo "Ejecutando DEMPS..."
-#export OMP_NUM_THREADS=$THREADS
-#export OMP_SCHEDULE='schedule(guided,8)'
-
+printf "############# DEMPS command line ###############\n"
 DEMPS_OPTS="--config $DEMPS_CONFIG_PATH "
 DEMPS_OPTS+="--sampliglevel $SAMPLING_LEVEL "
 DEMPS_OPTS+="--timesim $DURATION "
@@ -380,6 +376,10 @@ DEMPS_OPTS+="$ELEVATION_FILE "
 DEMPS_OPTS+="$CALC_ELEVATION " 
 
 #echo $DEMPS_OPTS
+#export OMP_NUM_THREADS=$THREADS
+#export OMP_SCHEDULE='schedule(guided,8)'
 echo $DEMPS_PATH $DEMPS_OPTS -D "$DESCRIPTION"
+
+printf "########### DEMPS execution logs ###############\n"
 $DEMPS_PATH $DEMPS_OPTS -D "$DESCRIPTION"
 
