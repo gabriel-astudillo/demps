@@ -7,24 +7,24 @@
 #%    Script to call the execution of DEMPS
 #%
 #% OPTIONS
-#%    -c, --config                  config file (JSON)
-#%    -t, --threads                 threads to se
-#%    -T, --timesim                 total simulation time
-#%    -s, --samplinglevel            sampling level 0..1
-#%    -o, --outdir                  output directory (overwrite config file)
-#%    -n, --residents               residents agents
-#%    -N, --visitors                visitors agents
-#%    -D, --description             simulation description, e.g: --description "test city"
-#%    -d, --densitymodel            enable density model (1:true, 0:false, -1:config)
-#%    -p, --panicmodel              enable panic model (1:true, 0:false, -1:config)
-#%    -P, --emotionthreshold        emotion threshlod for enter to panic state
-#%    -f, --floodmodel              enable flood model (1:true, 0:false, -1:config)
-#%    -b, --debrismodel             enable debris model (1:true, 0:false, -1:config)
-#%    -B, --debrisratio             ratio of patchs with debris (1..100)%
-#%    -v, --elevationmodel          enable elevation model (1:true, 0:false, -1:config)
+#%    -c, --config                  config file (JSON).
+#%    -t, --threads                 threads to use.
+#%    -T, --timesim                 total simulation time.
+#%    -s, --samplinglevel           sampling level 0..1
+#%    -o, --outdir                  output directory (overwrite config file).
+#%    -n, --residents               number of number of residents agents.
+#%    -N, --visitors                number of visitors agents.
+#%    -D, --description             simulation description, e.g: --description "test city".
+#%    -d, --densitymodel            enable density model (1:true, 0:false, -1:config).
+#%    -p, --panicmodel              enable panic model (1:true, 0:false, -1:config).
+#%    -P, --emotionthreshold        emotion threshlod for enter to panic state.
+#%    -f, --floodmodel              enable flood model (1:true, 0:false, -1:config).
+#%    -b, --debrismodel             enable debris model (1:true, 0:false, -1:config).
+#%    -B, --debrisratio             ratio of patchs with debris (1..100)%.
+#%    -v, --elevationmodel          enable elevation model (1:true, 0:false, -1:config).
 #%    -V, --elevationfile           file with data elevation. Default: 'elevationPatchData.txt'.
 #%    -E, --patchcoords             save in file 'elevationPatch-<city>.txt the coords (lat,lon) of each patch and end.
-#%    -e, --experiment              experiment number
+#%    -e, --experiment              experiment number.
 #%    
 #-
 #- IMPLEMENTATION
