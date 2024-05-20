@@ -1,5 +1,4 @@
-#ifndef _CHECKARGS_H_
-#define _CHECKARGS_H_
+#pragma once
 
 #include <unistd.h>
 #include <getopt.h>
@@ -36,28 +35,31 @@ private:
 		{nullptr, no_argument, nullptr, 0}
 	};
 
-	const std::string opciones = "-c file [-d tiempo] [-f 0|1] [-n ag.residentes]  [-N ag.visitantes] [-D string] [-t nro.threads] [-o directorio] [-e nro.experimento] [-E][-h]";
+	const std::string arguments = "-c|--config config_file [options] [-h|--help]";
+	
+	const std::string description = "DESCRIPTION:\n" "\tDEMPS simulator.";
 
-	const std::string descripcion  = "Descripción:\n"
-	                                 "\t-c   Archivo de configuración JSON\n"
-	                                 "\t-T   tiempo de simulación. En segundos.\n"
-									 "\t-d   1: habilita modelo de densidad. 0: inhabilita modelo de densidad. -1: directiva archivo configuración.\n"
-									 "\t-f   1: habilita modelo de inundación. 0: inhabilita modelo de inundación. -1: directiva archivo configuración.\n"
-									 "\t-p   >0: habilita modelo de pánico. 0: inhabilita modelo de pánico. -1: directiva archivo configuración.\n"
-									 "\t-P   Indica el porcentaje de emoción para que se considere infectado.\n"
-									 "\t-b   1: habilita modelo de escombros. 0: inhabilita modelo de escombros. -1: directiva archivo configuración"
-									 "\t-B   Proporción de patch con escombros.\n"
-									 "\t-v   1: habilita modelo de elevación. 0: inhabilita modelo de elevación. -1: directiva archivo configuración"
-									 "\t-V   Archivo de datos de elevación. Por omision, 'elevationPatchData.txt'."
-									 "\t-n   Cantidad de agentes residentes.\n"
-									 "\t-N   Cantidad de agentes visitantes.\n"
-									 "\t-D   Descripción de la simulación.\n"
-	                                 "\t-t   Cantidad de threads.\n"
-									 "\t-o   Directorio de salida.\n"
-									 "\t-e   Numero de experimento.\n"
-									 "\t-E   Guarda en 'elevationPatch.txt' las coordenadas (lat,lon) de cada patch y termina.\n"
-	                                 "\t-h   Muestra esta salida y termina.\n";
-
+	const std::string options  = "OPTIONS:\n"
+	                                 "\t-c, --config            config file (JSON).\n"
+									 "\t-t, --threads           threads to use.\n"
+	                                 "\t-T, --timesim           total simulation time.\n"
+									 "\t-s, --samplinglevel     sampling level 0..1\n"
+									 "\t-o, --outdir            output directory (overwrite config file).\n"
+									 "\t-n, --residents         number of residents agents.\n"
+									 "\t-N, --visitors          number of visitors agents.\n"
+									 "\t-D, --description       simulation description, e.g: --description \"test city\".\n"										 
+									 "\t-d, --densitymodel      enable density model (1:true, 0:false, -1:config).\n"
+									 "\t-p, --panicmodel        enable panic model (1:true, 0:false, -1:config).\n"
+									 "\t-P, --emotionthreshold  emotion threshlod for enter to panic state.\n"
+									 "\t-f, --floodmodel        enable flood model (1:true, 0:false, -1:config).\n"			 
+									 "\t-b, --debrismodel       enable debris model (1:true, 0:false, -1:config).\n"
+									 "\t-B, --debrisratio       ratio of patchs with debris (1..100)%.\n"
+									 "\t-v, --elevationmodel    enable elevation model (1:true, 0:false, -1:config).\n"
+									 "\t-V, --elevationfile     file with data elevation. Default: 'elevationPatchData.txt'.\n"
+									 "\t-E, --patchcoords       save in file 'elevationPatch-<city>.txt the coords (lat,lon) of each patch and end.\n"
+									 "\t-e, --experiment        experiment number.\n"							 
+	                                 "\t-h, --help              Show this help and end.\n";
+ 
 	typedef struct args_t {
 		std::string fileConfig;
 		uint32_t duration;
@@ -217,9 +219,6 @@ CheckArgs::args_t CheckArgs::getArgs()
 void CheckArgs::printUsage()
 {
 	std::cout << "Uso: " <<
-	          argv[0] << " " << opciones << " " << descripcion << std::endl;
+	          argv[0] << " " << arguments << "\n" << description << "\n" << options << std::endl;
 }
 
-
-
-#endif
