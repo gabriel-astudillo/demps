@@ -6,41 +6,6 @@ ORIG_FILES_DIR=orig_files
 GDAL_INFO=$(which gdalinfo)
 GDAL_TRANSLATE=$(which gdal_translate)
 
-if [ -z $GDAL_INFO ] || [ -z $GDAL_TRANSLATE ]; then
-	echo "Install gdal-bin package"
-	exit
-fi
-
-mkdir -p $DATA_DIR/$ORIG_FILES_DIR
-
-DOWNLOAD_URL="https://srtm.csi.cgiar.org/wp-content/uploads/files/250m"
-SRTM_FILES="SRTM_NE_250m_TIF.rar SRTM_SE_250m_TIF.rar SRTM_W_250m_TIF.rar"
-
-for u in $SRTM_FILES; do
-	urlFile=$DOWNLOAD_URL/$u
-	printf "Download $urlFile to $DATA_DIR/\n"
-	wget $urlFile -P $DATA_DIR
-done
-
-cd $DATA_DIR
-for u in $SRTM_FILES; do
-	printf "Extract $u\n"
-	unar -f -D $u
-done
-
-
-create_tiles SRTM_NE_250m.tif 10 10
-create_tiles SRTM_SE_250m.tif 10 10
-create_tiles SRTM_W_250m.tif 10 20
-
-
-mv *.rar $ORIG_FILES_DIR
-mv *m.tif $ORIG_FILES_DIR
-mv readme.txt $ORIG_FILES_DIR
-
-
-
-
 create_tiles() {
 	raster=$1
 	xtiles=$2
@@ -79,6 +44,41 @@ create_tiles() {
 	printf "\n"
 	
 }
+
+
+if [ -z $GDAL_INFO ] || [ -z $GDAL_TRANSLATE ]; then
+	echo "Install gdal-bin package"
+	exit
+fi
+
+mkdir -p $DATA_DIR/$ORIG_FILES_DIR
+
+DOWNLOAD_URL="https://srtm.csi.cgiar.org/wp-content/uploads/files/250m"
+SRTM_FILES="SRTM_NE_250m_TIF.rar SRTM_SE_250m_TIF.rar SRTM_W_250m_TIF.rar"
+
+for u in $SRTM_FILES; do
+	urlFile=$DOWNLOAD_URL/$u
+	printf "Download $urlFile to $DATA_DIR/\n"
+	wget $urlFile -P $DATA_DIR
+done
+
+cd $DATA_DIR
+for u in $SRTM_FILES; do
+	printf "Extract $u\n"
+	unar -f -D $u
+done
+
+
+create_tiles SRTM_NE_250m.tif 10 10
+create_tiles SRTM_SE_250m.tif 10 10
+create_tiles SRTM_W_250m.tif 10 20
+
+
+mv *.rar $ORIG_FILES_DIR
+mv *m.tif $ORIG_FILES_DIR
+mv readme.txt $ORIG_FILES_DIR
+
+
 
 
 
