@@ -32,7 +32,7 @@ If you wish to host the whole world, just run
 ./make-srtm-data.sh
 ```
 
-**Assuming you have `wget` and `unar`installed**, the above command should have downloaded the entire SRTM dataset and split it into multiple smaller files in a `data` directory. **Be aware that this directory may be over 20 GB in size after the process is completed!**
+**Assuming you have `wget` and `unar`installed**, the above command should have downloaded the entire SRTM dataset and split it into multiple smaller files in a `srtm_data` directory. **Be aware that this directory may be over 20 GB in size after the process is completed!**
 
 
 ### Running the server
