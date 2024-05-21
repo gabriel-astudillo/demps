@@ -19,13 +19,13 @@ SRTM_FILES="SRTM_NE_250m_TIF.rar SRTM_SE_250m_TIF.rar SRTM_W_250m_TIF.rar"
 for u in $SRTM_FILES; do
 	urlFile=$DOWNLOAD_URL/$u
 	printf "Download $urlFile to $DATA_DIR/\n"
-	#wget $urlFile -P $DATA_DIR
+	wget $urlFile -P $DATA_DIR
 done
 
 cd $DATA_DIR
 for u in $SRTM_FILES; do
 	printf "Extract $u\n"
-	#unar -f -D $u
+	unar -f -D $u
 done
 
 
