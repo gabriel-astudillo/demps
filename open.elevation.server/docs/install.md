@@ -22,7 +22,7 @@ If all goes well, you now have the required dependencies to run Open-Elevation.
 
 ### Prerequisites: Getting the dataset
 
-This Open-Elevation server doesn't come with any data of its own, but it offers a set of scripts to get the whole [SRTM 250m dataset](https://srtm.csi.cgiar.org).
+This Open-Elevation server doesn't come with any data of its own, but it offers a set of scripts to get the whole [SRTM 250m dataset](https://srtm.csi.cgiar.org/srtm-250-resolution/).
 
 #### Whole World
 
