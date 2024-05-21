@@ -35,7 +35,7 @@ If you wish to host the whole world, just run
 **Assuming you have `wget` and `unar`installed**, the above command should have downloaded the entire SRTM dataset and split it into multiple smaller files in a `srtm_data` directory. **Be aware that this directory may be over 20 GB in size after the process is completed!**
 
 
-### Running the server
+### Running the server in foreground
 
 Now that you've got your data, you're ready to run Open-Elevation for DEMPS simulator. Simply run
 
@@ -44,6 +44,8 @@ python3 openElevationServer.py
 ```
 
 The config file is `openElevationServer.config`.
+
+### Running the server as a service or daemon
 
 ### Running the Server with SSL
 
