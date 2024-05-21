@@ -11,8 +11,7 @@ In order for Open-Elevation for DEMPS simulator to work, you need `GDAL` and `li
 
 The setup for `gdal` depends on the distro and may even change among distro versions, thus being outside the scope of this documentation. Please follow the documentation found in [GDAL's homepage](http://www.gdal.org/).
 
-The following are instructions for Ubuntu/Debian compatible distros, and similar ones might apply to your particular setup. Again, make sure you also install GDAL. Please consider using a `virtualenv` instead of using the default python installation for the following commands.
-	
+The following are instructions for Ubuntu/Debian compatible distros, and similar ones might apply to your particular setup. Again, make sure you also install GDAL. 
 
 ```
 apt-get install -y libspatialindex-dev unar gdal-bin
@@ -41,7 +40,7 @@ If you wish to host the whole world, just run
 Now that you've got your data, you're ready to run Open-Elevation! Simply run
 
 ```
-python server.py
+python3 server.py
 ```
 
 And you should be good to go!
