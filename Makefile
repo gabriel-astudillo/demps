@@ -5,6 +5,7 @@ RESULTS_SIM=sim/output
 
 SIM_DIR=sim
 PLANET_DIR=planet.openstreetmap.org
+OPEN_ELEV_DIR=open.elevation.server
 
 CP=/bin/cp
 RM=/bin/rf
@@ -20,11 +21,12 @@ clean:
 
 install:
 	@cd $(SRC) && $(MAKE) install
-	@echo \#\#\# Creating symbolic link to \'sim\' and \'planet.openstreetmap.org\' in $(HOME)
+	@echo \#\#\# Creating symbolic link to \'sim\', \'planet.openstreetmap.org\' and \'open.elevation.server\' in $(HOME)
 	@rm -f $(HOME)/$(SIM_DIR)
 	@rm -f $(HOME)/$(PLANET_DIR)
 	@ln -s $(PWD)/$(SIM_DIR) $(HOME)/$(SIM_DIR)
 	@ln -s $(PWD)/$(PLANET_DIR) $(HOME)/$(PLANET_DIR)
+	@ln -s $(PWD)/$(OPEN_ELEV_DIR) $(HOME)/$(OPEN_ELEV_DIR)
 
 	@echo \#\#\# Apply chmod +x to {sim/*.sh, src_py/*.py}
 	@chmod +x $(SIM_DIR)/*.sh
