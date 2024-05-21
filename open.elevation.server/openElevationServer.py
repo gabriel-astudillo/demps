@@ -5,10 +5,7 @@ import json
 import os
 from os import listdir
 from os.path import isfile, join, getsize
-
 from bottle import route, run, request, response, hook
-#from gdal_interfaces import GDALTileInterface
-
 from osgeo import gdal, osr
 from lazy import lazy
 from rtree import index
@@ -201,18 +198,30 @@ class InternalException(ValueError):
     """
     pass
 
+
+
+dirBase = os.path.dirname(os.path.realpath(__file__))
+
+configFile= dirBase + "/" + "openElevationServer.config"
+
 print('Reading config file ...')
 parser = configparser.ConfigParser()
-parser.read('openElevationServer.config')
+parser.read(configFile)
 
 HOST = parser.get('server', 'host')
 PORT = parser.getint('server', 'port')
 NUM_WORKERS = parser.getint('server', 'workers')
+
 DATA_FOLDER = parser.get('server', 'data-folder')
+DATA_FOLDER = dirBase + "/" + DATA_FOLDER
+
 OPEN_INTERFACES_SIZE = parser.getint('server', 'open-interfaces-size')
 URL_ENDPOINT = parser.get('server', 'endpoint')
 ALWAYS_REBUILD_SUMMARY = parser.getboolean('server', 'always-rebuild-summary')
+
 CERTS_FOLDER = parser.get('server', 'certs-folder')
+CERTS_FOLDER = dirBase + "/" + CERTS_FOLDER
+
 CERT_FILE = '%s/cert.crt' % CERTS_FOLDER
 KEY_FILE = '%s/cert.key' % CERTS_FOLDER
 
