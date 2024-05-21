@@ -37,13 +37,13 @@ If you wish to host the whole world, just run
 
 ### Running the server
 
-Now that you've got your data, you're ready to run Open-Elevation! Simply run
+Now that you've got your data, you're ready to run Open-Elevation for DEMPS simulator. Simply run
 
 ```
-python3 server.py
+python3 openElevationServer.py
 ```
 
-And you should be good to go!
+The config file is `openElevationServer.config`.
 
 ### Running the Server with SSL
 
