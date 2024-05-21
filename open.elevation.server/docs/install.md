@@ -47,6 +47,13 @@ The config file is `openElevationServer.config`.
 
 ### Running the server as a service or daemon
 
+A makefile is provided to help to install the service file and start/stop the service.
+
+```
+make installservice
+make start
+```
+
 ### Running the Server with SSL
 
 Before starting, the server checks for an SSL certificate and key files at the `certs/`subdirectory (this can be changed in the config file).
