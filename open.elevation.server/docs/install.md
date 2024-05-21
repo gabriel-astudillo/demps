@@ -1,6 +1,13 @@
+### Change script permissions
+
+```
+cd open.elevation.server
+chmod +x make-srtm-data.sh openElevationServer.py
+```
+
 ### Installing Dependencies
 
-In order for Open-Elevation to work, you need `GDAL` and `libspatialindex`. For the full process to work you also need a version of `unar`. 
+In order for Open-Elevation for DEMPS simulator to work, you need `GDAL` and `libspatialindex`. For the full process to work you also need a version of `unar`. 
 
 The setup for `gdal` depends on the distro and may even change among distro versions, thus being outside the scope of this documentation. Please follow the documentation found in [GDAL's homepage](http://www.gdal.org/).
 
@@ -8,7 +15,6 @@ The following are instructions for Ubuntu/Debian compatible distros, and similar
 	
 
 ```
-apt-get update -y
 apt-get install -y libspatialindex-dev unar gdal-bin
 pip3 install -r requirements.txt
 ```
