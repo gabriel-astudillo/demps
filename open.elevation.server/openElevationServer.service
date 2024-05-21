@@ -3,7 +3,7 @@ Description=Open-Elevation microservice for DEMPS
 After=network.target 
 
 [Service]
-ExecStart=/home/gabriel/open.elevation.server/openElevationServer.py
+ExecStart=/home/demps/open.elevation.server/openElevationServer.py
 ExecReload=/bin/kill -HUP $MAINPID
 KillMode=process
 #Restart=on-failure
