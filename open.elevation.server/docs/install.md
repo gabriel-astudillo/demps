@@ -15,7 +15,7 @@ The following are instructions for Ubuntu/Debian compatible distros, and similar
 
 ```
 apt-get install -y libspatialindex-dev unar gdal-bin
-pip3 install lazy bottle rtree gunicorn
+sudo -H pip3 install lazy bottle rtree gunicorn
 ```
 
 If all goes well, you now have the required dependencies to run Open-Elevation.
