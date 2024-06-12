@@ -64,6 +64,11 @@ Los resultados de la simulación se almacenan en el directorio ```sim/output/Ciu
 * ```animacion.config.json```: archivo de configuración utilizado por el archivo anterior.
   
 Para visualizar la animación, el archivo ```animacion.html``` debe ser accedido a través de un servidor web.
+
+# Publicaciones
+
+Astudillo Muñoz, G., Gil-Costa, V., & Marin, M. (2022). Efficient simulation of natural hazard evacuation for seacoast cities. International Journal of Disaster Risk Reduction, 81, 103300
+
                                    
 
 
