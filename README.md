@@ -67,7 +67,7 @@ Para visualizar la animación, el archivo ```animacion.html``` debe ser accedido
 
 # Publicaciones
 
-Astudillo Muñoz, G., Gil-Costa, V., & Marin, M. (2022). Efficient simulation of natural hazard evacuation for seacoast cities. International Journal of Disaster Risk Reduction, 81, 103300 [doi](https://doi.org/10.1016/j.ijdrr.2022.103300)
+Astudillo Muñoz, G., Gil-Costa, V., & Marin, M. (2022). Efficient simulation of natural hazard evacuation for seacoast cities. International Journal of Disaster Risk Reduction, 81, 103300 [**doi**](https://doi.org/10.1016/j.ijdrr.2022.103300)
 
                                    
 
