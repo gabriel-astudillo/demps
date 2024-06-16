@@ -20,7 +20,7 @@ El modelo de movilidad implementado se basa en el Modelo de Fuerza Social propue
 
 
 # Compilación e instalación
-1) Verificar que su sistema tiene las [dependencias](https://github.com/gabriel-astudillo/demps/blob/master/dependiencias) necesarias para la compilación.
+1) Verificar que su sistema tiene las [dependencias](https://github.com/gabriel-astudillo/demps/tree/master/dependencias) necesarias para la compilación.
 
 2) Clonar este repositorio 
 
