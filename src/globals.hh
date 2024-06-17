@@ -69,7 +69,6 @@ namespace global{
 			std::vector<std::string> velocity;     
 			std::vector<std::string> SIRpanic;     
 			std::vector<std::string> deceasedAgents;
-			//std::ostringstream       stepDelay; 
 			std::vector<std::string> stepDelay;
 			std::vector<double>      evacTime;
 		} logs;
