@@ -1,15 +1,7 @@
 #include <simulator.hh>
 
 
-uint32_t getMaxMemory()
-{
-	struct rusage r_usage;
-	getrusage(RUSAGE_SELF,&r_usage);
-	//https://www.gnu.org/software/libc/manual/html_node/Resource-Usage.html
-	uint32_t maxMemory = r_usage.ru_maxrss;//KB
 
-	return(maxMemory);
-}
 
 std::mutex Simulator::_execForMTX;
 bool Simulator::_simInExec;
@@ -385,7 +377,7 @@ Simulator::Simulator(const json &fsettings, const json& fzones, const std::strin
 
 	
 	*global::serverLog  << "Creando agentes..." << std::endl;
-	global::simOutputs.agentsMem = getMaxMemory();
+	global::simOutputs.agentsMem = this->getMaxMemory();
 
 	auto start = std::chrono::system_clock::now(); //Measure Time
 
@@ -465,7 +457,7 @@ Simulator::Simulator(const json &fsettings, const json& fzones, const std::strin
 	auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
 	global::simOutputs.timeExec.makeAgents += elapsed.count();
 
-	global::simOutputs.agentsMem = getMaxMemory() - global::simOutputs.agentsMem;
+	global::simOutputs.agentsMem = this->getMaxMemory() - global::simOutputs.agentsMem;
 
 	if(global::execOptions.showProgressBar) {
 		std::cout << std::flush;
@@ -588,12 +580,10 @@ void Simulator::run()
 	
 	*global::serverLog  << "Simulando..." << std::endl;
 	
-	uint32_t initialWaitTime = 60; //segundos
-	uint32_t deltaTime       = 60; //segundos
-	uint32_t thresTime       = 120; //segundos
+	// Lanza el thread del watchDog
 	std::string dirTodDelete = _heatMapPath;
 	_simInExec = true;
-	std::thread watchDogThread(watchDog, initialWaitTime, deltaTime, thresTime, dirTodDelete);
+	std::thread watchDogThread(watchDog, global::params.watchDog.initialWaitTime, global::params.watchDog.deltaTime, global::params.watchDog.thresTime, dirTodDelete);
 	
 	
 	ProgressBar pg;
@@ -639,33 +629,26 @@ void Simulator::run()
 			pg.update(global::currTimeSim);
 		}
 
-		auto start = std::chrono::high_resolution_clock::now(); //Measure Time
-		
-		
-		/*if(_env->getFloodParams().enable){
-			_env->enableFloodLevelUpdate();
-		}*/
-		
-		_env->updateQuads();
-		auto endQuads = std::chrono::high_resolution_clock::now();
-		_env->updateAgents();
-		auto endAgents = std::chrono::high_resolution_clock::now();
-		//_env->updateQuads();
+		utils::Timer<std::chrono::milliseconds> timerUpdates;
 
-		auto end = std::chrono::high_resolution_clock::now(); //Measure Time
-		auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-		auto elapsedQuads  = std::chrono::duration_cast<std::chrono::milliseconds>(endQuads - start);
-		auto elapsedAgents = std::chrono::duration_cast<std::chrono::milliseconds>(endAgents - endQuads);
-		global::simOutputs.timeExec.simulation += elapsed.count();
+		_env->updateQuads();
+		// intervalo de tiempo que se demora en actualizar los cuadrantes
+		auto deltaTimeQuads = timerUpdates.curr();
 		
-		if( _numExperiment >= 0){
-			global::simOutputs.logs.stepDelay << _numExperiment << ":";
-		}
-		global::simOutputs.logs.stepDelay << global::currTimeSim         << ":";
-		global::simOutputs.logs.stepDelay << elapsedQuads.count()  << ":";
-		global::simOutputs.logs.stepDelay << elapsedAgents.count() << ":";
-		global::simOutputs.logs.stepDelay << elapsed.count()       << ":";
-		global::simOutputs.logs.stepDelay << global::simOutputs.timeExec.simulation         << "\n";
+		_env->updateAgents();
+		// intervalo de tiempo que se demora en actulizar los agentes
+		auto deltaTimeAgents = timerUpdates.curr();
+
+		// intervalo que se demora un ciclo de simulación, sin considerar I/O
+		auto deltaTimeExecSim = deltaTimeQuads + deltaTimeAgents;
+
+		// tiempo a que tomada la simulación
+		global::simOutputs.timeExec.simulation += deltaTimeExecSim;
+		
+		std::stringstream  stepDelayLog;
+		stepDelayLog << global::currTimeSim   << ":" << deltaTimeQuads  << ":" << deltaTimeAgents << ":" << deltaTimeExecSim  << ":";
+		stepDelayLog << global::simOutputs.timeExec.simulation;
+		global::simOutputs.logs.stepDelay.push_back( stepDelayLog.str() );
 		
 		
 		if(global::execOptions.agentsOut && ((global::currTimeSim % _interval) == 0)) {
@@ -674,9 +657,7 @@ void Simulator::run()
 		}
 
 		if(_statsOut && ((global::currTimeSim % _statsInterval) == 0)) {
-			_env->updateStats();
-			this->saveStats();
-			
+			_env->updateLogsStats();
 		}
 		
 		if(_heatMapOut && ((global::currTimeSim % _heatMapInterval) == 0)){
@@ -1277,31 +1258,21 @@ void Simulator::saveImgFlood()
 }
 
 
-////////////////////////////////////////////////////////
-//	Simulator::saveStats()
-//
-void Simulator::saveStats()
-{
-	std::string logString;
-	
-	logString = std::to_string(global::currTimeSim*global::params.deltaT);
-	
-	for(auto& reference_zone : _env->getReferenceZones() ) {	
-		logString +=  ":" + reference_zone.getNameID() + ":" +  \
-		            std::to_string(reference_zone.getTotalAgents()) + ":" + \
-		            std::to_string(reference_zone.getAgentsDensity());		
-	}
-	global::simOutputs.logs.zonesDensity.push_back(logString);
-}
-
-////////////////////////////////////////////////////////
-//	Simulator::executionSummary()
-//
+/**
+ * @brief Al finalizar la simulación, guarda los costos temporales y espaciales de la ejecución
+ *
+ * Al finalizar la simulación, esta función un archivo con los costos relevantes de la ejecución:
+ * a) crear los agentes, b) calibración de ellos en el mapa, c) simulación, 
+ * d) memoria máxima utilizada por todo el simulador y e) memoria utilizada por los agentes.
+ * Archivos creados:
+ *      executionSummary[exp].txt
+ * @return (void)
+ */
 void Simulator::executionSummary()
 {
 	std::string pathFile01;
 	
-	uint32_t maxMemory = getMaxMemory();
+	uint32_t maxMemory = this->getMaxMemory();
 	
 	std::string nameSuffix = this->getNameSuffix();
 	
@@ -1333,9 +1304,22 @@ void Simulator::executionSummary()
 	ofs01.close();
 }
 
-////////////////////////////////////////////////////////
-//	Simulator::makeStats()
-//
+
+/**
+ * @brief Al finalizar la simulación, crea los archivos de salida
+ *
+ * Al finalizar la simulación, esta función crea los archivos con los datos de salida, que
+ * serán consumidos por programas de análisis.
+ * Archivos creados:
+ *      zonesDensity[exp].txt
+ *      usePhone[exp].txt
+ *      deceasedAgents[exp].txt
+ *      SIRpanic[exp].txt
+ *      velocity[exp].txt
+ *      summary[exp].txt
+ *      stepDelay[exp].txt
+ * @return (void)
+ */
 void Simulator::makeStats()
 {
 	std::string pathFile01;
@@ -1515,20 +1499,31 @@ void Simulator::makeStats()
 	//
 	pathFile01 = _statsPath + "/stepDelay" + nameSuffix ;
 	ofs01.open(pathFile01);
+
+	std::stringstream buff;
 	
 	if( _numExperiment >= 0){
-		ofs01 << "numExperiment:" ;
+		buff << "numExperiment:" ;
 	}
 	
-	ofs01 << "time:DeltaTimeQuads:DeltaTimeAgents:DeltaTimeExecSim:timeExecSim\n";		
-	ofs01 << global::simOutputs.logs.stepDelay.str();
-	
+	buff << "time:DeltaTimeQuads:DeltaTimeAgents:DeltaTimeExecSim:timeExecSim\n";		
+
+	for(auto& item : global::simOutputs.logs.stepDelay) {
+
+		if( _numExperiment >= 0){
+			buff << _numExperiment << ":";
+		}
+		
+		buff << item << "\n";
+	}
+	ofs01 << buff.str();
 	ofs01.close();
 }
 
-////////////////////////////////////////////////////////
-//	Simulator::samplingSim()
-//
+/**
+ * @brief Realiza el muestreo de la simulación en curso
+ * @return (void)
+ */
 void Simulator::samplingSim()
 {
 
@@ -1656,9 +1651,16 @@ void Simulator::samplingSim()
 
 }
 
-////////////////////////////////////////////////////////
-//	Simulator::getNameSuffix()
-//
+
+/**
+ * @brief Determina el sufijo de una archivo
+ *
+ *	Si la ejecución no pertenece a un conjunto de experimentos, retorna
+ *  sólo la extensión ".txt".
+ *  En caso contrario, retorna "%.5d.txt"
+ *
+ * @return _numExperiment == -1 ? ".txt" : "%.5d.txt" _numExperiment
+ */
 std::string Simulator::getNameSuffix()
 {
 	std::string nameSuffix = "";
@@ -1675,10 +1677,38 @@ std::string Simulator::getNameSuffix()
 	
 }
 
-////////////////////////////////////////////////////////
-//	método que vigila el avance de la simulación cada 'deltaTime'.
-//  Si no avanza por 'thresTime' segundos, elimina la simulación actual.
-//
+
+/**
+ * @brief Memoria máxima utilizada
+ *
+ * Retorna la cantidad máxima de memoria utilizada por el 
+ * simulador
+ * @return Memoria máxima utilizada (KB)
+ */
+uint32_t Simulator::getMaxMemory()
+{
+	struct rusage r_usage;
+	getrusage(RUSAGE_SELF,&r_usage);
+	//https://www.gnu.org/software/libc/manual/html_node/Resource-Usage.html
+	uint32_t maxMemory = r_usage.ru_maxrss;//KB
+
+	return(maxMemory);
+}
+
+
+/**
+ * @brief Monitoreo de avance de la simulación
+ * Vigila el avance de la simulación cada 'deltaTime', desde el intante 'initialWaitTime'. Si no avanza por 'thresTime' segundos, elimina la simulación actual. 
+ * Estos tiempos se definen en la estructura 'WatchDog_s' en en archivo 'global.cc'
+ *      global::params.watchDog.initialWaitTime
+ *      global::params.watchDog.deltaTime
+ *      global::params.watchDog.thresTime
+ * @param initialWaitTime Instante de tiempo donde comienza el monitoreo
+ * @param deltaTime Intervalo de tiempo que el thread despierta.
+ * @param thresTime Cantidad de segundos que se considera que la simulación ya no avanza y se debe abortar.
+ * @param dirTodDelete Directorio que se debe eliminar cuando la simulación aborte.
+ * @return (void)
+ */
 void Simulator::watchDog(uint32_t initialWaitTime,  uint32_t deltaTime,  uint32_t thresTime, std::string dirTodDelete)
 {
 	std::this_thread::sleep_for(std::chrono::seconds(initialWaitTime));
@@ -1725,7 +1755,6 @@ void Simulator::watchDog(uint32_t initialWaitTime,  uint32_t deltaTime,  uint32_
 		std::this_thread::sleep_for(std::chrono::seconds(deltaTime));
     }
 }
-
 
 
 

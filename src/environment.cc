@@ -1535,12 +1535,19 @@ void Environment::updateQuads()
 /**
 * @brief Actualiza las estadisticas de la simulacion
 *
-*Este método se llama después de updateQuads().
+* Actualiza las variables que se utilizan para entregar los datos
+* de salida del simulador. Este método se llama después de updateQuads().
+* Variables que se actualizan:
+*     global::simOutputs.logs.usePhone
+*     global::simOutputs.logs.velocity
+*     global::simOutputs.logs.deceasedAgents
+*     global::simOutputs.logs.SIRpanic
+*     global::simOutputs.logs.zonesDensity
 *
 * @param void
 * @return void
 */
-void Environment::updateStats()
+void Environment::updateLogsStats()
 {
 	uint32_t totalAgents = this->getTotalAgents();
 	double SIR[3] = {0.0, 0.0, 0.0};
@@ -1572,8 +1579,6 @@ void Environment::updateStats()
 		}
 	}
 	
-	
-	
 	std::ostringstream statsDeceasedAgents;
 	statsDeceasedAgents << global::currTimeSim <<  ":" ;
 	statsDeceasedAgents << inSafeZonesAgents <<  ":" ;
@@ -1596,6 +1601,18 @@ void Environment::updateStats()
 	statsSIR << SIR[Agent::panicState.infected]/totalAgents <<  ":" ;
 	statsSIR << SIR[Agent::panicState.recovered]/totalAgents;
 	global::simOutputs.logs.SIRpanic.push_back(statsSIR.str());
+
+
+	std::string logString;
+	
+	logString = std::to_string(global::currTimeSim*global::params.deltaT);
+	
+	for(auto& reference_zone : this->getReferenceZones() ) {	
+		logString +=  ":" + reference_zone.getNameID() + ":" +  \
+		            std::to_string(reference_zone.getTotalAgents()) + ":" + \
+		            std::to_string(reference_zone.getAgentsDensity());		
+	}
+	global::simOutputs.logs.zonesDensity.push_back(logString);
 	
 }
 

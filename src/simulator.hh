@@ -71,7 +71,7 @@ private:
 	void        saveStateFlood();
 	void        saveStateDebris();
 	void        saveImgFlood();
-	void saveStats();
+	//void saveStats();
 	void executionSummary();
 	void makeStats();
 	
@@ -82,8 +82,6 @@ private:
 
 public:
 	Simulator(void);
-	//Simulator(const json&,const json&,const json&,const json&,const json&, const std::string&);
-	//Simulator(const json&, const json&, const json&, const std::string&);
 	Simulator(const json&, const json&, const std::string&);
 
 	void calibrate(void);
@@ -95,6 +93,7 @@ private:
 	static std::mutex _execForMTX;
 	static bool _simInExec;// = true;
 	
+	uint32_t getMaxMemory();
 	static void watchDog(uint32_t initialWaitTime,  uint32_t deltaTime,  uint32_t thresTime, std::string dirTodDelete);
 
 };

@@ -47,7 +47,7 @@ namespace global{
 	 *		global::simOutputs.timeExec.simulation
 	 *
 	 *		global::simOutputs.logs.zonesDensity
-	 *		global::simOutputs.logs..usePhone
+	 *		global::simOutputs.logs.usePhone
 	 *		global::simOutputs.logs.velocity
 	 *		global::simOutputs.logs.SIRpanic
 	 *		global::simOutputs.logs.deceasedAgents
@@ -69,7 +69,8 @@ namespace global{
 			std::vector<std::string> velocity;     
 			std::vector<std::string> SIRpanic;     
 			std::vector<std::string> deceasedAgents;
-			std::ostringstream       stepDelay; 
+			//std::ostringstream       stepDelay; 
+			std::vector<std::string> stepDelay;
 			std::vector<double>      evacTime;
 		} logs;
 	};
@@ -102,6 +103,10 @@ namespace global{
 	 *		global::params.modelsEnable.elevation
 	 *		global::params.modelsEnable.debris
 	 *		global::params.modelsEnable.flood
+	 *
+	 *		global::params.watchDog.initialWaitTime
+	 *		global::params.watchDog.deltaTime
+	 *		global::params.watchDog.thresTime
 	 */
 	struct Params_s {
 		float deltaT;              
@@ -117,6 +122,12 @@ namespace global{
 			bool debris;    
 			bool flood;     
 		} modelsEnable;
+
+		struct WathDog_s {
+			uint32_t initialWaitTime = 60; //segundos
+			uint32_t deltaTime       = 60; //segundos
+			uint32_t thresTime       = 120; //segundos
+		} watchDog;
 	};
     extern Params_s params;
 }

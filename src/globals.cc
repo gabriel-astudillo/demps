@@ -2,7 +2,7 @@
 #include <LogHandler.hpp>
 
 namespace global {
-    StreamLog* serverLog;
+	StreamLog* serverLog;
 
     uint32_t    currTimeSim;
 

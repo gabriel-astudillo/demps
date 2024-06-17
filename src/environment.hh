@@ -194,7 +194,7 @@ public:
 	void updateAgents();
 	void enableFloodLevelUpdate();
 	void updateQuads();
-	void updateStats();
+	void updateLogsStats();
 
 	double distance(Agent* a, Agent* b);
 	//bool isClose(Agent* a, Agent* b, const double& distanceMax);
