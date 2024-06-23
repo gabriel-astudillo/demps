@@ -114,6 +114,7 @@ public:
 	bool haveElevation();
 	void haveElevation(bool h);
 	int32_t getElevation();
+	void    setElevation(int32_t elevation);
 	
 	bool isInCity();
 	void isInCity(bool c);

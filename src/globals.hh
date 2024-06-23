@@ -96,7 +96,8 @@ namespace global{
 	 *		global::params.randomWalkRadius
 	 *		global::params.attractionRadius
 	 *
-	 *		global::params.elevationPatchDataValid
+	 *		global::params.offsetMap
+	 *		//global::params.elevationPatchDataValid
 	 *
 	 *		global::params.modelsEnable.panic
 	 *		global::params.modelsEnable.elevation
@@ -106,6 +107,16 @@ namespace global{
 	 *		global::params.watchDog.initialWaitTime
 	 *		global::params.watchDog.deltaTime
 	 *		global::params.watchDog.thresTime
+	 *
+	 *		global::params.snitchServer.URL
+	 *		global::params.snitchServer.seekRadius
+	 *		global::params.snitchServer.xsteps
+	 *		global::params.snitchServer.cutOff
+	 *		global::params.snitchServer.seekRadiusHMap
+	 *		global::params.snitchServer.cutoffHMap
+	 *
+	 *		global::params.elevationServer.URL
+	 *		global::params.elevationServer.coorTest
 	 */
 	struct Params_s {
 		float deltaT;              
@@ -113,7 +124,8 @@ namespace global{
 		float randomWalkwayRadius; 
 		float attractionRadius;    
 
-		bool elevationPatchDataValid; 
+		const uint32_t offsetMap = 500; // meters
+		//bool elevationPatchDataValid; 
 
 		struct ModelsEnable_s {
 			bool panic;     
@@ -123,10 +135,24 @@ namespace global{
 		} modelsEnable;
 
 		struct WathDog_s {
-			uint32_t initialWaitTime = 60; //segundos
-			uint32_t deltaTime       = 60; //segundos
-			uint32_t thresTime       = 120; //segundos
+			const uint32_t initialWaitTime = 60;  //segundos
+			const uint32_t deltaTime       = 60;  //segundos
+			const uint32_t thresTime       = 120; //segundos
 		} watchDog;
+
+		struct SnitchServer_s {
+			const std::string URL         = "http://127.0.0.1:6502/v1/snitch/api";
+			const double   seekRadius     = 0.5; 
+			const uint32_t xsteps         = 10;
+			const uint32_t cutOff         = 10;
+			const double   seekRadiusHMap = 5;
+			const uint32_t cutoffHMap     = 10;
+		} snitchServer;
+
+		struct ElevationServer_s {
+			const std::string URL      = "http://127.0.0.1:64000";
+			const std::string coorTest = "-33.144995,-71.568655";
+		} elevationServer;
 	};
     extern Params_s params;
 }

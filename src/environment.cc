@@ -370,15 +370,16 @@ Environment::grid_t Environment::getGrid()
 	return(_grid);
 }
 
-void Environment::setElevationData(std::map<int32_t, std::tuple<double, double, int32_t> >& elevationData)
+
+/*void Environment::setElevationData(std::map<int32_t, std::tuple<double, double, int32_t> >& elevationData)
 {
 	_elevationData = elevationData;
-}
+}*/
 
-int32_t Environment::getElevationDataPatchAgent(uint32_t idPatchAgent)
+/*int32_t Environment::getElevationDataPatchAgent(uint32_t idPatchAgent)
 {
 	return( std::get<2>(_elevationData[idPatchAgent]));
-}
+}*/
 
 void Environment::showGrid()
 {
@@ -422,6 +423,16 @@ Environment::floodParams_t Environment::getFloodParams()
 }
 
 
+/**
+ * @brief Asigna patch agents a las zonas de inundación
+ *
+ * Por cada patch que existe en la zona demarcada para la simulación,
+ * se revisa si pertenece a una zona de inundación. Si el patch tiene
+ * asociado varias zonas de inundación, entonces se asigna a la que 
+ * tenga mayor nivel de inundación según la carta de inundación.
+ *
+ * @return (void)
+ */
 void Environment::assignPatchAgentsToFloodZones()
 {
 	Environment::grid_t gridData = this->getGrid();
@@ -436,7 +447,7 @@ void Environment::assignPatchAgentsToFloodZones()
 			for(auto& z : this->getFloodZones()){
 				if( z.pointIsInside(fooPoint,0) ){
 					if(pAgent->getZone() != nullptr){
-						uint32_t orderZoneOld = pAgent->getZone()->getOrder();
+						/*uint32_t orderZoneOld = pAgent->getZone()->getOrder();
 						uint32_t orderZoneCur = z.getOrder();
 						
 						if(orderZoneCur > orderZoneOld){
@@ -449,7 +460,27 @@ void Environment::assignPatchAgentsToFloodZones()
 							pAgent->setZone(&z);
 							pAgent->isFloodable(true);
 							pAgent->setMaxLevelFlood(z.getMaxLevelFlood());						
+						}*/
+
+						double maxLevelFloodPatch = pAgent->getMaxLevelFlood();
+						maxLevelFloodPatch == -1 ? maxLevelFloodPatch = 1000 : maxLevelFloodPatch = maxLevelFloodPatch;
+
+						double maxLevelFloodZone = z.getMaxLevelFlood();
+						maxLevelFloodZone == -1 ? maxLevelFloodZone = 1000 : maxLevelFloodZone = maxLevelFloodZone;
+
+						if( maxLevelFloodZone >  maxLevelFloodPatch){
+							// Sacar el id del patch Agent de su zona inundable
+							pAgent->getZone()->deletePatchAgent(idPatch);
+
+							// Agregar id del patch Agent a la zona
+							z.addPatchAgent(idPatch);
+
+							pAgent->setZone(&z);
+							pAgent->isFloodable(true);
+							pAgent->setMaxLevelFlood( z.getMaxLevelFlood() );		
+
 						}
+
 					}
 					else{
 						// Agregar id del patch Agent a la zona
@@ -649,7 +680,6 @@ void Environment::addPatchAgent(PatchAgent* newAgent)
 
 void Environment::addPatchAgentInCity(PatchAgent* newAgent)
 {
-	newAgent->isInCity(true);
 	this->_pAgentsInCity.push_back(newAgent);
 }
 
@@ -1240,12 +1270,12 @@ void Environment::determinatePAgentsInStreets()
 	
 }
 
-void Environment::determinatePAgentsWithDebris(double debrisRatio)
+void Environment::determinatePAgentsWithDebris(double debrisRatio, int& pAgentsWithDebris)
 {
 	std::random_device device;
 	std::mt19937 rng(device());
 	
-	int pAgentsBLocked = 0; 
+	pAgentsWithDebris = 0; 
 	
 	ProgressBar pg;
 	pg.start(this->getPatchAgentsInStreets().size()-1);
@@ -1261,7 +1291,7 @@ void Environment::determinatePAgentsWithDebris(double debrisRatio)
 
 		if( debrisTrigger < debrisRatio){
 			pAgent->isDebrisFree(false); 
-			pAgentsBLocked++;
+			pAgentsWithDebris++;
 			
 			
 			std::uniform_real_distribution<double> unif(0.0, 1.0);
@@ -1269,12 +1299,6 @@ void Environment::determinatePAgentsWithDebris(double debrisRatio)
 			
 		}
 	}
-	
-	std::cout << "\nPatch Agents in streets : "<<  this->getPatchAgentsInStreets().size();
-	std::cout << "\nPatch Agents in streets with debris : "<<  pAgentsBLocked << " ";
-	std::cout << "("<<  (double)pAgentsBLocked /  this->getPatchAgentsInStreets().size() * 100 << "%)" << std::endl;
-	
-	
 }
 
 

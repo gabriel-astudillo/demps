@@ -10,9 +10,10 @@ extern int optind, opterr, optopt;
 class CheckArgs {
 private:
 	// 1) Modificar esta sección
-	const std::string optString = "c:d:D:e:f:p:P:b:B:v:V:n:N:t:T:o:s:hE";
+	//const std::string optString = "c:d:D:e:f:p:P:b:B:v:V:n:N:t:T:o:s:hE";
+	const std::string optString = "c:d:D:e:f:p:P:b:B:v:n:N:t:T:o:s:hE";
 	
-	const struct option optStringLong[20] = {
+	const struct option optStringLong[19] = {
 		{"config"      , required_argument, nullptr, 'c'},
 		{"densitymodel", required_argument, nullptr, 'd'},
 		{"description" , required_argument, nullptr, 'D'},
@@ -23,7 +24,7 @@ private:
 		{"debrismodel" , required_argument, nullptr, 'b'},
 		{"debrisratio" , required_argument, nullptr, 'B'},
 		{"elevationmodel", required_argument, nullptr, 'v'},
-		{"elevationfile", required_argument, nullptr, 'V'},
+		//{"elevationfile", required_argument, nullptr, 'V'},
 		{"residents"   , required_argument, nullptr, 'n'},
 		{"visitors"    , required_argument, nullptr, 'N'},
 		{"threads"     , required_argument, nullptr, 't'},
@@ -55,7 +56,7 @@ private:
 									 "\t-b, --debrismodel       enable debris model (1:true, 0:false, -1:config).\n"
 									 "\t-B, --debrisratio       ratio of patchs with debris (1..100)%.\n"
 									 "\t-v, --elevationmodel    enable elevation model (1:true, 0:false, -1:config).\n"
-									 "\t-V, --elevationfile     file with data elevation. Default: 'elevationPatchData.txt'.\n"
+									 //"\t-V, --elevationfile     file with data elevation. Default: 'elevationPatchData.txt'.\n"
 									 "\t-E, --patchcoords       save in file 'elevationPatch-<city>.txt the coords (lat,lon) of each patch and end.\n"
 									 "\t-e, --experiment        experiment number.\n"							 
 	                                 "\t-h, --help              Show this help and end.\n";
@@ -70,7 +71,7 @@ private:
 		int32_t debrisModel;
 		int32_t debrisRatio;
 		int32_t elevationModel;
-		std::string elevationFile;
+		//std::string elevationFile;
 		std::string description;
 		uint32_t agentsResidentsNumber;
 		uint32_t agentsVisitorsNumber;
@@ -114,7 +115,7 @@ CheckArgs::CheckArgs(int _argc, char **_argv)
 	parametros.debrisModel  = -1;
 	parametros.debrisRatio  = 1;
 	parametros.elevationModel = -1;
-	parametros.elevationFile = "elevationPatchData.txt";
+	//parametros.elevationFile = "elevationPatchData.txt";
 	parametros.description  = "";
 	parametros.agentsResidentsNumber = 0;
 	parametros.agentsVisitorsNumber  = 0;
@@ -171,9 +172,9 @@ void CheckArgs::loadArgs()
 		case 'v':
 			parametros.elevationModel = std::atoi(optarg);
 			break;
-		case 'V':
-			parametros.elevationFile = optarg;
-			break;
+		//case 'V':
+		//	parametros.elevationFile = optarg;
+		//	break;
 		case 'n':
 			parametros.agentsResidentsNumber = std::atoi(optarg);
 			break;

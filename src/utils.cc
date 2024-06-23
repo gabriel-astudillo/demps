@@ -2,7 +2,7 @@
 
 namespace utils{
 	
-	void elevationDataToVector(std::string fileName, std::map<int32_t, std::tuple<double, double,int32_t> >& elevData)
+	/*void elevationDataToVector(std::string fileName, std::map<int32_t, std::tuple<double, double,int32_t> >& elevData)
 	{
 		elevData.clear();
 		std::string separador = ":";
@@ -41,7 +41,7 @@ namespace utils{
 	    }
 	    elevFile.close();
 	
-	}
+	}*/
 	
 	utils::uuidSimulation_t get_uuid()
     {

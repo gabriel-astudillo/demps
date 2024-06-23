@@ -300,7 +300,7 @@ public:
 	void     showPosition();
 	void     showPanic();
 	//uint32_t determineQuad();
-	void     setQuad();
+	//void     setQuad();
 	void     setQuad(uint32_t idQuad);
 	uint32_t getQuad() const;
 	void     updateQuad();

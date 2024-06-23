@@ -1,5 +1,7 @@
 #pragma once
 
+#include <iostream>
+#include <cassert>
 #include <json.hpp>
 using json=nlohmann::json;
 

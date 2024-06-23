@@ -350,23 +350,12 @@ void Agent::showPanic()
 	std::cout << "\x1B[0m" << std::endl;
 }
 
-/*
-uint32_t Agent::determineQuad()
-{
-	uint32_t idQuad;
-	Environment::grid_t gridData = _myEnv->getGrid();
 
-	idQuad = (int)(this->_position[0] - gridData._xMin)/gridData._quadSize +
-	         (int)((this->_position[1] - gridData._yMin) / gridData._quadSize) * gridData._quadX;
-
-	return(idQuad);
-}
-*/
-void Agent::setQuad()
+/*void Agent::setQuad()
 {
 	//_quad = this->determineQuad();
 	_quad = _myEnv->getQuadId(this->position());
-}
+}*/
 
 void Agent::setQuad(uint32_t idQuad)
 {
@@ -383,14 +372,10 @@ void Agent::updateQuad()
 	uint32_t currQuad, newQuad;
 
 	currQuad = this->getQuad();
-	//newQuad = this->determineQuad();
 	newQuad = _myEnv->getQuadId(this->position());
 	
 
 	if(currQuad != newQuad) { //Cambio de cuadrante
-		//int32_t currElevation = this->getElevation();
-		//int32_t newElevation  = _myEnv->getPatchAgent(newQuad)->getElevation();
-		
 		_myEnv->getPatchAgent(currQuad)->delAgent( this->id() );
 
 		_quadOld = this->getQuad();
@@ -398,29 +383,10 @@ void Agent::updateQuad()
 
 		_myEnv->getPatchAgent(newQuad)->addAgent( this->id() );
 		
-		// Actualizar gradiente.
-		this->updateGradient(currQuad, newQuad);
-		/*
-		if(newElevation >= 0){
-			double m;
-			
-			m  = (double)(newElevation - currElevation);
-			m /= (double)_myEnv->getGrid()._quadSize/2.0;
-			this->setGradient(m);
-			//if(this->id() == 10000){
-			//	std::cout << global::currTimeSim << "\tm:" << m;
-			//	std::cout << ", currQuad: " << currQuad;
-			//	std::cout << ", newQuad: " << newQuad;
-			//	std::cout << ", currElevation:" << currElevation;
-			//	std::cout << ", newElevation:" << newElevation;
-			//	std::cout << std::endl; 
-			//}
-			
-			this->setElevation(newElevation);
+		if(global::params.modelsEnable.elevation){
+			// Actualizar gradiente.
+			this->updateGradient(currQuad, newQuad);
 		}
-		// Si es menor que 0, no se tiene info sobre la elevación
-		// del patch, por lo que se mantiene la elevación y el gradiente del agente.
-		*/
 	}
 }
 

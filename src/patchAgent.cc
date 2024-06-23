@@ -52,29 +52,12 @@ PatchAgent::PatchAgent(const uint32_t &id)
 	//std::cout << _id << std::fixed << std::setprecision(8) <<"\t: (" << _myQuad.xc << ","<< _myQuad.yc << ") -> (" << _myQuad.lat << "," <<  _myQuad.lon << ")" << std::endl;
 	
 	// Si el patch está dentro del area de movimiento de los agentes
-	// es candidato a tener elevacion.
+	// se considera dentro de la ciudad
 	if(_myQuad.xc >= gridData._xSimMin && _myQuad.xc <= gridData._xSimMax && _myQuad.yc >= gridData._ySimMin && _myQuad.yc <= gridData._ySimMax ){
-		//this->haveElevation(true);
+		_isInCity = true;
 		_myEnv->addPatchAgentInCity(this);
 	}
-	
-	/*
-	if(global::params.elevationPatchDataValid && this->haveElevation()){
-		// Cambiar el atributo _elevation con los datos de elevación del archivo externo
-		_elevation = _myEnv->getElevationDataPatchAgent(id);
-		
-		// si la elevacion > 0 , se asume que el patch está dentro de la ciudad
-		if(_elevation > 0) {
-			_myEnv->addPatchAgentInCity(this);
-			_isInCity = true;
-			std::uniform_real_distribution<double> unif(0.0, 1.0);
-			_probDebris = unif(rng);
-		}
-	}
-	*/
-	
-	
-	
+
 	
 }
 
@@ -243,6 +226,29 @@ PatchAgent::idPatchNeighbors PatchAgent::findPatchNeighbors()
 	
 }
 
+/**
+ * @brief Retorna datos geográficos del patch agent
+ * @return 
+ 	struct quad_s{
+		// Coordenadas (x,y) del vértice inferior izquierdo.
+		double x0, y0;
+		
+		// Coordenadas (x,y) del vértice superior derecho.
+		double x1, y1;
+		
+		// Coordenadas (x,y) del centro.
+		double xc, yc;
+		
+		// Coordenadas (lat,lon) del centro.
+		double lat, lon;
+		
+		// ancho y alto.
+		double width, height;
+		
+		// identificadores numericos del cuadrante
+		uint32_t idX, idY;
+	}
+ */
 PatchAgent::quad_t PatchAgent::getQuadInfo()
 {
 	return(_myQuad);
@@ -282,7 +288,25 @@ void PatchAgent::haveElevation(bool h)
 
 int32_t PatchAgent::getElevation()
 {
+	if(_elevation == -1){
+		// Se debe determinar la elevación del partch a través del servidor de elevación.
+		// Esto se hace sólo una vez.
+		// La latitud y longitud del patch son las coordenadas del punto central de él.
+		std::string req;
+		req = global::params.elevationServer.URL + "/api/v1/lookup?locations=";
+		req += std::to_string(_myQuad.lat) + "," + std::to_string(_myQuad.lon);
+
+		json geoInfoTest;
+		utils::restClient_get(req, geoInfoTest);
+		_elevation = geoInfoTest["results"][0]["elevation"].get<int>();
+	}
+
 	return(_elevation);
+}
+
+void PatchAgent::setElevation(int32_t elevation)
+{
+	_elevation = elevation;
 }
 
 bool PatchAgent::isInCity()

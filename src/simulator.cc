@@ -33,7 +33,7 @@ Simulator::Simulator(const json &fsettings, const json& fzones, const std::strin
 	global::execOptions.showProgressBar     = _fsettings["output"]["progressBar"].get<bool>();
 	global::params.modelsEnable.panic    = _fsettings["panicModelEnable"].get<bool>(); 
 	global::params.modelsEnable.elevation = _fsettings["elevationModelEnable"].get<bool>();
-	global::params.elevationPatchDataValid = _fsettings["elevationPatchDataValid"].get<bool>();
+	//global::params.elevationPatchDataValid = _fsettings["elevationPatchDataValid"].get<bool>();
 	global::params.modelsEnable.debris   = _fsettings["debrisModelEnable"].get<bool>();
 	global::params.modelsEnable.flood    = _fsettings["floodModelEnable"].get<bool>();
 	global::params.closeEnough         = _fsettings["closeEnough"].get<float>();
@@ -101,7 +101,6 @@ Simulator::Simulator(const json &fsettings, const json& fzones, const std::strin
 		*global::serverLog  << "Path to heatMap directory " << _heatMapPath << " no exist. Creating." << std::endl;
 		std::filesystem::create_directories(_heatMapPath);
 	}
-	//*global::serverLog << "\x1B[0m" << std::endl;
 	
 	_debrisFilePath = global::execOptions.baseDir + outputBaseDir + _fsettings["debrisParams"]["stateDir"].get<std::string>();
 	if( !std::filesystem::exists( _debrisFilePath )){
@@ -131,14 +130,12 @@ Simulator::Simulator(const json &fsettings, const json& fzones, const std::strin
 	Agent::_myEnv      = _env;
 	PatchAgent::_myEnv = _env; 
 	Zone::_myEnv       = _env;
-	//ZoneBasic::_myEnv = _env;
 	Router::_myEnv     = _env;
 
 	_env->setProjector(fzones);
 	_env->setRouter(map_osrm);
 	
-	uint32_t offsetMap = 500; //meters
-	_env->setGrid(fzones, offsetMap, quadSize);
+	_env->setGrid(fzones, global::params.offsetMap, quadSize);
 	_env->showGrid();
 	
 	// Carga parámetros del modelo de densidad
@@ -146,6 +143,11 @@ Simulator::Simulator(const json &fsettings, const json& fzones, const std::strin
 	densityParams["enable"] = _fsettings["densityModelEnable"];
 	_env->setDensityParams( densityParams );
 	
+	///////////////////////////////////////////////////////////////////////////
+	//
+	// Modelo de inundación
+	//
+
 	// Los directorios de imagenes y estado de la inundación se convierten a rutas absolutas si son relativas
 	json floodParams;
 	floodParams = _fsettings["floodParams"];
@@ -167,7 +169,6 @@ Simulator::Simulator(const json &fsettings, const json& fzones, const std::strin
 	
 	floodParams["enable"] = _fsettings["floodModelEnable"];
 	
-	
 	_env->setFloodParams( floodParams );
 	Environment::floodParams_t simFloodParams = _env->getFloodParams();
 	*global::serverLog << "floodParams:\n" ; 
@@ -179,18 +180,6 @@ Simulator::Simulator(const json &fsettings, const json& fzones, const std::strin
 	*global::serverLog << "\tcriticalLevel   (m)  : " << simFloodParams.criticalLevel << "\n"; 
 	*global::serverLog << "\tminSpeedFactor  [0,1]: " << simFloodParams.minSpeedFactor << std::endl;
 	
-	if(global::params.modelsEnable.elevation && global::params.elevationPatchDataValid){
-		*global::serverLog  << "Cargando datos de elevación de terreno..." << std::endl; 	
-		std::string elevationFile = fsettings["input"]["elevationPatchData"].get<std::string>() ; // la ruta completa se completó en demps.cc
-		
-		std::map<int32_t, std::tuple<double, double,int32_t> > elevationData;
-		utils::elevationDataToVector(elevationFile, elevationData);
-		
-		_env->setElevationData(elevationData);
-	
-	}
-	
-
 	
 	///////////////////////////////////////////////////////////////////////////
 	//
@@ -244,6 +233,44 @@ Simulator::Simulator(const json &fsettings, const json& fzones, const std::strin
 		
 		exit(0);
 	}
+
+	///////////////////////////////////////////////////////////////////////////
+	//
+	// Modelo de elevación de terreno
+	//
+	/*if(global::params.modelsEnable.elevation){
+		ProgressBar pgElevation;
+		*global::serverLog  << "Determinando elevación del terreno..." << std::endl; 	
+		
+		pgElevation.start(_env->getPatchAgentsInCity().size());
+		int iteracion = 0;
+		for(auto pAgent : _env->getPatchAgentsInCity()){
+			if(global::execOptions.showProgressBar) {
+				pgElevation.update(iteracion++);
+			}
+			int32_t            elevation;
+			std::string        req;
+			PatchAgent::quad_t qInfo;
+
+			qInfo = pAgent->getQuadInfo();
+
+			// Utilizar el servidor de elevación para determinar la elevación
+			// del patch agent. La latitud y longitud del patch son las
+			// coordenadas del punto central de él.
+			req = global::params.elevationServer.URL + "/api/v1/lookup?locations=";
+			req += std::to_string(qInfo.lat) + "," + std::to_string(qInfo.lon);
+
+			json geoInfoTest;
+			utils::restClient_get(req, geoInfoTest);
+			elevation = geoInfoTest["results"][0]["elevation"].get<int>();
+
+			pAgent->setElevation(elevation);
+		}
+		if(global::execOptions.showProgressBar) {
+			std::cout << std::flush;
+			std::cout << std::endl;
+		}
+	}*/
 	
 	////////////////////////////////////////////////////////////////
 	// Procesar el archivos de zones y cargar:
@@ -253,7 +280,6 @@ Simulator::Simulator(const json &fsettings, const json& fzones, const std::strin
 	//          c.1) zoneType == "lineMonitor"
 	//          c.2) zoneType == "pointMonitor"
 	//
-	//*global::serverLog  << "\x1B[0;90m";
 	*global::serverLog  << "Revisando mapa:\n";
 	for(const auto& feature : fzones["features"]) {
 		std::string zoneType = feature["properties"]["zoneType"].get<std::string>();
@@ -501,13 +527,16 @@ void Simulator::calibrate(void)
 	// Determinar proporcion de los patchs agentes que están en las
 	// calles que deben tener escombros;
 	//
-	
 	if(global::params.modelsEnable.debris){
+		int pAgentsWithDebris;
 		double debrisRatio = _fsettings["debrisParams"]["debrisRatio"].get<double>()/100.0;
-		_env->determinatePAgentsWithDebris(debrisRatio);
+		*global::serverLog  << "Determinando patch agents que contienen escombros...\n";
+		_env->determinatePAgentsWithDebris(debrisRatio, pAgentsWithDebris);
+
+		*global::serverLog  << "Patch Agents in streets : "<<  _env->getPatchAgentsInStreets().size() << "\n";
+		*global::serverLog  << "Patch Agents in streets with debris : "<<  pAgentsWithDebris << " ";
+		*global::serverLog  << "("<<  (double)pAgentsWithDebris /  _env->getPatchAgentsInStreets().size() * 100 << "%)" << std::endl;
 	}
-	
-	
 	
 	if(global::execOptions.showProgressBar) {
 		std::cout << std::endl;
@@ -517,7 +546,6 @@ void Simulator::calibrate(void)
 	//
 	*global::serverLog  << "Ajustando reglas de los agentes... " <<  std::endl;
 	_env->adjustAgentsRules();
-
 
 	auto end = std::chrono::system_clock::now(); //Measure Time
 	auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
@@ -558,14 +586,14 @@ void Simulator::calibrate(void)
 //
 void Simulator::run()
 {
-	std::string restURL = "http://127.0.0.1:6502/v1/snitch/api";
+	std::string snitchServerURL = global::params.snitchServer.URL;
 	json        similarSims;
 	
-	utils::radius_t seekRadius = 0.5; 
-	uint32_t        xsteps     = 10;
-	uint32_t        cutOff     = 10;
-	utils::radius_t seekRadiusHMap = 5;
-	uint32_t        cutoffHMap     = 10;
+	utils::radius_t seekRadius     = global::params.snitchServer.seekRadius; 
+	uint32_t        xsteps         = global::params.snitchServer.xsteps;
+	uint32_t        cutOff         = global::params.snitchServer.cutOff;
+	utils::radius_t seekRadiusHMap = global::params.snitchServer.seekRadiusHMap;
+	uint32_t        cutoffHMap     = global::params.snitchServer.cutoffHMap;
 	
 	_samplingLevel = _fsettings["samplingLevel"];
 	
@@ -630,13 +658,14 @@ void Simulator::run()
 		}
 
 		utils::Timer<std::chrono::milliseconds> timerUpdates;
+		timerUpdates.start();
 
 		_env->updateQuads();
 		// intervalo de tiempo que se demora en actualizar los cuadrantes
 		auto deltaTimeQuads = timerUpdates.curr();
 		
 		_env->updateAgents();
-		// intervalo de tiempo que se demora en actulizar los agentes
+		// intervalo de tiempo que se demora en actualizar los agentes
 		auto deltaTimeAgents = timerUpdates.curr();
 
 		// intervalo que se demora un ciclo de simulación, sin considerar I/O
@@ -735,9 +764,10 @@ void Simulator::run()
 				//Timer<std::chrono::milliseconds> timer1;
 				//timer1.start();				
 				try{
-					utils::restClient_get(restURL + "/search?" + options, similarSims);
+					utils::restClient_get(snitchServerURL + "/search?" + options, similarSims);
 				} catch(std::exception& e){
-					std::cerr << e.what() <<std::endl;
+					//std::cerr << e.what() <<std::endl;
+					*global::serverLog   << "Could not connect to snitch server " << snitchServerURL << std::endl;
 				}
 				timerSimAprox.stop();
 				similarSims["timeSimAprox"] = timerSimAprox.elapsed();
@@ -839,7 +869,7 @@ void Simulator::run()
 	*/
 	
 	if(_saveSimInDB){
-		RestClient::Response r = RestClient::post(restURL + "/cities", "application/json", samplingDataSim.dump());
+		RestClient::Response r = RestClient::post(snitchServerURL + "/cities", "application/json", samplingDataSim.dump());
 	
 		if(r.code == 200){
 			json response = json::object();
@@ -856,8 +886,6 @@ void Simulator::run()
 			}
 		}
 	}
-	
-	
 	
 	*global::serverLog  << std::endl;
 	*global::serverLog  << "Sampling level           : " << _samplingLevel << "\n";
@@ -881,13 +909,6 @@ void Simulator::run()
 		*global::serverLog  << element["uuid"]             << ":";
 		*global::serverLog  << element["description"]      << "\n";
 	}
-	
-	
-	
-	
-	
-	
-	
 }
 
 
@@ -909,6 +930,7 @@ void Simulator::savePositionAgents()
 
 
 	std::ostringstream ssStateAgents;
+	ssStateAgents << "idAgent latitude longitude agentModel usePhone isAlive speed velocity_X velocity_y direction_X direction_Y\n";
 	for( auto& agent : _env->getAgents() ) {
 		double latitude,longitude,h;
 		///////////////////////
@@ -925,26 +947,12 @@ void Simulator::savePositionAgents()
 		ssStateAgents << agent->id() << " ";
 		ssStateAgents << std::fixed << std::setprecision(_filesimPrecision) << latitude << " " << longitude;
 		ssStateAgents << " " << agent->model();
-			//<< " " << agent->getNextTimeUsePhone()
-			//<< " " << agent->getProbUsePhone()
-			//<< " " << agent->getAgentNeighborsSize()
-			//<< " " << agent->getDensity()
 		ssStateAgents << " " << agent->getUsingPhone();
-		
 		ssStateAgents << " " << agent->isAlive();
-		
 		ssStateAgents << " " << curSpeed;
-		
-		if(curSpeed > 0){
-			ssStateAgents << " [" << curVel/curSpeed << "]";
-		}
-		else{
-			ssStateAgents << " [NA NA]";
-		}
-		
-		ssStateAgents << " [" << direction << "]";
-		
-		ssStateAgents << std::endl;
+		ssStateAgents << " " << curVel << " ";	
+		ssStateAgents << " " << direction << "\n";
+
 	}
 	
 	std::ofstream ofs(pathFile);
@@ -1072,6 +1080,26 @@ std::string Simulator::saveStatePatchAgents()
 	return(pathFile);
 }
 
+/**
+ * @brief Crea archivos de estado de inundación
+ *
+ * Cuando es invocada en un tick de simulación determinado (tck), esta
+ * función crea un archivo asociado a dicho tick con los datos de los
+ * patchs que están inundados. Cada línea tiene el siguiente formato:
+ *
+ *    <ID_patch> <latitud> <logitud> <nivel actual> <nivel máximo>
+ *
+ *  <latitud> <logitud>: coordenadas del centro del patch.
+ *  <nivel actual>: nivel de inundación en el tick actual, en metros
+ *  <nivel máximo>: nivel máximo de inundación según la carta de inundación del lugar.
+ *          1: 1 metros
+ *          2: 2 metros
+ *          4: 4 metros
+ *          6: 6 metros
+ *         -1: >6 metros        
+ *
+ * @return (void)
+ */
 void Simulator::saveStateFlood()
 {
 	Environment::floodParams_t floodParams = _env->getFloodParams();

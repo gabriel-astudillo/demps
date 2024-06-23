@@ -82,7 +82,7 @@ int main(int argc,char** argv)
 	int32_t debrisModel  = argumentos->getArgs().debrisModel;
 	int32_t debrisRatio  = argumentos->getArgs().debrisRatio;
 	int32_t elevationModel  = argumentos->getArgs().elevationModel;
-	std::string elevationFile = argumentos->getArgs().elevationFile;
+	//std::string elevationFile = argumentos->getArgs().elevationFile;
 	uint32_t agentsResidentsNumber = argumentos->getArgs().agentsResidentsNumber;
 	uint32_t agentsVisitorsNumber  = argumentos->getArgs().agentsVisitorsNumber;
 	std::string description     = argumentos->getArgs().description;
@@ -196,29 +196,63 @@ int main(int argc,char** argv)
 	}
 	
 
-	settings["elevationPatchDataValid"] = true;
+	//settings["elevationPatchDataValid"] = true;
 	std::string inputBaseDir = settings["input"]["directory"].get<std::string>();
 	try {
 		map_osrm             = global::execOptions.baseDir + inputBaseDir + settings["input"]["map"].get<std::string>();
 		zones_file           = global::execOptions.baseDir + inputBaseDir + settings["input"]["zones"].get<std::string>();
-		elevationFile        = global::execOptions.baseDir + inputBaseDir + elevationFile;
+		//elevationFile        = global::execOptions.baseDir + inputBaseDir + elevationFile;
 	} catch (json::exception &e) {
 		*global::serverLog << "Error in get action from 'input' section in <config.json>:" << std::endl;
 		*global::serverLog << e.what() << std::endl;
 		exit(EXIT_FAILURE);
 	};
-	settings["input"]["elevationPatchData"] = elevationFile;
+	//settings["input"]["elevationPatchData"] = elevationFile;
 	
 	if(settings["elevationModelEnable"]){
-		if( !std::filesystem::exists(elevationFile)){
+		json geoInfoTest;
+		std::string req = global::params.elevationServer.URL + "/api/v1/lookup?locations=" + global::params.elevationServer.coorTest;
+
+		*global::serverLog << "Verificando servidor de elevación:" <<  global::params.elevationServer.URL << std::endl;
+
+		try{
+			utils::restClient_get(req, geoInfoTest);
+			//if(geoInfoTest["results"][0]["elevation"].get<int>() >= 0){
+			//	settings["elevationPatchDataValid"] = true;
+			//}
+
+			assert(geoInfoTest["results"][0]["elevation"].get<int>() >= 0);
+
+			*global::serverLog << "El servidor " << global::params.elevationServer.URL << " entrega datos de elevación" << std::endl;
+
+		} catch(std::exception& e){
+			//settings["elevationPatchDataValid"] = false;
+			settings["elevationModelEnable"] = false;
+
+			*global::serverLog << "Los datos geográficos de elevación no están disponibles.\n";
+			*global::serverLog << "\tNo es posible acceder al servidor de elevación " << global::params.elevationServer.URL  << "\n";
+			*global::serverLog << "\tEl modelo de elevación no será activado." << std::endl;
+		}
+
+		/*if( !std::filesystem::exists(elevationFile)){
 			settings["elevationPatchDataValid"] = false;
 			settings["elevationModelEnable"] = false;
 		
-			//*global::serverLog << "\x1B[1;37m";
 			*global::serverLog << "Los datos geográficos de elevación no están disponibles.\nEl archivo:\n";
 			*global::serverLog << elevationFile << " no existe.\n";
 			*global::serverLog << "El modelo de elevación no será activado." << std::endl;
+		}*/
+
+		/*if( !settings["elevationPatchDataValid"]){
+			settings["elevationModelEnable"] = false;
+
+			*global::serverLog << "Los datos geográficos de elevación no están disponibles.\n";
+			*global::serverLog << "\tNo es posible acceder al servidor de elevación " << global::params.elevationServer.URL  << "\n";
+			*global::serverLog << "\tEl modelo de elevación no será activado." << std::endl;
 		}
+		else{
+			*global::serverLog << "El servidor " << global::params.elevationServer.URL << " entrega datos de elevación" << std::endl;
+		}*/
 	}
 	
 	

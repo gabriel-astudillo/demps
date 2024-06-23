@@ -40,7 +40,7 @@ private:
 	PatchAgent::monitorGroup _pointsMonitorGroup;
 	PatchAgent::monitorGroup _linesMonitorGroup;
 	
-	std::map<int32_t, std::tuple<double, double,int32_t> > _elevationData;
+	//std::map<int32_t, std::tuple<double, double,int32_t> > _elevationData;
 
 	struct grid_s {
 		// Largo del cuadrante (en [m])
@@ -118,8 +118,8 @@ public:
 
 	void setGrid(const json &fmap_zone, uint32_t offset, uint32_t quadSize);
 	grid_t getGrid();
-	void setElevationData(std::map<int32_t, std::tuple<double, double, int32_t> >& elevationData);
-	int32_t getElevationDataPatchAgent(uint32_t idPatchAgent);
+	//void setElevationData(std::map<int32_t, std::tuple<double, double, int32_t> >& elevationData);
+	//int32_t getElevationDataPatchAgent(uint32_t idPatchAgent);
 	void showGrid();
 	
 	//
@@ -186,8 +186,9 @@ public:
 	bool setDebrisVelocityOf(Agent* agent);
 
 	void adjustAgentsInitialPosition(const uint32_t& calibrationTime);
+	
 	void determinatePAgentsInStreets();
-	void determinatePAgentsWithDebris(double debrisRatio);
+	void determinatePAgentsWithDebris(double debrisRatio, int& pAgentsWithDebris);
 	void adjustAgentsRules();
 	void setSafeZoneAttribAgent(Agent* agent);
 
