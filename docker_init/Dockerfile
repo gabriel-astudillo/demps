@@ -6,7 +6,6 @@ MAINTAINER Gabriel Astudillo Muñoz "gabriel.astudillo@gmail.com"
 ARG DEBIAN_FRONTEND=noninteractive
 ENV TZ=America/Santiago
 
-RUN ldconfig
 
 RUN apt update && apt -y upgrade
 RUN apt install -y sudo
@@ -57,6 +56,7 @@ RUN cd /home/demps-user/demps/dependencias/osrm-backend-5.18.0-patched/build && 
 RUN su demps-user -c "cd /home/demps-user/demps && make -j && make install"
 RUN chmod +x /home/demps-user/demps/sim/run.sh
 
+RUN ldconfig
 
 
 EXPOSE 80
