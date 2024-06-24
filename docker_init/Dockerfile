@@ -32,9 +32,7 @@ RUN apt install -y libtbb-dev libbz2-dev liblua5.3-dev libexpat1-dev
 RUN apt install -y git
 RUN apt clean && rm -rf /var/lib/apt/lists/*
 
-#USER demps-user
 
-#RUN su demps-user
 RUN su demps-user -c "cd /home/demps-user && git clone https://github.com/gabriel-astudillo/demps.git"
 
 # compile GeographicLib
@@ -49,7 +47,7 @@ RUN su demps-user -c "cd /home/demps-user/demps/dependencias/restclient-cpp && .
 RUN cd /home/demps-user/demps/dependencias/restclient-cpp && make install
 
 #compile osrm-backend
-RUN su demps-user -c "cd /home/demps-user/demps/dependencias && tar xzf osrm-backend-5.18.0-patched.tgz && cd osrm-backend-5.18.0-patched"
+RUN su demps-user -c "cd /home/demps-user/demps/dependencias && tar xzf osrm-backend-5.18.0-patched.tgz"
 RUN su demps-user -c "mkdir /home/demps-user/demps/dependencias/osrm-backend-5.18.0-patched/build"
 RUN su demps-user -c "cd /home/demps-user/demps/dependencias/osrm-backend-5.18.0-patched/build && cmake .. -DCMAKE_BUILD_TYPE=Release"
 RUN su demps-user -c "cd /home/demps-user/demps/dependencias/osrm-backend-5.18.0-patched/build && cmake --build ."
