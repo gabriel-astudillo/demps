@@ -8,37 +8,43 @@ ENV TZ=America/Santiago
 
 
 RUN apt update && apt -y upgrade
-RUN apt install -y sudo
-RUN apt install -y apache2
-
-ADD ["image_dir/etc/apache2/sites-available/000-default.conf", "/etc/apache2/sites-available/" ]
-
-RUN apt install -y vim
-
-RUN adduser --gecos "" --disabled-password --ingroup www-data demps-user
-RUN adduser demps-user sudo
-ADD ["image_dir/etc/sudoers", "/etc/sudoers"]
-
-RUN apt install -y make g++ cmake
 #RUN apt install -y libboost-all-dev
-RUN apt install -y libboost-filesystem1.71-dev libboost-iostreams1.71-dev libboost-thread-dev
-RUN apt install -y uuid-dev
-RUN apt install -y jq
-RUN apt install -y osmctools
-RUN apt install -y libcgal-dev
-RUN apt install -y libcurlpp-dev
-RUN apt install -y libcurl4-openssl-dev
-RUN apt install -y libtbb-dev libbz2-dev liblua5.3-dev libexpat1-dev
-RUN apt install -y git
-RUN apt install -y bc libspatialindex-dev unar gdal-bin
-RUN apt install -y pip
+RUN apt install -y sudo apache2                 \
+					make g++ cmake              \
+					vim                         \
+					libboost-filesystem1.71-dev \
+					libboost-iostreams1.71-dev  \
+					libboost-thread-dev         \
+					libboost-test1.71-dev       \
+					uuid-dev                    \
+					jq                          \
+					osmctools                   \
+					libcgal-dev                 \
+					libcurlpp-dev               \
+					libcurl4-openssl-dev        \
+					libtbb-dev libbz2-dev       \
+					liblua5.3-dev               \
+					libexpat1-dev               \
+					bc                          \
+					libspatialindex-dev         \
+					unar                        \
+					gdal-bin                    \
+					pip                         \
+					git                         \
+					supervisor
 
-RUN apt install -y supervisor
-ADD ["image_dir/etc/supervisord.conf", "/etc/supervisord.conf"]
 
 RUN apt clean && rm -rf /var/lib/apt/lists/*
-
 RUN pip3 install lazy bottle rtree gunicorn
+					
+RUN adduser --gecos "" --disabled-password --ingroup www-data demps-user
+RUN adduser demps-user sudo
+
+ADD ["image_dir/etc/sudoers", "/etc/sudoers"]
+ADD ["image_dir/etc/apache2/sites-available/000-default.conf", "/etc/apache2/sites-available/" ]
+ADD ["image_dir/etc/supervisord.conf", "/etc/supervisord.conf"]
+
+
 
 USER demps-user
 RUN cd /home/demps-user && git clone https://github.com/gabriel-astudillo/demps.git
@@ -64,7 +70,7 @@ RUN cd /home/demps-user/demps/dependencias/osrm-backend-5.18.0-patched/build && 
 RUN sudo rm -rf /home/demps-user/demps/dependencias
 
 #compile demps
-RUN cd /home/demps-user/demps && make -j && make install
+RUN cd /home/demps-user/demps && make && make install
 RUN chmod +x /home/demps-user/demps/sim/run.sh
 
 #create tiles files for openelevation server
@@ -79,7 +85,6 @@ RUN ldconfig
 
 
 EXPOSE 80
-#ENTRYPOINT ["/usr/sbin/apache2ctl","-D","FOREGROUND"]
 ENTRYPOINT ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
 
 
