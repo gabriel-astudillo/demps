@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+BASEDIR=$(readlink -f $0)
+BASEDIR=$(dirname $BASEDIR)
 
 DATA_DIR=srtm_data
 ORIG_FILES_DIR=orig_files
@@ -51,32 +53,35 @@ if [ -z $GDAL_INFO ] || [ -z $GDAL_TRANSLATE ]; then
 	exit
 fi
 
-mkdir -p $DATA_DIR/$ORIG_FILES_DIR
+mkdir -p $BASEDIR/$DATA_DIR/$ORIG_FILES_DIR
 
 DOWNLOAD_URL="https://srtm.csi.cgiar.org/wp-content/uploads/files/250m"
 SRTM_FILES="SRTM_NE_250m_TIF.rar SRTM_SE_250m_TIF.rar SRTM_W_250m_TIF.rar"
 
 for u in $SRTM_FILES; do
 	urlFile=$DOWNLOAD_URL/$u
-	printf "Download $urlFile to $DATA_DIR/\n"
-	wget $urlFile -P $DATA_DIR
+	printf "Download $urlFile to $BASEDIR/$DATA_DIR/\n"
+	wget $urlFile -P $BASEDIR/$DATA_DIR
 done
 
-cd $DATA_DIR
+cd $BASEDIR/$DATA_DIR
 for u in $SRTM_FILES; do
-	printf "Extract $u\n"
-	unar -f -D $u
+	printf "Extract $BASEDIR/$DATA_DIR/$u\n"
+	unar -f -D $BASEDIR/$DATA_DIR/$u
+ 	rm $BASEDIR/$DATA_DIR/$u
 done
 
 
-create_tiles SRTM_NE_250m.tif 10 10
-create_tiles SRTM_SE_250m.tif 10 10
-create_tiles SRTM_W_250m.tif 10 20
+create_tiles $BASEDIR/$DATA_DIR/SRTM_NE_250m.tif 10 10
+rm $BASEDIR/$DATA_DIR/SRTM_NE_250m.tif
 
+create_tiles $BASEDIR/$DATA_DIR/SRTM_SE_250m.tif 10 10
+rm $BASEDIR/$DATA_DIR/SRTM_SE_250m.tif
 
-mv *.rar $ORIG_FILES_DIR
-mv *m.tif $ORIG_FILES_DIR
-mv readme.txt $ORIG_FILES_DIR
+create_tiles $BASEDIR/$DATA_DIR/SRTM_W_250m.tif 10 20
+rm $BASEDIR/$DATA_DIR/SRTM_W_250m.tif
+rm $BASEDIR/$DATA_DIR/readme.txt
+
 
 
 
