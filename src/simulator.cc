@@ -15,8 +15,6 @@ Simulator::Simulator(void)
 ////////////////////////////////////////////////////////
 //	Simulator::simulator()
 //
-//Simulator::Simulator(const json &fsettings, const json& fzones, const json& finitial_zones, const json& freference_zones, const json& fmap_zone,const std::string &map_osrm)
-//Simulator::Simulator(const json &fsettings, const json& fzones, const json& fmap_zone,const std::string &map_osrm)
 Simulator::Simulator(const json &fsettings, const json& fzones, const std::string &map_osrm)
 {
 	static thread_local std::random_device device;
@@ -33,7 +31,6 @@ Simulator::Simulator(const json &fsettings, const json& fzones, const std::strin
 	global::execOptions.showProgressBar     = _fsettings["output"]["progressBar"].get<bool>();
 	global::params.modelsEnable.panic    = _fsettings["panicModelEnable"].get<bool>(); 
 	global::params.modelsEnable.elevation = _fsettings["elevationModelEnable"].get<bool>();
-	//global::params.elevationPatchDataValid = _fsettings["elevationPatchDataValid"].get<bool>();
 	global::params.modelsEnable.debris   = _fsettings["debrisModelEnable"].get<bool>();
 	global::params.modelsEnable.flood    = _fsettings["floodModelEnable"].get<bool>();
 	global::params.closeEnough         = _fsettings["closeEnough"].get<float>();
@@ -61,17 +58,26 @@ Simulator::Simulator(const json &fsettings, const json& fzones, const std::strin
 	_heatMapSize     = _fsettings["output"]["heatMap-size"].get<uint32_t>();
 	_heatMapInterval = (uint32_t)(_fsettings["output"]["heatMap-interval"].get<uint32_t>() /  global::params.deltaT);
 	
+	_heatMapPath     = global::execOptions.baseDir + outputBaseDir + _fsettings["output"]["heatMap-path"].get<std::string>();
+
+	// La siguiente configuración se utilizará hasta
+	// que se rediseñe la comparación con simulaciones
+	// anteriores.
+	global::params.sampling.saveSimInDB           = false;
+	global::params.sampling.compareWithOthersSims = false;
 	
-	
-	//*global::serverLog  << "\x1B[1;37m";
 	/*
+	// Todo lo siguiente se debe rediseñar
+	// Si _heatMapOut == false, entonces global::params.sampling.compareWithOthersSims = false
+	// No se pueden comparar simulaciones sin mapas de calor
+
 	if(_fsettings["output"]["heatMap-path"].get<std::string>()[0] != '/'){
 		_heatMapPath = global::execOptions.baseDir + outputBaseDir + _fsettings["output"]["heatMap-path"].get<std::string>();
-		std::cout << "Production Simulation." << std::endl;
-		std::cout << "\tThe simulation sample will be compared with others." << std::endl;
-		std::cout << "\tThe simulation will not be saved in the SnitchServer." << std::endl;
-		_saveSimInDB = false;
-		_compareWithOthersSimIsOn = true;
+		*global::serverLog << "Production Simulation.\n";
+		*global::serverLog << "\tThe simulation sample will be compared with others.\n";
+		*global::serverLog << "\tThe simulation will not be saved in the SnitchServer." << std::endl;
+		global::params.sampling.saveSimInDB = false;
+		global::params.sampling.compareWithOthersSims = true;
 	}
 	else{
 		// La ruta al directorio de heatMaps es absoluta. 
@@ -79,23 +85,24 @@ Simulator::Simulator(const json &fsettings, const json& fzones, const std::strin
 		//      simulaciones busquen heatMaps parecidos.
 		//  ==> Los heatMaps de cada simulacion se diferencian por su uuid
 		_heatMapPath = _fsettings["output"]["heatMap-path"].get<std::string>() + "/" + _uuidSim;
-		std::cout << "Training Simulation." << std::endl;
-		std::cout << "\tThe simulation sample will not be compared with others." << std::endl;
-		std::cout << "\tThe simulation sample will be sent to SnitchServer." << std::endl;
+		*global::serverLog << "Training Simulation.\n";
+		*global::serverLog << "\tThe simulation sample will not be compared with others.\n";
+		*global::serverLog << "\tThe simulation sample will be sent to SnitchServer." << std::endl;
 			
-		_saveSimInDB = true;
-		_compareWithOthersSimIsOn = false;
+		global::params.sampling.saveSimInDB = true;
+		global::params.sampling.compareWithOthersSims = false;
 	}
 	*/
+	/*
 	// todos los mapas de calor se almacenan para realizar simulaciones aproximadas
 	//Los heatMaps de cada simulacion se diferencian por su uuid
 	_heatMapPath = global::execOptions.baseDir + _fsettings["output"]["heatMap-path"].get<std::string>() + "/" + _uuidSim;;
-	_saveSimInDB = true;
-	_compareWithOthersSimIsOn = true;
+	global::params.sampling.saveSimInDB = true;
+	global::params.sampling.compareWithOthersSims = true;
 	*global::serverLog  << "Training and production Simulation.\n";
 	*global::serverLog  << "\tThe simulation sample will be sent to SnitchServer.\n";
 	*global::serverLog  << "\tThe simulation sample will be compared with others." << std::endl;
-	
+	*/
 	
 	if( !std::filesystem::exists(_heatMapPath)){
 		*global::serverLog  << "Path to heatMap directory " << _heatMapPath << " no exist. Creating." << std::endl;
@@ -113,7 +120,7 @@ Simulator::Simulator(const json &fsettings, const json& fzones, const std::strin
 	_statsInterval   = (uint32_t)(_fsettings["output"]["stats-interval"].get<uint32_t>() /  global::params.deltaT);
 	_statsPath       = global::execOptions.baseDir + outputBaseDir +  _fsettings["output"]["stats-path"].get<std::string>();
 	
-	_samplingInterval = _fsettings["samplingInterval"].get<uint32_t>();
+	global::params.sampling.interval = _fsettings["samplingInterval"].get<uint32_t>();
 
 	_animConfig      = global::execOptions.baseDir + outputBaseDir + _fsettings["output"]["anim-config"].get<std::string>();
 	
@@ -193,84 +200,11 @@ Simulator::Simulator(const json &fsettings, const json& fzones, const std::strin
 		for(size_t x = 0; x < gridData._quadX; x++) {
 			uint32_t idPatch = x + y * gridData._quadX;
 			//std::cout << idPatch << std::endl;
-			_env->addPatchAgent( new PatchAgent(idPatch) );//, global::params.modelsEnable.elevation) );
+			_env->addPatchAgent( new PatchAgent(idPatch) );
 			
 		}
 	}
 
-	// Si el argumento patchCoords está presente, se hace el 
-	// el volcado de coordenadas de los patch agents en el archivo
-	// elevationPatch-<ciudad>.txt
-	if(fsettings["patchCoords"]){
-		ProgressBar pgElevCoords;
-		std::string pathFile = "elevationPatch-"+ fsettings["city"].get<std::string>() + ".txt";
-		
-		*global::serverLog << "Guardando coordenadas de los patch en '" + pathFile + "'..." << std::endl; 	
-		
-		pgElevCoords.start(_env->getPatchAgents().size());
-		std::ostringstream elevationData;
-		for(size_t idAgent = 0; idAgent < _env->getPatchAgents().size(); idAgent++ ){
-			if(global::execOptions.showProgressBar) {
-				pgElevCoords.update(idAgent);
-			}
-			PatchAgent::quad_t pAgentQuad =  _env->getPatchAgent(idAgent)->getQuadInfo();
-				
-			if(_env->getPatchAgent(idAgent)->haveElevation()){
-				elevationData << std::fixed << std::setprecision(_filesimPrecision);
-				elevationData << idAgent << ":" << pAgentQuad.lat << ":" << pAgentQuad.lon;
-				elevationData << std::endl;
-			}
-			
-		}
-		if(global::execOptions.showProgressBar) {
-			std::cout << std::flush;
-			std::cout << std::endl;
-		}
-		
-		std::ofstream ofs(pathFile);
-		ofs << elevationData.str();
-		ofs.close();
-		
-		exit(0);
-	}
-
-	///////////////////////////////////////////////////////////////////////////
-	//
-	// Modelo de elevación de terreno
-	//
-	/*if(global::params.modelsEnable.elevation){
-		ProgressBar pgElevation;
-		*global::serverLog  << "Determinando elevación del terreno..." << std::endl; 	
-		
-		pgElevation.start(_env->getPatchAgentsInCity().size());
-		int iteracion = 0;
-		for(auto pAgent : _env->getPatchAgentsInCity()){
-			if(global::execOptions.showProgressBar) {
-				pgElevation.update(iteracion++);
-			}
-			int32_t            elevation;
-			std::string        req;
-			PatchAgent::quad_t qInfo;
-
-			qInfo = pAgent->getQuadInfo();
-
-			// Utilizar el servidor de elevación para determinar la elevación
-			// del patch agent. La latitud y longitud del patch son las
-			// coordenadas del punto central de él.
-			req = global::params.elevationServer.URL + "/api/v1/lookup?locations=";
-			req += std::to_string(qInfo.lat) + "," + std::to_string(qInfo.lon);
-
-			json geoInfoTest;
-			utils::restClient_get(req, geoInfoTest);
-			elevation = geoInfoTest["results"][0]["elevation"].get<int>();
-
-			pAgent->setElevation(elevation);
-		}
-		if(global::execOptions.showProgressBar) {
-			std::cout << std::flush;
-			std::cout << std::endl;
-		}
-	}*/
 	
 	////////////////////////////////////////////////////////////////
 	// Procesar el archivos de zones y cargar:
@@ -306,7 +240,6 @@ Simulator::Simulator(const json &fsettings, const json& fzones, const std::strin
 			_env->addPointMonitorZone(feature);
 		}
 	}
-	//*global::serverLog  << "\x1B[0m" << std::endl;
 	*global::serverLog  << std::endl;
 	
 	////////////////////////////////////////////
@@ -595,7 +528,7 @@ void Simulator::run()
 	utils::radius_t seekRadiusHMap = global::params.snitchServer.seekRadiusHMap;
 	uint32_t        cutoffHMap     = global::params.snitchServer.cutoffHMap;
 	
-	_samplingLevel = _fsettings["samplingLevel"];
+	global::params.sampling.level = _fsettings["samplingLevel"];
 	
 	global::simOutputs.logs.usePhone.resize(_duration+1);
 	global::simOutputs.logs.velocity.resize(_env->getTotalAgents());
@@ -707,9 +640,9 @@ void Simulator::run()
 		}
 		
 		
-		if( (global::currTimeSim % _samplingInterval) == 0 && _heatMapOut){
+		if( (global::currTimeSim % global::params.sampling.interval) == 0 && global::params.sampling.compareWithOthersSims){
 			this->samplingSim();
-			if(g_TSevacAll[global::currTimeSim] >= _samplingLevel && _compareWithOthersSimIsOn){
+			if(g_TSevacAll[global::currTimeSim] >= global::params.sampling.level){
 				
 				//std::cout << global::currTimeSim << ":" << g_TSevacAll[global::currTimeSim] << std::endl;
 				
@@ -774,8 +707,8 @@ void Simulator::run()
 				similarSims["timeExecSim"] = global::simOutputs.timeExec.simulation;
 				//timer1.stop();				
 				
-				//_samplingLevel += 0.1;
-				_compareWithOthersSimIsOn = false;
+				//global::params.sampling.level += 0.1;
+				global::params.sampling.compareWithOthersSims = false;
 				
 			}
 		} // Fin del proceso de muestreo y comparación con simulaciones anteriores.
@@ -861,14 +794,14 @@ void Simulator::run()
 	samplingDataSim["evacTime"]     = evcTime;
 	samplingDataSim["heatMapPath"] = _heatMapPath;
 	
-	/*
-	std::cout << "---------------JSON dump---------------------" << std::endl;
-	std::cout << "---------------------------------------------" << std::endl;
-	std::cout << std::setw(4) << samplingDataSim                 << std::endl;
-	std::cout << "---------------------------------------------" << std::endl;
-	*/
+
+	//std::cout << "---------------JSON dump---------------------" << std::endl;
+	//std::cout << "---------------------------------------------" << std::endl;
+	//std::cout << std::setw(4) << samplingDataSim                 << std::endl;
+	//std::cout << "---------------------------------------------" << std::endl;
 	
-	if(_saveSimInDB){
+	
+	if(global::params.sampling.saveSimInDB){
 		RestClient::Response r = RestClient::post(snitchServerURL + "/cities", "application/json", samplingDataSim.dump());
 	
 		if(r.code == 200){
@@ -888,27 +821,30 @@ void Simulator::run()
 	}
 	
 	*global::serverLog  << std::endl;
-	*global::serverLog  << "Sampling level           : " << _samplingLevel << "\n";
 	*global::serverLog  << "UUID sim                 : " << _uuidSim << "\n";
 	*global::serverLog  << "Simulation descriptiom   : " << _fsettings["description"].get<std::string>() << "\n";
 	*global::serverLog  << "Elapsed real sim. time   : " << global::simOutputs.timeExec.simulation << "\n";
 	*global::serverLog  << "Elapsed aprox. sim. time : " << similarSims["timeExecSim"] << std::endl;
 	
-	//std::cout << similarSims.dump(4) << std::endl;
+	if( global::params.sampling.compareWithOthersSims){
+		*global::serverLog  << "==== Similar simulations  ====" << std::endl;
+		*global::serverLog  << "Sampling level           : " << global::params.sampling.level << "\n";
+		*global::serverLog  << "==== by Time Series ====" << std::endl;
+		for(const auto& element : similarSims["TS"]["dataFound"]["simFounds"]){
+			*global::serverLog  << element["distance"]         << ":";
+			*global::serverLog  << element["uuid"]             << ":";
+			*global::serverLog  << element["description"]      << "\n";
+		}
 	
-	*global::serverLog  << "==== Similar simulations by Time Series ====" << std::endl;
-	for(const auto& element : similarSims["TS"]["dataFound"]["simFounds"]){
-		*global::serverLog  << element["distance"]         << ":";
-		*global::serverLog  << element["uuid"]             << ":";
-		*global::serverLog  << element["description"]      << "\n";
+		*global::serverLog  << "==== by Heat Maps ====" << std::endl;
+		for(const auto& element : similarSims["HM"]["dataFound"]["simFounds"]){
+			*global::serverLog  << element["distance"]         << ":";
+			*global::serverLog  << element["uuid"]             << ":";
+			*global::serverLog  << element["description"]      << "\n";
+		}
 	}
 	
-	*global::serverLog  << "==== Similar simulations by Heat Maps ====" << std::endl;
-	for(const auto& element : similarSims["HM"]["dataFound"]["simFounds"]){
-		*global::serverLog  << element["distance"]         << ":";
-		*global::serverLog  << element["uuid"]             << ":";
-		*global::serverLog  << element["description"]      << "\n";
-	}
+	
 }
 
 

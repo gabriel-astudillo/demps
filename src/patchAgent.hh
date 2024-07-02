@@ -77,7 +77,7 @@ private:
 	// bandera que permite actualizar el nivel de agua
 	// sólo el primer agente de un cuadrante puede invocar 
 	// la función 'updateLevelFlood()'
-	bool _isFloodLevelUpdatable = true;
+	//bool _isFloodLevelUpdatable = true;
 	
 	// Probabilidad que tenga escombros
 	double _probDebris = 0.0;
@@ -132,8 +132,8 @@ public:
 	void updateLevelFlood();
 	double getLevelFlood();
 	
-	bool isFloodLevelUpdatable();
-	void isFloodLevelUpdatable(bool i);
+	//bool isFloodLevelUpdatable();
+	//void isFloodLevelUpdatable(bool i);
 	void setMaxLevelFlood(double m);
 	double getMaxLevelFlood();
 };

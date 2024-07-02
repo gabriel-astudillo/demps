@@ -1483,7 +1483,7 @@ void Environment::updateAgents()
 	}
 }
 
-void Environment::enableFloodLevelUpdate()
+/*void Environment::enableFloodLevelUpdate()
 {
 	#pragma omp parallel for
 	for(uint32_t zId = 0; zId < this->getFloodZones().size(); zId++ ){
@@ -1497,7 +1497,7 @@ void Environment::enableFloodLevelUpdate()
 		}
 	
 	}
-}
+}*/
 
 /**
 * @brief Actualiza el estado de la grilla

@@ -40,8 +40,6 @@ private:
 	PatchAgent::monitorGroup _pointsMonitorGroup;
 	PatchAgent::monitorGroup _linesMonitorGroup;
 	
-	//std::map<int32_t, std::tuple<double, double,int32_t> > _elevationData;
-
 	struct grid_s {
 		// Largo del cuadrante (en [m])
 		uint32_t _quadSize;
@@ -118,8 +116,6 @@ public:
 
 	void setGrid(const json &fmap_zone, uint32_t offset, uint32_t quadSize);
 	grid_t getGrid();
-	//void setElevationData(std::map<int32_t, std::tuple<double, double, int32_t> >& elevationData);
-	//int32_t getElevationDataPatchAgent(uint32_t idPatchAgent);
 	void showGrid();
 	
 	//
@@ -193,12 +189,10 @@ public:
 	void setSafeZoneAttribAgent(Agent* agent);
 
 	void updateAgents();
-	void enableFloodLevelUpdate();
 	void updateQuads();
 	void updateLogsStats();
 
 	double distance(Agent* a, Agent* b);
-	//bool isClose(Agent* a, Agent* b, const double& distanceMax);
 
 };
 

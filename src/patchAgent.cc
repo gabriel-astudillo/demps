@@ -480,14 +480,14 @@ void PatchAgent::updateLevelFlood()
 
 }
 
-bool PatchAgent::isFloodLevelUpdatable()
+/*bool PatchAgent::isFloodLevelUpdatable()
 {
 	return(_isFloodLevelUpdatable);
 }
 void PatchAgent::isFloodLevelUpdatable(bool i)
 {
 	_isFloodLevelUpdatable = i;
-}
+}*/
 
 
 double PatchAgent::getLevelFlood()

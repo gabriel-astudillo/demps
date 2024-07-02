@@ -95,6 +95,11 @@ namespace global{
 	 *		global::params.closeEnough
 	 *		global::params.randomWalkRadius
 	 *		global::params.attractionRadius
+
+	 *      global::params.sampling.compareWithOthersSims
+	 *      global::params.sampling.interval
+	 *      global::params.sampling.level
+	 *      global::params.sampling.saveSimInDB
 	 *
 	 *		global::params.offsetMap
 	 *		//global::params.elevationPatchDataValid
@@ -124,8 +129,14 @@ namespace global{
 		float randomWalkwayRadius; 
 		float attractionRadius;    
 
+		struct Sampling_s {
+			bool     compareWithOthersSims = false;
+			uint32_t interval;
+			double   level = 0.5;
+			bool     saveSimInDB   = false;
+		} sampling;
+
 		const uint32_t offsetMap = 500; // meters
-		//bool elevationPatchDataValid; 
 
 		struct ModelsEnable_s {
 			bool panic;     

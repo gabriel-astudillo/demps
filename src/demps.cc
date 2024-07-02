@@ -90,11 +90,11 @@ int main(int argc,char** argv)
 	std::string outputDirectory = argumentos->getArgs().outputDirectory;
 	int32_t numExperiment       = argumentos->getArgs().numExperiment ;
 	double samplingLevel        = argumentos->getArgs().samplingLevel ;
-	bool patchCoords            = argumentos->getArgs().patchCoords ;
+	//bool patchCoords            = argumentos->getArgs().patchCoords ;
 	
 	
 	// Por omisión, es falsa, a menos que se invoque con el parametro -E o --patchcoords
-	settings["patchCoords"] = patchCoords;
+	//settings["patchCoords"] = patchCoords;
 	
 	// por omisión floodModel=-1. Manda el archivo de configuración
 	if(floodModel == 0){
@@ -322,9 +322,9 @@ int main(int argc,char** argv)
 	
 
 	//Reset counters
-	global::simOutputs.timeExec.makeAgents = 0;
-	global::simOutputs.timeExec.calibration        = 0;
-	global::simOutputs.timeExec.simulation        = 0;
+	global::simOutputs.timeExec.makeAgents  = 0;
+	global::simOutputs.timeExec.calibration = 0;
+	global::simOutputs.timeExec.simulation  = 0;
 
 	
 	Simulator sim(settings, zones, map_osrm);

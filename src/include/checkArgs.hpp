@@ -11,9 +11,10 @@ class CheckArgs {
 private:
 	// 1) Modificar esta sección
 	//const std::string optString = "c:d:D:e:f:p:P:b:B:v:V:n:N:t:T:o:s:hE";
-	const std::string optString = "c:d:D:e:f:p:P:b:B:v:n:N:t:T:o:s:hE";
+	//const std::string optString = "c:d:D:e:f:p:P:b:B:v:n:N:t:T:o:s:hE";
+	const std::string optString = "c:d:D:e:f:p:P:b:B:v:n:N:t:T:o:s:h";
 	
-	const struct option optStringLong[19] = {
+	const struct option optStringLong[18] = {
 		{"config"      , required_argument, nullptr, 'c'},
 		{"densitymodel", required_argument, nullptr, 'd'},
 		{"description" , required_argument, nullptr, 'D'},
@@ -31,7 +32,7 @@ private:
 		{"timesim"     , required_argument, nullptr, 'T'},
 		{"outdir"      , required_argument, nullptr, 'o'},
 		{"sampliglevel", required_argument, nullptr, 's'},
-		{"patchcoords" , no_argument, nullptr, 'E'},
+		//{"patchcoords" , no_argument, nullptr, 'E'},
 		{"help", no_argument, nullptr, 'h'},
 		{nullptr, no_argument, nullptr, 0}
 	};
@@ -57,7 +58,7 @@ private:
 									 "\t-B, --debrisratio       ratio of patchs with debris (1..100)%.\n"
 									 "\t-v, --elevationmodel    enable elevation model (1:true, 0:false, -1:config).\n"
 									 //"\t-V, --elevationfile     file with data elevation. Default: 'elevationPatchData.txt'.\n"
-									 "\t-E, --patchcoords       save in file 'elevationPatch-<city>.txt the coords (lat,lon) of each patch and end.\n"
+									 //"\t-E, --patchcoords       save in file 'elevationPatch-<city>.txt the coords (lat,lon) of each patch and end.\n"
 									 "\t-e, --experiment        experiment number.\n"							 
 	                                 "\t-h, --help              Show this help and end.\n";
  
@@ -79,7 +80,7 @@ private:
 		std::string outputDirectory;
 		int32_t numExperiment;
 		double samplingLevel;
-		bool   patchCoords;
+		//bool   patchCoords;
 	} args_t;
 
 	// 2) Modificar constructor
@@ -123,7 +124,7 @@ CheckArgs::CheckArgs(int _argc, char **_argv)
 	parametros.outputDirectory = "";
 	parametros.numExperiment = -1;
 	parametros.samplingLevel = -1;
-	parametros.patchCoords = false;
+	//parametros.patchCoords = false;
 
 
 	argc = _argc;
@@ -196,9 +197,9 @@ void CheckArgs::loadArgs()
 		case 's':
 			parametros.samplingLevel=std::atof(optarg);
 			break;
-		case 'E':
-			parametros.patchCoords=true;
-			break;
+		//case 'E':
+		//	parametros.patchCoords=true;
+		//	break;
 		case 'h':
 		default:
 			printUsage();

@@ -24,9 +24,6 @@ using json=nlohmann::json;
 
 class Simulator {
 public:
-	//static bool        _statsOut;
-	//static uint32_t    _statsInterval;
-
 
 private:
 	utils::uuidSimulation_t _uuidSim;
@@ -57,10 +54,9 @@ private:
 	std::string _statsPath;
 	
 	//Intervalo para muestrear la simulación
-	uint32_t    _samplingInterval;
-	bool        _compareWithOthersSimIsOn = true;
-	double      _samplingLevel = 0.5;
-	bool        _saveSimInDB   = false;
+	//uint32_t    _samplingInterval;
+	//double      _samplingLevel = 0.5;
+	//bool        _saveSimInDB   = false;
 	std::mutex  _mtx, _mtxEx;
 	
 	
