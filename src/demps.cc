@@ -199,7 +199,15 @@ int main(int argc,char** argv)
 	//settings["elevationPatchDataValid"] = true;
 	std::string inputBaseDir = settings["input"]["directory"].get<std::string>();
 	try {
-		map_osrm             = global::execOptions.baseDir + inputBaseDir + settings["input"]["map"].get<std::string>();
+		if( settings["input"]["map"].get<std::string>()[0] != '/' ){
+			// La ruta del archivo es relativo al inputBaseDir
+			map_osrm = global::execOptions.baseDir + inputBaseDir + settings["input"]["map"].get<std::string>();
+		}
+		else{
+			// El campo "input.map" contiene una ruta absulta
+			map_osrm = settings["input"]["map"].get<std::string>();
+		}
+		
 		zones_file           = global::execOptions.baseDir + inputBaseDir + settings["input"]["zones"].get<std::string>();
 		//elevationFile        = global::execOptions.baseDir + inputBaseDir + elevationFile;
 	} catch (json::exception &e) {
