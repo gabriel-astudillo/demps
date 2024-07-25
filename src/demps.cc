@@ -204,7 +204,7 @@ int main(int argc,char** argv)
 			map_osrm = global::execOptions.baseDir + inputBaseDir + settings["input"]["map"].get<std::string>();
 		}
 		else{
-			// El campo "input.map" contiene una ruta absulta
+			// El campo "input.map" contiene una ruta absoluta
 			map_osrm = settings["input"]["map"].get<std::string>();
 		}
 		
