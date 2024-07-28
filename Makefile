@@ -7,7 +7,8 @@ SIM_DIR=sim
 PLANET_DIR=planet.openstreetmap.org
 OPEN_ELEV_DIR=open.elevation.server
 
-ANIMATION_FILE=animation/animation.html
+ANIMATION_DIR=animation
+ANIMATION_FILE=animation.html
 
 CP=/bin/cp
 RM=/bin/rf
@@ -38,8 +39,8 @@ install:
 	sudo $(CP) $(SRC_PY)/*.py /usr/local/bin
 
 	@echo \#\#\# Copy $(ANIMATION_FILE) to /usr/local/etc/demps
-	sudo mkdir -p /usr/local/etc/demps
-	sudo $(CP) $(HOME)/$(SIM_DIR)/$(ANIMATION_FILE) /usr/local/etc/demps
+	sudo mkdir -p /usr/local/etc/demps/$(ANIMATION_DIR)
+	sudo $(CP) $(HOME)/$(SIM_DIR)/$(ANIMATION_DIR)/$(ANIMATION_FILE) /usr/local/etc/demps/$(ANIMATION_DIR)
 
 
 distclean: clean
