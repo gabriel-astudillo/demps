@@ -31,8 +31,7 @@ install:
 	@ln -s $(PWD)/$(PLANET_DIR) $(HOME)/$(PLANET_DIR)
 	@ln -s $(PWD)/$(OPEN_ELEV_DIR) $(HOME)/$(OPEN_ELEV_DIR)
 
-	@echo \#\#\# Apply chmod +x to {sim/*.sh, src_py/*.py}
-	@chmod +x $(SIM_DIR)/*.sh
+	@echo \#\#\# Apply chmod +x to src_py/*.py
 	@chmod +x $(SRC_PY)/*.py
 
 	@echo \#\#\# Copy $(SRC_PY)/*.py to /usr/local/bin
