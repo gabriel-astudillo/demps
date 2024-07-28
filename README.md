@@ -30,11 +30,11 @@ cd demps
 make
 make install
 ```
-El ejecutable del simulador se instala en ```/usr/local/bin/demps```. El script que permite bajar y crear los mapas de ruteo se instala en ```/usr/local/bin/demps-map-download.py```. Para realizar una simulación, utilizar el script ```run.sh```. Este script llama al ejecutable del simulador y se localiza en el directorio ```sim/```. 
+El ejecutable del simulador se instala en ```/usr/local/bin/demps```. El script que permite bajar y crear los mapas de ruteo se instala en ```/usr/local/bin/demps-map-download.py```. Para realizar una simulación:
 
 ```
 cd sim
-./run.sh --config vdm-pob-vergara.config --outdir output/test
+/usr/local/bin/demps --config vdm-pob-vergara.config --outdir /ruta/absoluta/directorio/salida
 ```
 
 3) Si instaló una versión de OSRM > 5.18, entonces debe procesar nuevamente los mapas de la ciudades. Por ejemplo, para procesar el mapa de la ciudadX, se debe hacer:
@@ -47,7 +47,7 @@ demps-map-download.py zones.geojson
 
 # Visualización de la simulación
 
-Los resultados de la simulación se almacenan en el directorio ```sim/output/CiudadX```, el que tiene la siguiente estructura:
+Los resultados de la simulación se almacenan en el directorio ```/ruta/absoluta/directorio/salida```, el que tiene la siguiente estructura:
 
 * ```agents/```: directorio que contiene el movimiento de las personas.
 * ```agents/<Tn.txt>```: archivo que contiene la posición geográfica de todas las personas simuladas, en el instante de simulación 'Tn'. Cada línea tiene la siguiente estructura:
@@ -58,12 +58,12 @@ Los resultados de la simulación se almacenan en el directorio ```sim/output/Ciu
   TipoPersona: {0,1,2}
 ```
 
-* ```input/```: directorio con la configuración geográfica de la simulación.
-* ```input/zones.geojson``` : zona geográfica a simular.
-* ```animacion.html``` : Animación del movimiento de los peatones utilizando MapboxGL JS https://docs.mapbox.com/mapbox-gl-js/api/
-* ```animacion.config.json```: archivo de configuración utilizado por el archivo anterior.
+* ```animation/animation.html``` : Animación del movimiento de los peatones utilizando MapboxGL JS https://docs.mapbox.com/mapbox-gl-js/api/
+* ```animation/animation.config.json```: archivo de configuración utilizado por el archivo anterior.
+* ```animation/input/```: directorio con la configuración geográfica de la simulación.
+* ```animation/input/zones.geojson``` : zona geográfica a simular.
   
-Para visualizar la animación, el archivo ```animacion.html``` debe ser accedido a través de un servidor web.
+Para visualizar la animación, el archivo ```animation/animacion.html``` debe ser accedido a través de un servidor web.
 
 # Publicaciones
 
