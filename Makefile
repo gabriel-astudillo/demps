@@ -39,8 +39,9 @@ install:
 	sudo $(CP) $(SRC_PY)/*.py /usr/local/bin
 
 	@echo \#\#\# Copy $(ANIMATION_FILE) to /usr/local/etc/demps
-	sudo mkdir -p /usr/local/etc/demps/$(ANIMATION_DIR)
-	sudo $(CP) $(HOME)/$(SIM_DIR)/$(ANIMATION_DIR)/$(ANIMATION_FILE) /usr/local/etc/demps/$(ANIMATION_DIR)
+	@sudo mkdir -p /usr/local/etc/demps/$(ANIMATION_DIR)
+	@sudo $(CP) $(HOME)/$(SIM_DIR)/$(ANIMATION_DIR)/$(ANIMATION_FILE) /usr/local/etc/demps/$(ANIMATION_DIR)
+	@$(RM) -rf $(HOME)/$(SIM_DIR)/$(ANIMATION_DIR)/
 
 
 distclean: clean
