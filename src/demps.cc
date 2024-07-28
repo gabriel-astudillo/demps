@@ -92,9 +92,10 @@ int main(int argc,char** argv)
 	double samplingLevel        = argumentos->getArgs().samplingLevel ;
 	//bool patchCoords            = argumentos->getArgs().patchCoords ;
 	
-	
-	// Por omisión, es falsa, a menos que se invoque con el parametro -E o --patchcoords
-	//settings["patchCoords"] = patchCoords;
+
+	// Falta colocar este campo en el archivo de configuración y en el formulario web
+	settings["output"]["anim-path"] = "animation/"; 
+
 	
 	// por omisión floodModel=-1. Manda el archivo de configuración
 	if(floodModel == 0){
@@ -185,37 +186,42 @@ int main(int argc,char** argv)
 
 	std::string map_osrm;
 	std::string zones_file;
-	
-	try{
-		global::execOptions.baseDir = settings["baseDirSim"].get<std::string>();
-	}
-	catch (json::exception &e) {
-		*global::serverLog << "Item 'baseDirSim' not defined in file " + fileConfig << std::endl;
-		*global::serverLog << e.what() << std::endl;
-		exit(EXIT_FAILURE);
-	}
-	
 
-	//settings["elevationPatchDataValid"] = true;
-	std::string inputBaseDir = settings["input"]["directory"].get<std::string>();
 	try {
 		if( settings["input"]["map"].get<std::string>()[0] != '/' ){
-			// La ruta del archivo es relativo al inputBaseDir
-			map_osrm = global::execOptions.baseDir + inputBaseDir + settings["input"]["map"].get<std::string>();
+			// La ruta del archivo map.osrm debe ser absoluta
+			*global::serverLog  << "Path of map.osrm must be absolute path. " << std::endl;
+			exit(EXIT_FAILURE);
 		}
-		else{
-			// El campo "input.map" contiene una ruta absoluta
-			map_osrm = settings["input"]["map"].get<std::string>();
+
+		if( !std::filesystem::exists(settings["input"]["map"].get<std::string>())){
+			*global::serverLog  << "Path to map.osrm file " << settings["input"]["map"].get<std::string>() << " no exist." << std::endl;
+			exit(EXIT_FAILURE);
 		}
-		
-		zones_file           = global::execOptions.baseDir + inputBaseDir + settings["input"]["zones"].get<std::string>();
-		//elevationFile        = global::execOptions.baseDir + inputBaseDir + elevationFile;
+
+		if( settings["input"]["zones"].get<std::string>()[0]  != '/' ){
+			// La ruta del archivo de zonas debe ser absoluta
+			*global::serverLog  << "Path of zones file must be absolute path. " << std::endl;
+			exit(EXIT_FAILURE);
+		}
+
+		if( !std::filesystem::exists(settings["input"]["zones"].get<std::string>())){
+			*global::serverLog  << "Path to zones file " << settings["input"]["zones"].get<std::string>() << " no exist." << std::endl;
+			exit(EXIT_FAILURE);
+		}
+
+
+		// El campo "input.map" contiene una ruta absoluta
+		map_osrm = settings["input"]["map"].get<std::string>();
+
+		// El campo "input.zones" contiene una ruta absoluta
+		zones_file = settings["input"]["zones"].get<std::string>();
+
 	} catch (json::exception &e) {
 		*global::serverLog << "Error in get action from 'input' section in <config.json>:" << std::endl;
 		*global::serverLog << e.what() << std::endl;
 		exit(EXIT_FAILURE);
 	};
-	//settings["input"]["elevationPatchData"] = elevationFile;
 	
 	if(settings["elevationModelEnable"]){
 		json geoInfoTest;

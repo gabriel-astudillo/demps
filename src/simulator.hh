@@ -40,7 +40,7 @@ private:
 	
 	uint32_t    _filesimPrecision; //Precision ENU->WSG84
 	std::string _filesimSufix;
-	std::string _filesimPath;
+	std::string _agentsPath;
 	
 	bool        _heatMapOut;
 	uint32_t    _heatMapSize;
@@ -52,6 +52,8 @@ private:
 	bool        _statsOut;
 	uint32_t    _statsInterval;
 	std::string _statsPath;
+
+	std::string _animPath;
 	
 	//Intervalo para muestrear la simulación
 	//uint32_t    _samplingInterval;

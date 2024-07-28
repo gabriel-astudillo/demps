@@ -43,23 +43,120 @@ Simulator::Simulator(const json &fsettings, const json& fzones, const std::strin
 	_duration        = (uint32_t)(_fsettings["duration"].get<uint32_t>() / global::params.deltaT);
 	_calibrationTime = (uint32_t)(_fsettings["calibration"].get<uint32_t>() / global::params.deltaT);
 	
+	//////////////////////////////////////////////////////////
+	// Directorio de salida
+	//
 	std::string outputBaseDir = _fsettings["output"]["directory"].get<std::string>() + "/";
+	if(outputBaseDir[0] != '/'){
+		*global::serverLog  << "Output Directory must be absolute path.\n";
+		*global::serverLog  << "[output.directory] = " << outputBaseDir << std::endl;
+		exit(EXIT_FAILURE);
+	}
 	
-	global::execOptions.agentsOut     = _fsettings["output"]["agents-out"].get<bool>();
+	*global::serverLog  << "####### Eliminando resultados anteriores #######\n";
+	*global::serverLog  << "####### " <<  outputBaseDir << std::endl;
+	std::filesystem::remove_all(outputBaseDir);
 
+
+	global::execOptions.agentsOut = _fsettings["output"]["agents-out"].get<bool>();
 	
-	_interval       = (uint32_t)(_fsettings["output"]["interval"].get<uint32_t>() /  global::params.deltaT);
-	
+	_interval         = (uint32_t)(_fsettings["output"]["interval"].get<uint32_t>() /  global::params.deltaT);
 	_filesimPrecision = _fsettings["output"]["agents-precision"].get<uint32_t>();
-	_filesimSufix    = _fsettings["output"]["agents-sufix"].get<std::string>();
-	_filesimPath     = global::execOptions.baseDir + outputBaseDir + _fsettings["output"]["agents-path"].get<std::string>();
+	_filesimSufix     = _fsettings["output"]["agents-sufix"].get<std::string>();
 
+	//////////////////////////////////////////////////////////
+	// Directorio donde se almacenan el estado de los agentes
+	//
+	if(_fsettings["output"]["agents-path"].get<std::string>()[0] != '/'){ // Si es ruta relativa
+		_agentsPath = outputBaseDir + _fsettings["output"]["agents-path"].get<std::string>();	
+	}
+	else{ // Si es ruta absoluta
+		_agentsPath = _fsettings["output"]["agents-path"].get<std::string>();
+	}
+
+	if( !std::filesystem::exists(_agentsPath)){
+		*global::serverLog  << "Path to agents directory:\n\t" << _agentsPath << "\n\tno exist. Creating." << std::endl;
+		std::filesystem::create_directories(_agentsPath);
+	}
+	
+	//////////////////////////////////////////////////////////
+	// Directorio donde se almacenan los mapas de calor
+	//
     _heatMapOut      = _fsettings["output"]["heatMap-out"].get<bool>();
 	_heatMapSize     = _fsettings["output"]["heatMap-size"].get<uint32_t>();
 	_heatMapInterval = (uint32_t)(_fsettings["output"]["heatMap-interval"].get<uint32_t>() /  global::params.deltaT);
 	
-	_heatMapPath     = global::execOptions.baseDir + outputBaseDir + _fsettings["output"]["heatMap-path"].get<std::string>();
+	if(_fsettings["output"]["heatMap-path"].get<std::string>()[0] != '/'){ // Si es ruta relativa
+		_heatMapPath = outputBaseDir + _fsettings["output"]["heatMap-path"].get<std::string>();
+	}
+	else{ // Si es ruta absoluta
+		_heatMapPath = _fsettings["output"]["heatMap-path"].get<std::string>();
+	}
 
+	if( !std::filesystem::exists(_heatMapPath)){ 
+		*global::serverLog  << "Path to heatMap directory:\n\t" << _heatMapPath << "\n\tno exist. Creating." << std::endl;
+		std::filesystem::create_directories(_heatMapPath);
+	}
+
+	//////////////////////////////////////////////////////////
+	// Directorio donde se almacena el estado de los escombros
+	//
+	if(_fsettings["debrisParams"]["stateDir"].get<std::string>()[0] != '/'){ // Si es ruta relativa
+		_debrisFilePath = outputBaseDir + _fsettings["debrisParams"]["stateDir"].get<std::string>();
+	}
+	else{ // Si es ruta absoluta
+		_debrisFilePath = _fsettings["debrisParams"]["stateDir"].get<std::string>();
+	}
+
+	if( !std::filesystem::exists( _debrisFilePath )){
+		*global::serverLog  << "Path to debris directory:\n\t " << _debrisFilePath << "\n\tno exist. Creating." << std::endl;
+		std::filesystem::create_directories( _debrisFilePath );
+	}
+	
+	
+	_statsOut        = _fsettings["output"]["stats-out"].get<bool>();
+	_statsInterval   = (uint32_t)(_fsettings["output"]["stats-interval"].get<uint32_t>() /  global::params.deltaT);
+
+	//////////////////////////////////////////////////////////
+	// Directorio donde se almacena los datos que se utilizarán
+	// para generar las estadisticas de la simulación
+	//
+	if(_fsettings["output"]["stats-path"].get<std::string>()[0] != '/'){ // Si es ruta relativa
+		_statsPath = outputBaseDir +  _fsettings["output"]["stats-path"].get<std::string>();
+	}
+	else{ // Si es ruta absoluta
+		_statsPath = _fsettings["output"]["stats-path"].get<std::string>();
+	}
+
+	if( !std::filesystem::exists( _statsPath )){
+		*global::serverLog  << "Path to stats directory:\n\t" << _statsPath << "\n\tno exist. Creating." << std::endl;
+		std::filesystem::create_directories( _statsPath );
+	}
+
+	global::params.sampling.interval = _fsettings["samplingInterval"].get<uint32_t>();
+
+	
+	//////////////////////////////////////////////////////////
+	// Directorio donde se almacena la animación
+	//
+	_animPath = outputBaseDir + _fsettings["output"]["anim-path"].get<std::string>();
+	if( !std::filesystem::exists( _animPath )){
+		*global::serverLog  << "Path to animation directory:\n\t" << _animPath << "\n\tno exist. Creating." << std::endl;
+		std::filesystem::create_directories( _animPath + "/input" );
+	}
+
+	std::string zoneFileName = std::filesystem::path(_fsettings["input"]["zones"].get<std::string>()).filename();
+
+	std::filesystem::copy(_fsettings["input"]["zones"].get<std::string>(), _animPath + "/input/" + zoneFileName );
+	std::filesystem::copy(global::params.animationDir + global::params.animationFile, _animPath + global::params.animationFile);
+
+
+	_animConfig = _animPath + _fsettings["output"]["anim-config"].get<std::string>();
+
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// La siguiente configuración se utilizará hasta
 	// que se rediseñe la comparación con simulaciones
 	// anteriores.
@@ -72,7 +169,7 @@ Simulator::Simulator(const json &fsettings, const json& fzones, const std::strin
 	// No se pueden comparar simulaciones sin mapas de calor
 
 	if(_fsettings["output"]["heatMap-path"].get<std::string>()[0] != '/'){
-		_heatMapPath = global::execOptions.baseDir + outputBaseDir + _fsettings["output"]["heatMap-path"].get<std::string>();
+		_heatMapPath = outputBaseDir + _fsettings["output"]["heatMap-path"].get<std::string>();
 		*global::serverLog << "Production Simulation.\n";
 		*global::serverLog << "\tThe simulation sample will be compared with others.\n";
 		*global::serverLog << "\tThe simulation will not be saved in the SnitchServer." << std::endl;
@@ -96,7 +193,7 @@ Simulator::Simulator(const json &fsettings, const json& fzones, const std::strin
 	/*
 	// todos los mapas de calor se almacenan para realizar simulaciones aproximadas
 	//Los heatMaps de cada simulacion se diferencian por su uuid
-	_heatMapPath = global::execOptions.baseDir + _fsettings["output"]["heatMap-path"].get<std::string>() + "/" + _uuidSim;;
+	_heatMapPath = .... _fsettings["output"]["heatMap-path"].get<std::string>() + "/" + _uuidSim;;
 	global::params.sampling.saveSimInDB = true;
 	global::params.sampling.compareWithOthersSims = true;
 	*global::serverLog  << "Training and production Simulation.\n";
@@ -104,25 +201,10 @@ Simulator::Simulator(const json &fsettings, const json& fzones, const std::strin
 	*global::serverLog  << "\tThe simulation sample will be compared with others." << std::endl;
 	*/
 	
-	if( !std::filesystem::exists(_heatMapPath)){
-		*global::serverLog  << "Path to heatMap directory " << _heatMapPath << " no exist. Creating." << std::endl;
-		std::filesystem::create_directories(_heatMapPath);
-	}
-	
-	_debrisFilePath = global::execOptions.baseDir + outputBaseDir + _fsettings["debrisParams"]["stateDir"].get<std::string>();
-	if( !std::filesystem::exists( _debrisFilePath )){
-		*global::serverLog  << "Path to debris directory " << _debrisFilePath << " no exist. Creating." << std::endl;
-		std::filesystem::create_directories( _debrisFilePath );
-	}
-	
-	
-	_statsOut        = _fsettings["output"]["stats-out"].get<bool>();
-	_statsInterval   = (uint32_t)(_fsettings["output"]["stats-interval"].get<uint32_t>() /  global::params.deltaT);
-	_statsPath       = global::execOptions.baseDir + outputBaseDir +  _fsettings["output"]["stats-path"].get<std::string>();
-	
-	global::params.sampling.interval = _fsettings["samplingInterval"].get<uint32_t>();
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	_animConfig      = global::execOptions.baseDir + outputBaseDir + _fsettings["output"]["anim-config"].get<std::string>();
 	
 
 	//Tamaño del cuadrante
@@ -160,14 +242,14 @@ Simulator::Simulator(const json &fsettings, const json& fzones, const std::strin
 	floodParams = _fsettings["floodParams"];
 
 	if(floodParams["imagesDir"].get<std::string>()[0] != '/'){
-		floodParams["imagesDir"] = global::execOptions.baseDir + outputBaseDir + floodParams["imagesDir"].get<std::string>();
+		floodParams["imagesDir"] = outputBaseDir + floodParams["imagesDir"].get<std::string>();
 		if( !std::filesystem::exists(floodParams["imagesDir"].get<std::string>() )){
 			std::filesystem::create_directories(floodParams["imagesDir"].get<std::string>());
 		}
 	}
 
 	if(floodParams["stateDir"].get<std::string>()[0] != '/'){
-		floodParams["stateDir"] = global::execOptions.baseDir + outputBaseDir + floodParams["stateDir"].get<std::string>();
+		floodParams["stateDir"] = outputBaseDir + floodParams["stateDir"].get<std::string>();
 		if( !std::filesystem::exists(floodParams["stateDir"].get<std::string>() )){
 			std::filesystem::create_directories(floodParams["stateDir"].get<std::string>());
 		}
@@ -715,7 +797,7 @@ void Simulator::run()
 
 	}
 	//Fin ciclo de simulación
-	
+	*global::serverLog   << "Waiting watchDog to end" << std::endl;
 	_execForMTX.lock();
 	_simInExec = false;
 	_execForMTX.unlock();
@@ -734,18 +816,20 @@ void Simulator::run()
 	
 	////////////////////////////////////////////////////////
 	//  Crear el archivo JSON de la animación de la simulación
+	std::string zoneFileName = std::filesystem::path(_fsettings["input"]["zones"].get<std::string>()).filename();
+	std::string cdUP = "../";
 	json animacionConfig = {
-		{"pathFileSim", _fsettings["output"]["agents-path"]},
+		{"pathFileSim", cdUP + _fsettings["output"]["agents-path"].get<std::string>()},
 		{"frameMin", 0},
 		{"frameMax", _duration},
 		{"frameStep", _interval},
 		{"deltaT", global::params.deltaT},
 		{"mapOffset", 0.01}, //Offset del borde mapa (0.01 ==> 800metros )
-		{"pathFileDebrisState", _fsettings["debrisParams"]["stateDir"].get<std::string>() + "/" + _fsettings["debrisParams"]["infoFile"].get<std::string>()},
-		{"pathFileFloodStateDir", _fsettings["floodParams"]["stateDir"]},
+		{"pathFileDebrisState", cdUP + _fsettings["debrisParams"]["stateDir"].get<std::string>() + "/" + _fsettings["debrisParams"]["infoFile"].get<std::string>()},
+		{"pathFileFloodStateDir", cdUP +  _fsettings["floodParams"]["stateDir"].get<std::string>()},
 		{"criticaFloodlLevel", _fsettings["floodParams"]["criticalLevel"]},
 		{"input",{
-			{"zones", "input/"+ _fsettings["input"]["zones"].get<std::string>()}
+			{"zones", "input/"+ zoneFileName}
 		}}
 	};
 	
@@ -862,7 +946,7 @@ void Simulator::savePositionAgents()
 	ss << std::setw( 10 ) << std::setfill( '0' ) << global::currTimeSim;
 
 	std::string nameFile = ss.str() + "." + _filesimSufix ;
-	std::string pathFile = _filesimPath + "/" + nameFile ;
+	std::string pathFile = _agentsPath + "/" + nameFile ;
 
 
 	std::ostringstream ssStateAgents;

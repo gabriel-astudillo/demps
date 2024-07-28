@@ -81,8 +81,7 @@ namespace global{
 	 *		global::execOptions.showProgressBar
 	 *		global::execOptions.agentsOut
 	 */
-	struct ExecOptions_s {
-		std::string baseDir;         
+	struct ExecOptions_s {      
 		bool        showProgressBar; 
 		bool        agentsOut;
 	};
@@ -102,7 +101,8 @@ namespace global{
 	 *      global::params.sampling.saveSimInDB
 	 *
 	 *		global::params.offsetMap
-	 *		//global::params.elevationPatchDataValid
+	 *		global::params.animationDir
+	 *		global::params.animationFile
 	 *
 	 *		global::params.modelsEnable.panic
 	 *		global::params.modelsEnable.elevation
@@ -137,6 +137,8 @@ namespace global{
 		} sampling;
 
 		const uint32_t offsetMap = 500; // meters
+		const std::string animationDir  = "/usr/local/etc/demps/animation/";
+		const std::string animationFile = "animation.html";
 
 		struct ModelsEnable_s {
 			bool panic;     
@@ -148,7 +150,7 @@ namespace global{
 		struct WathDog_s {
 			const uint32_t initialWaitTime = 60;  //segundos
 			const uint32_t deltaTime       = 60;  //segundos
-			const uint32_t thresTime       = 120; //segundos
+			const uint32_t thresTime       = 30; //segundos
 		} watchDog;
 
 		struct SnitchServer_s {
