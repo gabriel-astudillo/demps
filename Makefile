@@ -27,6 +27,7 @@ install:
 	@echo \#\#\# Creating symbolic link to \'sim\', \'planet.openstreetmap.org\' and \'open.elevation.server\' in $(HOME)
 	@rm -f $(HOME)/$(SIM_DIR)
 	@rm -f $(HOME)/$(PLANET_DIR)
+	@rm -f $(HOME)/$(OPEN_ELEV_DIR)
 	@ln -s $(PWD)/$(SIM_DIR) $(HOME)/$(SIM_DIR)
 	@ln -s $(PWD)/$(PLANET_DIR) $(HOME)/$(PLANET_DIR)
 	@ln -s $(PWD)/$(OPEN_ELEV_DIR) $(HOME)/$(OPEN_ELEV_DIR)
