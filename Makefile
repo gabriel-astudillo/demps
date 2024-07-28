@@ -11,7 +11,7 @@ ANIMATION_DIR=animation
 ANIMATION_FILE=animation.html
 
 CP=/bin/cp
-RM=/bin/rf
+RM=/bin/rm
 
 default: all
 
