@@ -112,6 +112,7 @@ namespace global{
 	 *		global::params.watchDog.initialWaitTime
 	 *		global::params.watchDog.deltaTime
 	 *		global::params.watchDog.thresTime
+	 *		global::params.watchDog.pidFile
 	 *
 	 *		global::params.snitchServer.URL
 	 *		global::params.snitchServer.seekRadius
@@ -151,6 +152,7 @@ namespace global{
 			const uint32_t initialWaitTime = 60;  //segundos
 			const uint32_t deltaTime       = 60;  //segundos
 			const uint32_t thresTime       = 30; //segundos
+			const std::string pidFile      = "demps.pid";
 		} watchDog;
 
 		struct SnitchServer_s {

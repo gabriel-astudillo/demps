@@ -28,15 +28,15 @@ Simulator::Simulator(const json &fsettings, const json& fzones, const std::strin
 	_uuidSim = utils::get_uuid();
 	
 	// Asignación de variables globales del proyecto
-	global::execOptions.showProgressBar     = _fsettings["output"]["progressBar"].get<bool>();
-	global::params.modelsEnable.panic    = _fsettings["panicModelEnable"].get<bool>(); 
+	global::execOptions.showProgressBar   = _fsettings["output"]["progressBar"].get<bool>();
+	global::params.modelsEnable.panic     = _fsettings["panicModelEnable"].get<bool>(); 
 	global::params.modelsEnable.elevation = _fsettings["elevationModelEnable"].get<bool>();
-	global::params.modelsEnable.debris   = _fsettings["debrisModelEnable"].get<bool>();
-	global::params.modelsEnable.flood    = _fsettings["floodModelEnable"].get<bool>();
-	global::params.closeEnough         = _fsettings["closeEnough"].get<float>();
-	global::params.randomWalkwayRadius = _fsettings["randomWalkwayRadius"].get<float>();
-	global::params.attractionRadius    = _fsettings["attractionRadius"].get<float>();
-	global::params.deltaT              = _fsettings["deltaT"].get<float>();
+	global::params.modelsEnable.debris    = _fsettings["debrisModelEnable"].get<bool>();
+	global::params.modelsEnable.flood     = _fsettings["floodModelEnable"].get<bool>();
+	global::params.closeEnough            = _fsettings["closeEnough"].get<float>();
+	global::params.randomWalkwayRadius    = _fsettings["randomWalkwayRadius"].get<float>();
+	global::params.attractionRadius       = _fsettings["attractionRadius"].get<float>();
+	global::params.deltaT                 = _fsettings["deltaT"].get<float>();
 	
 	_numExperiment = _fsettings["numExperiment"].get<int32_t>();
 
@@ -53,9 +53,11 @@ Simulator::Simulator(const json &fsettings, const json& fzones, const std::strin
 		exit(EXIT_FAILURE);
 	}
 	
-	*global::serverLog  << "####### Eliminando resultados anteriores #######\n";
+	*global::serverLog  << "####### Deleting previous results #######\n";
 	*global::serverLog  << "####### " <<  outputBaseDir << std::endl;
 	std::filesystem::remove_all(outputBaseDir);
+
+	_pidFilePath = outputBaseDir + global::params.watchDog.pidFile;
 
 
 	global::execOptions.agentsOut = _fsettings["output"]["agents-out"].get<bool>();
@@ -626,7 +628,7 @@ void Simulator::run()
 	// Lanza el thread del watchDog
 	std::string dirTodDelete = _heatMapPath;
 	_simInExec = true;
-	std::thread watchDogThread(watchDog, global::params.watchDog.initialWaitTime, global::params.watchDog.deltaTime, global::params.watchDog.thresTime, dirTodDelete);
+	std::thread watchDogThread(&Simulator::watchDog, this,  global::params.watchDog.initialWaitTime, global::params.watchDog.deltaTime, global::params.watchDog.thresTime, dirTodDelete);
 	
 	
 	ProgressBar pg;
@@ -1759,18 +1761,29 @@ uint32_t Simulator::getMaxMemory()
  */
 void Simulator::watchDog(uint32_t initialWaitTime,  uint32_t deltaTime,  uint32_t thresTime, std::string dirTodDelete)
 {
-	std::this_thread::sleep_for(std::chrono::seconds(initialWaitTime));
-	
 	uint32_t tickOld = 0;
-	uint32_t tickNew = 0;
-	
+	uint32_t tickNew = 0;	
 	uint32_t timesBlocked = 0;
+
+	std::ofstream pidFile;
+
+	pidFile.open(_pidFilePath);
+	pidFile << getpid();
+	pidFile.close();
+
+	std::this_thread::sleep_for(std::chrono::seconds(initialWaitTime));
     while (1){
 		tickNew = global::currTimeSim;
 		
 		_execForMTX.lock();
 		if(!_simInExec){
 			*global::serverLog  << "ciclo terminado" << std::endl;
+			try {
+				std::filesystem::remove(_pidFilePath);
+				*global::serverLog  << "Deleted " << _pidFilePath << " file.\n";
+			} catch (const std::filesystem::filesystem_error& e) {
+				*global::serverLog  << "Error: " << e.what() << "\n";
+			}
 			break;
 		}
 		_execForMTX.unlock();
@@ -1790,6 +1803,14 @@ void Simulator::watchDog(uint32_t initialWaitTime,  uint32_t deltaTime,  uint32_
 					} catch (const std::filesystem::filesystem_error& e) {
 						*global::serverLog  << "Error: " << e.what() << "\n";
 					}
+					try {
+						std::filesystem::remove(_pidFilePath);
+						*global::serverLog  << "Deleted " << _pidFilePath << " file.\n";
+					} catch (const std::filesystem::filesystem_error& e) {
+						*global::serverLog  << "Error: " << e.what() << "\n";
+					}
+
+
 				} 
 				std::raise(SIGTERM); 
 			}

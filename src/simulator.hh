@@ -17,6 +17,8 @@
 #include <thread>
 #include <sys/resource.h>
 
+#include <sys/types.h>
+#include <unistd.h>
 
 #include <json.hpp>
 using json=nlohmann::json;
@@ -63,6 +65,7 @@ private:
 	
 	
 	std::string _animConfig;
+	std::string _pidFilePath;
 
 	void savePositionAgents();
 	std::string saveStatePatchAgents();
@@ -92,6 +95,7 @@ private:
 	static bool _simInExec;// = true;
 	
 	uint32_t getMaxMemory();
-	static void watchDog(uint32_t initialWaitTime,  uint32_t deltaTime,  uint32_t thresTime, std::string dirTodDelete);
+public:
+	void watchDog(uint32_t initialWaitTime,  uint32_t deltaTime,  uint32_t thresTime, std::string dirTodDelete);
 
 };
