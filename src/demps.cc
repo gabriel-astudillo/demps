@@ -54,8 +54,14 @@ int main(int argc,char** argv)
 	json zones;
 
 	// Inicia el log
-	global::serverLog = new StreamLog("Demps init", LOG_LOCAL1);
+	global::serverLog = new StreamLog("demps", LOG_LOCAL1);
 	global::serverLog->toCOUT(true);
+
+	*global::serverLog << "\n\n";
+	*global::serverLog << "\t****************************\n";
+	*global::serverLog << "\t*  Starting new simulation *\n";
+	*global::serverLog << "\t****************************\n";
+	*global::serverLog << std::endl;
 
 	// Adquirir parámetros de entrada
 	std::shared_ptr<CheckArgs> argumentos = std::make_shared<CheckArgs>(argc, argv);
