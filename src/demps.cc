@@ -55,7 +55,7 @@ int main(int argc,char** argv)
 
 	// Inicia el log
 	global::serverLog = new StreamLog("demps", LOG_LOCAL1);
-	global::serverLog->toCOUT(true);
+	global::serverLog->toCOUT(global::execOptions.logToCOUT);
 
 	*global::serverLog << "\n\n";
 	*global::serverLog << "\t****************************\n";

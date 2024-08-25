@@ -82,8 +82,9 @@ namespace global{
 	 *		global::execOptions.agentsOut
 	 */
 	struct ExecOptions_s {      
-		bool        showProgressBar; 
-		bool        agentsOut;
+		bool showProgressBar; 
+		bool agentsOut;
+		bool logToCOUT = true;
 	};
 	extern ExecOptions_s execOptions;
 
