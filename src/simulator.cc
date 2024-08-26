@@ -670,9 +670,23 @@ void Simulator::run()
 	//std::cout << "Simulando... tick>0" << std::endl;
 	for(global::currTimeSim = 1; global::currTimeSim <= _duration; global::currTimeSim++) {
 
-		if(global::execOptions.showProgressBar) {
-			pg.update(global::currTimeSim);
+		if(global::currTimeSim % _interval == 0){
+			std::stringstream p;
+			double progress = (double)global::currTimeSim / (double)_duration * 100.0;
+
+			p << "Tick = " << global::currTimeSim  << " / " << _duration << " ";
+			p << std::setprecision(2) << std::fixed << "[" << progress << "%]";
+
+			if( global::currTimeSim < _duration) {
+				p << "...";
+			}
+
+			*global::serverLog << p.str() << std::endl;
 		}
+
+		//if(global::execOptions.showProgressBar) {
+		//	pg.update(global::currTimeSim);
+		//}
 
 		utils::Timer<std::chrono::milliseconds> timerUpdates;
 		timerUpdates.start();
@@ -799,7 +813,8 @@ void Simulator::run()
 
 	}
 	//Fin ciclo de simulación
-	*global::serverLog   << "Waiting watchDog to end" << std::endl;
+	*global::serverLog << std::endl;
+	*global::serverLog << "Waiting watchDog to end" << std::endl;
 	_execForMTX.lock();
 	_simInExec = false;
 	_execForMTX.unlock();
