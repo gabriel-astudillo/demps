@@ -1,61 +1,64 @@
-SRC=src
-SRC_PY=src_py
-
-RESULTS_SIM=sim/output
-
-SIM_DIR=sim
-PLANET_DIR=planet.openstreetmap.org
-OPEN_ELEV_DIR=open.elevation.server
-
-ANIMATION_DIR=animation
-ANIMATION_FILE=animation.html
-
+CC=gcc
+CXX=g++
+RM=/bin/rm -f
 CP=/bin/cp
-RM=/bin/rm
 
-default: all
+TARGET=./demps
+DIR_INSTALL=/usr/local/bin/
 
-all:
-	@cd $(SRC) && $(MAKE)
+RESTCLIENT_DIR=/usr/local/restclient-cpp
+RESTCLIENT_INCLUDE=$(RESTCLIENT_DIR)/include
+RESTCLIENT_LIB=$(RESTCLIENT_DIR)/lib
+RESTCLIENT_LDFLAGS=$(RESTCLIENT_LIB) -Wl,-rpath -Wl,$(RESTCLIENT_LIB)
 
-clean:
-	@cd $(SRC) && $(MAKE) clean
-	@rm -rf *~ core
+INCLUDES=-I/usr/local/include -I/usr/local/include/osrm -I./include -I. -I/usr/include -I$(RESTCLIENT_INCLUDE)
+LDFLAGS=-L/usr/local/lib -L/usr/lib -L$(RESTCLIENT_LDFLAGS)
+LDLIBS=-lGeographic
+LDLIBS+=-losrm 
+LDLIBS+=-lboost_filesystem
+LDLIBS+=-lboost_iostreams
+LDLIBS+=-lboost_thread
+LDLIBS+=-lrt 
+LDLIBS+=-lpthread
+LDLIBS+=-fopenmp 
+LDLIBS+=-lgmp 
+LDLIBS+=-lrestclient-cpp 
+LDLIBS+=-luuid
+LDLIBS+=-lcurl
+
+CXXFLAGS=-std=c++17 -Wall -O3 -fopenmp
+
+DIR_OBJ=objs
+
+SRCS=$(wildcard *.cc)
+
+OBJS=$(patsubst %.cc,$(DIR_OBJ)/%.o,$(SRCS))
+
+
+all: $(TARGET)
+	@echo Made [ $? ] OK :\)
+	
+$(TARGET): $(OBJS)
+	@echo Linking [$@]
+	@eval $(CXX) -o $@ $^ $(CXXFLAGS) $(LDLIBS) $(LDFLAGS) 
+
+$(DIR_OBJ)/%.o: %.cc
+	@echo Compiling [$@]
+	@mkdir -p $(DIR_OBJ)
+	@eval $(CXX) -c -o $@ $< $(CXXFLAGS) $(INCLUDES)
+
 
 install:
-	@cd $(SRC) && $(MAKE) install
-	@echo \#\#\# Creating symbolic link to \'sim\', \'planet.openstreetmap.org\' and \'open.elevation.server\' in $(HOME)
-	@rm -f $(HOME)/$(SIM_DIR)
-	@rm -f $(HOME)/$(PLANET_DIR)
-	@rm -f $(HOME)/$(OPEN_ELEV_DIR)
-	@ln -s $(PWD)/$(SIM_DIR) $(HOME)/$(SIM_DIR)
-	@ln -s $(PWD)/$(PLANET_DIR) $(HOME)/$(PLANET_DIR)
-	@ln -s $(PWD)/$(OPEN_ELEV_DIR) $(HOME)/$(OPEN_ELEV_DIR)
+	@echo \#\#\# Install demps to $(DIR_INSTALL)
+	@sudo $(CP) $(TARGET) $(DIR_INSTALL)/$(TARGET)
 
-	@echo \#\#\# Apply chmod +x to src_py/*.py
-	@chmod +x $(SRC_PY)/*.py
-
-	@echo \#\#\# Copy $(SRC_PY)/*.py to /usr/local/bin
-	sudo $(CP) $(SRC_PY)/*.py /usr/local/bin
-
-install-docker:
-	@cd $(SRC) && $(MAKE) install
-	@rm -f $(HOME)/$(SIM_DIR)
-	@rm -f $(HOME)/$(PLANET_DIR)
-	@rm -f $(HOME)/$(OPEN_ELEV_DIR)
-	@mkdir -p $(HOME)/$(SIM_DIR)
-	@cp -R $(PWD)/$(PLANET_DIR) $(HOME)/
-	@cp -R $(PWD)/$(OPEN_ELEV_DIR) $(HOME)/
-
-	@echo \#\#\# Apply chmod +x to src_py/*.py
-	@chmod +x $(SRC_PY)/*.py
-
-	@echo \#\#\# Copy $(SRC_PY)/*.py to /usr/local/bin
-	sudo $(CP) $(SRC_PY)/*.py /usr/local/bin
-
+clean:
+	@$(RM) -r $(DIR_OBJ)
+	@$(RM) *~ core
 
 distclean: clean
-	@cd $(SRC) && $(MAKE) distclean
-	@$(RM) -rf $(RESULTS_SIM)
+	@$(RM) $(TARGET)
+	@$(RM) -r $(DIR_OBJ)
 
 .PHONY: all clean distclean
+	
