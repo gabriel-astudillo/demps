@@ -12,9 +12,10 @@ private:
 	// 1) Modificar esta sección
 	//const std::string optString = "c:d:D:e:f:p:P:b:B:v:V:n:N:t:T:o:s:hE";
 	//const std::string optString = "c:d:D:e:f:p:P:b:B:v:n:N:t:T:o:s:hE";
-	const std::string optString = "c:d:D:e:f:p:P:b:B:v:n:N:t:T:o:s:h";
+	const std::string optString = "c:d:D:e:f:p:P:b:B:v:n:N:t:T:o:s:hm";
 	
-	const struct option optStringLong[18] = {
+	const struct option optStringLong[19] = {
+		{"makeconfig"  , no_argument      , nullptr, 'm'},
 		{"config"      , required_argument, nullptr, 'c'},
 		{"densitymodel", required_argument, nullptr, 'd'},
 		{"description" , required_argument, nullptr, 'D'},
@@ -60,10 +61,12 @@ private:
 									 //"\t-V, --elevationfile     file with data elevation. Default: 'elevationPatchData.txt'.\n"
 									 //"\t-E, --patchcoords       save in file 'elevationPatch-<city>.txt the coords (lat,lon) of each patch and end.\n"
 									 "\t-e, --experiment        experiment number.\n"							 
-	                                 "\t-h, --help              Show this help and end.\n";
+	                                 "\t-h, --help              show this help and end.\n"
+									 "\t-m, --makeconfig        create default config file.\n";
  
 	typedef struct args_t {
 		std::string fileConfig;
+		bool        makeConfig;
 		uint32_t duration;
 		int32_t floodModel;
 		int32_t panicModel;
@@ -108,6 +111,7 @@ private:
 CheckArgs::CheckArgs(int _argc, char **_argv)
 {
 	parametros.fileConfig   = "";
+	parametros.makeConfig   = false;
 	parametros.duration     = 0;
 	parametros.floodModel   = -1;
 	parametros.panicModel   = -1;
@@ -197,9 +201,9 @@ void CheckArgs::loadArgs()
 		case 's':
 			parametros.samplingLevel=std::atof(optarg);
 			break;
-		//case 'E':
-		//	parametros.patchCoords=true;
-		//	break;
+		case 'm':
+			parametros.makeConfig = true;
+			break;
 		case 'h':
 		default:
 			printUsage();
@@ -207,7 +211,7 @@ void CheckArgs::loadArgs()
 		}
 	}
 
-	if ( parametros.fileConfig == "" ) {
+	if ( parametros.fileConfig == "" && parametros.makeConfig == false) {
 		printUsage();
 		exit(EXIT_FAILURE);
 	}

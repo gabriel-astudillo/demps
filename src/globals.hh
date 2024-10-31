@@ -95,7 +95,9 @@ namespace global{
 	 *		global::params.closeEnough
 	 *		global::params.randomWalkRadius
 	 *		global::params.attractionRadius
-
+	 *		global::params.configDir
+	 *		global::params.configFile
+	 *
 	 *      global::params.sampling.compareWithOthersSims
 	 *      global::params.sampling.interval
 	 *      global::params.sampling.level
@@ -129,7 +131,10 @@ namespace global{
 		float deltaT;              
 		float closeEnough;         
 		float randomWalkwayRadius; 
-		float attractionRadius;    
+		float attractionRadius;  
+		std::string configDempsDir = "/usr/local/etc/demps/";
+		std::string configDir = "conf.d/";
+		std::string configFile = "demps.conf";
 
 		struct Sampling_s {
 			bool     compareWithOthersSims = false;
@@ -139,7 +144,7 @@ namespace global{
 		} sampling;
 
 		const uint32_t offsetMap = 500; // meters
-		const std::string animationDir  = "/usr/local/etc/demps/animation/";
+		const std::string animationDir  = configDempsDir + "animation/";
 		const std::string animationFile = "animation.html";
 
 		struct ModelsEnable_s {

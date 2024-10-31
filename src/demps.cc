@@ -47,36 +47,110 @@ void loadDataFrom(std::string fileIn, json& dataOut)
 	}
 }
 
+void makeDefaultConfigFile(){
+	std::stringstream buff;
+
+	buff << "[params]\n";
+	buff << "offsetMap=500\n";
+	buff << "animationDir=\"" << global::params.configDempsDir <<  "animation/\"\n";
+	buff << "animationFaile=\"animation.html\"\n";
+	buff << "\n";
+	buff << "[params.sampling]\n";
+	buff << "compareWithOthersSims=false\n";
+	buff << "level=0.5\n";
+	buff << "saveSimInDB=false\n";
+	buff << "\n";
+	buff << "[params.watchdog]\n\n";
+	buff << "initialWaitTime=60\n";
+	buff << "deltaTime=60\n";
+	buff << "thresTime=30\n";
+	buff << "pidFile=demps.pid\n";
+	buff << "\n";
+	buff << "[params.snitchServer]\n";
+	buff << "URL=\"http://127.0.0.1:6502/v1/snitch/api\"\n";
+	buff << "seekRadius=0.5\n";
+	buff << "xsteps=10\n";
+	buff << "cutOff=10\n";
+	buff << "seekRadiusHMap=5\n";
+	buff << "cutoffHMap=10\n";
+	buff << "\n";
+	buff << "[params.elevationServer]\n";
+	buff << "URL=\"http://127.0.0.1:10666\"\n";
+	buff << "coorTest=\"-33.144995,-71.568655\"\n";
+
+	std::ofstream ofs;
+
+	std::string configConfigDirPath = global::params.configDempsDir + global::params.configDir;
+	if( !std::filesystem::exists( configConfigDirPath  )){
+		std::filesystem::create_directories( configConfigDirPath );
+	}
+
+	std::string configFilePath = configConfigDirPath + global::params.configFile;
+
+	ofs.open(configFilePath);
+	if(ofs.fail()) {
+		std::cerr << "Failed to create file '" << configFilePath << "'\n";
+		exit(EXIT_FAILURE);
+	}
+
+	ofs << buff.str() << std::endl;
+	ofs.close();
+
+
+}
+
 int main(int argc,char** argv)
 {
 
 	json settings;
 	json zones;
 
+
 	// Inicia el log
 	global::serverLog = new StreamLog("demps", LOG_LOCAL1);
 	global::serverLog->toCOUT(global::execOptions.logToCOUT);
+
+	// Adquirir parámetros de entrada
+	std::shared_ptr<CheckArgs> argumentos = std::make_shared<CheckArgs>(argc, argv);
+
+	bool makeConfig = argumentos->getArgs().makeConfig;
+
+	std::string configFilePath = global::params.configDempsDir + global::params.configDir + global::params.configFile;
+
+	if(makeConfig){
+		*global::serverLog  << "Make default configuration in "<< configFilePath << std::endl;
+		makeDefaultConfigFile();
+		exit(EXIT_SUCCESS);
+	}
+	
+	// Verficar que el archivo de  configuración global::params.configDir existe
+	if( !std::filesystem::exists(configFilePath) ){
+		*global::serverLog << "Error.\nConfig file " << configFilePath << " no exists.\n";
+		*global::serverLog << "Execute '" <<  argv[0] << " --makeconfig' for create a default configuration\n";
+		*global::serverLog << std::endl;
+
+		exit(EXIT_FAILURE);
+	}
+	
+	// Carga el archivo de configuración JSON en settings.
+	std::string fileConfig = argumentos->getArgs().fileConfig;
+	std::ifstream ifs;
+	
+	*global::serverLog  << "Load configuration from "<< fileConfig << std::endl;
+	ifs.open(fileConfig, std::ifstream::in);
+	if( ifs.fail() ) {
+		*global::serverLog  << "Error in open file: "<< fileConfig << std::endl;
+		ifs.close();
+		exit(EXIT_FAILURE);
+	}
+	ifs >> settings;
+	ifs.close();
 
 	*global::serverLog << "\n\n";
 	*global::serverLog << "\t****************************\n";
 	*global::serverLog << "\t*  Starting new simulation *\n";
 	*global::serverLog << "\t****************************\n";
 	*global::serverLog << std::endl;
-
-	// Adquirir parámetros de entrada
-	std::shared_ptr<CheckArgs> argumentos = std::make_shared<CheckArgs>(argc, argv);
-
-	// Carga el archivo de configuración JSON en settings.
-	std::string fileConfig = argumentos->getArgs().fileConfig;
-	std::ifstream ifs;
-	ifs.open(fileConfig, std::ifstream::in);
-	if( ifs.fail() ) {
-		*global::serverLog  << "Error in open file: "<< argumentos->getArgs().fileConfig << std::endl;
-		ifs.close();
-		exit(EXIT_FAILURE);
-	}
-	ifs >> settings;
-	ifs.close();
 
 	//En el caso que existan paramentros de entrada,
 	//sobreescribe los valores del json settings

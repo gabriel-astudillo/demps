@@ -5,6 +5,8 @@
 #include <json.hpp>
 using json=nlohmann::json;
 
+#include <ini.hpp>
+
 #include <simulator.hh>
 #include <checkArgs.hpp>
 #include <utils.hh>
