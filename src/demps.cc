@@ -52,22 +52,22 @@ void makeDefaultConfigFile(){
 
 	buff << "[params]\n";
 	buff << "offsetMap=500\n";
-	buff << "animationDir=\"" << global::params.configDempsDir <<  "animation/\"\n";
-	buff << "animationFaile=\"animation.html\"\n";
+	buff << "animationDir=" << global::params.configDempsDir <<  "animation/\n";
+	buff << "animationFile=animation.html\n";
 	buff << "\n";
 	buff << "[params.sampling]\n";
 	buff << "compareWithOthersSims=false\n";
 	buff << "level=0.5\n";
 	buff << "saveSimInDB=false\n";
 	buff << "\n";
-	buff << "[params.watchdog]\n\n";
+	buff << "[params.watchdog]\n";
 	buff << "initialWaitTime=60\n";
 	buff << "deltaTime=60\n";
 	buff << "thresTime=30\n";
 	buff << "pidFile=demps.pid\n";
 	buff << "\n";
 	buff << "[params.snitchServer]\n";
-	buff << "URL=\"http://127.0.0.1:6502/v1/snitch/api\"\n";
+	buff << "URL=http://127.0.0.1:6502/v1/snitch/api\n";
 	buff << "seekRadius=0.5\n";
 	buff << "xsteps=10\n";
 	buff << "cutOff=10\n";
@@ -75,8 +75,8 @@ void makeDefaultConfigFile(){
 	buff << "cutoffHMap=10\n";
 	buff << "\n";
 	buff << "[params.elevationServer]\n";
-	buff << "URL=\"http://127.0.0.1:10666\"\n";
-	buff << "coorTest=\"-33.144995,-71.568655\"\n";
+	buff << "URL=http://127.0.0.1:10666\n";
+	buff << "coorTest=-33.144995,-71.568655\n";
 
 	std::ofstream ofs;
 
@@ -123,12 +123,41 @@ int main(int argc,char** argv)
 		exit(EXIT_SUCCESS);
 	}
 	
-	// Verficar que el archivo de  configuración global::params.configDir existe
+	// Verificar que el archivo de  configuración 'configFilePath' existe
 	if( !std::filesystem::exists(configFilePath) ){
 		*global::serverLog << "Error.\nConfig file " << configFilePath << " no exists.\n";
-		*global::serverLog << "Execute '" <<  argv[0] << " --makeconfig' for create a default configuration\n";
-		*global::serverLog << std::endl;
+		//*global::serverLog << "Execute '" <<  argv[0] << " --makeconfig' for create a default configuration\n";
+		//*global::serverLog << std::endl;
+		//exit(EXIT_FAILURE);
+		*global::serverLog  << "Make default configuration in "<< configFilePath << std::endl;
+		makeDefaultConfigFile();
+	}
 
+	// Cargar variables globales desde el archivo de configuración 'configFilePath'
+	iniLib::INIReader dempsConfig{configFilePath};
+	try{
+		global::params.offsetMap                      = dempsConfig.Get<uint32_t>("params","offsetMap");
+		global::params.animationDir                   = dempsConfig.Get<std::string>("params","animationDir");
+		global::params.animationFile                  = dempsConfig.Get<std::string>("params","animationFile");
+		global::params.sampling.compareWithOthersSims = dempsConfig.Get<bool>("params.sampling","compareWithOthersSims");
+		global::params.sampling.level                 = dempsConfig.Get<double>("params.sampling","level");
+		global::params.sampling.saveSimInDB           = dempsConfig.Get<bool>("params.sampling","saveSimInDB");
+		global::params.watchDog.initialWaitTime       = dempsConfig.Get<uint32_t>("params.watchdog","initialWaitTime");
+		global::params.watchDog.deltaTime             = dempsConfig.Get<uint32_t>("params.watchdog","deltaTime");
+		global::params.watchDog.thresTime             = dempsConfig.Get<uint32_t>("params.watchdog","thresTime");
+		global::params.watchDog.pidFile               = dempsConfig.Get<std::string>("params.watchdog","pidFile");
+		global::params.snitchServer.URL               = dempsConfig.Get<std::string>("params.snitchServer","URL");
+		global::params.snitchServer.seekRadius        = dempsConfig.Get<double>("params.snitchServer","seekRadius");
+		global::params.snitchServer.xsteps            = dempsConfig.Get<uint32_t>("params.snitchServer","xsteps");
+		global::params.snitchServer.cutOff            = dempsConfig.Get<uint32_t>("params.snitchServer","cutOff");
+		global::params.snitchServer.seekRadiusHMap    = dempsConfig.Get<double>("params.snitchServer","seekRadiusHMap");
+		global::params.snitchServer.cutoffHMap        = dempsConfig.Get<uint32_t>("params.snitchServer","cutoffHMap");
+		global::params.elevationServer.URL            = dempsConfig.Get<std::string>("params.elevationServer","URL");
+		global::params.elevationServer.coorTest       = dempsConfig.Get<std::string>("params.elevationServer","coorTest");
+	}
+	catch(std::exception& e){
+		*global::serverLog << "Error in get action from file '" << configFilePath << "'\n";
+		*global::serverLog << e.what() << std::endl;
 		exit(EXIT_FAILURE);
 	}
 	

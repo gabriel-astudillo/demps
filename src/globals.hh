@@ -143,9 +143,9 @@ namespace global{
 			bool     saveSimInDB   = false;
 		} sampling;
 
-		const uint32_t offsetMap = 500; // meters
-		const std::string animationDir  = configDempsDir + "animation/";
-		const std::string animationFile = "animation.html";
+		uint32_t offsetMap = 500; // meters
+		std::string animationDir  = configDempsDir + "animation/";
+		std::string animationFile = "animation.html";
 
 		struct ModelsEnable_s {
 			bool panic;     
@@ -155,24 +155,24 @@ namespace global{
 		} modelsEnable;
 
 		struct WathDog_s {
-			const uint32_t initialWaitTime = 60;  //segundos
-			const uint32_t deltaTime       = 60;  //segundos
-			const uint32_t thresTime       = 30; //segundos
-			const std::string pidFile      = "demps.pid";
+			uint32_t initialWaitTime = 60;  //segundos
+			uint32_t deltaTime       = 60;  //segundos
+			uint32_t thresTime       = 30; //segundos
+			std::string pidFile      = "demps.pid";
 		} watchDog;
 
 		struct SnitchServer_s {
-			const std::string URL         = "http://127.0.0.1:6502/v1/snitch/api";
-			const double   seekRadius     = 0.5; 
-			const uint32_t xsteps         = 10;
-			const uint32_t cutOff         = 10;
-			const double   seekRadiusHMap = 5;
-			const uint32_t cutoffHMap     = 10;
+			std::string URL         = "http://127.0.0.1:6502/v1/snitch/api";
+			double   seekRadius     = 0.5; 
+			uint32_t xsteps         = 10;
+			uint32_t cutOff         = 10;
+			double   seekRadiusHMap = 5;
+			uint32_t cutoffHMap     = 10;
 		} snitchServer;
 
 		struct ElevationServer_s {
-			const std::string URL      = "http://127.0.0.1:64000";
-			const std::string coorTest = "-33.144995,-71.568655";
+			std::string URL      = "http://127.0.0.1:64000";
+			std::string coorTest = "-33.144995,-71.568655";
 		} elevationServer;
 	};
     extern Params_s params;
