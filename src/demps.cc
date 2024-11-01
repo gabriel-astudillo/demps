@@ -67,7 +67,7 @@ void makeDefaultConfigFile(){
 	buff << "pidFile=demps.pid\n";
 	buff << "\n";
 	buff << "[params.snitchServer]\n";
-	buff << "URL=http://127.0.0.1:6502/v1/snitch/api\n";
+	buff << "URL=http://snitch:10667/v1/snitch/api\n";
 	buff << "seekRadius=0.5\n";
 	buff << "xsteps=10\n";
 	buff << "cutOff=10\n";
@@ -75,7 +75,7 @@ void makeDefaultConfigFile(){
 	buff << "cutoffHMap=10\n";
 	buff << "\n";
 	buff << "[params.elevationServer]\n";
-	buff << "URL=http://127.0.0.1:10666\n";
+	buff << "URL=http://oes:10666\n";
 	buff << "coorTest=-33.144995,-71.568655\n";
 
 	std::ofstream ofs;
