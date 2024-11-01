@@ -75,7 +75,7 @@ void makeDefaultConfigFile(){
 	buff << "cutoffHMap=10\n";
 	buff << "\n";
 	buff << "[params.elevationServer]\n";
-	buff << "URL=http://oes:10666\n";
+	buff << "URL=http://oes:10666/api/v1\n";
 	buff << "coorTest=-33.144995,-71.568655\n";
 
 	std::ofstream ofs;
@@ -340,16 +340,18 @@ int main(int argc,char** argv)
 	
 	if(settings["elevationModelEnable"]){
 		json geoInfoTest;
-		std::string req = global::params.elevationServer.URL + "/api/v1/lookup?locations=" + global::params.elevationServer.coorTest;
+		std::string req = global::params.elevationServer.URL + "/lookup?locations=" + global::params.elevationServer.coorTest;
 
-		*global::serverLog << "Verificando servidor de elevación:" <<  global::params.elevationServer.URL << std::endl;
+		*global::serverLog << "Verificando servidor de elevación:" <<  global::params.elevationServer.URL << "\n";
+		*global::serverLog << "Solicitud: " << req <<  std::endl;
 
 		try{
 			utils::restClient_get(req, geoInfoTest);
 
 			assert(geoInfoTest["results"][0]["elevation"].get<int>() >= 0);
-
-			*global::serverLog << "El servidor " << global::params.elevationServer.URL << " entrega datos de elevación" << std::endl;
+			*global::serverLog << "Solicitud: " << req << "\n";
+			*global::serverLog << "El servidor " << global::params.elevationServer.URL << " entrega datos de elevación:\n";
+			*global::serverLog << geoInfoTest.dump(4) << std::endl;
 
 		} catch(std::exception& e){
 			settings["elevationModelEnable"] = false;
@@ -363,7 +365,7 @@ int main(int argc,char** argv)
 	
 
 	// El nombre archivo osrm es utilizado por la
-	// clase Router. Se revisa que efectivamente exista y
+	// clase Router. Se revisa que efectivamente exista y/
 	// se pueda leer.
 	ifs.open(map_osrm,std::ifstream::in);
 	if(ifs.fail()) {

@@ -293,7 +293,7 @@ int32_t PatchAgent::getElevation()
 		// Esto se hace sólo una vez.
 		// La latitud y longitud del patch son las coordenadas del punto central de él.
 		std::string req;
-		req = global::params.elevationServer.URL + "/api/v1/lookup?locations=";
+		req = global::params.elevationServer.URL + "/lookup?locations=";
 		req += std::to_string(_myQuad.lat) + "," + std::to_string(_myQuad.lon);
 
 		json geoInfoTest;
