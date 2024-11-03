@@ -38,9 +38,9 @@ install:
 install-docker:
 	@cd $(SRC) && $(MAKE) install
 	@rm -f $(HOME)/$(SIM_DIR)
-	@rm -f $(HOME)/$(PLANET_DIR)
+	#@rm -f $(HOME)/$(PLANET_DIR)
 	@mkdir -p $(HOME)/$(SIM_DIR)
-	@cp -R $(PWD)/$(PLANET_DIR) $(HOME)/
+	#@cp -R $(PWD)/$(PLANET_DIR) $(HOME)/
 
 	@echo \#\#\# Apply chmod +x to src_py/*.py
 	@chmod +x $(SRC_PY)/*.py
